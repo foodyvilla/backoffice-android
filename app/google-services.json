@@ -1,0 +1,76 @@
+{
+  "project_info": {
+    "project_number": "936302589972",
+    "project_id": "foodyvilla-fd42d",
+    "storage_bucket": "foodyvilla-fd42d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:936302589972:android:7ef9bfffe48e6ac0f4cf01",
+        "android_client_info": {
+          "package_name": "com.jp.foodyvilla"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "936302589972-k0dp943fio5c6psnu0uhf0s9pqo9jel2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jp.foodyvilla",
+            "certificate_hash": "6e7968084f4ca7cce3ecdc43ca73412501f81bcc"
+          }
+        },
+        {
+          "client_id": "936302589972-bjm4nnn6sie66eaqalfi0l6re6ja7fju.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBbYNgOxeg0Q07UydzQyQaH_QGky8aCGV8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "936302589972-bjm4nnn6sie66eaqalfi0l6re6ja7fju.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:936302589972:android:c0bd1f8a5b81be8ef4cf01",
+        "android_client_info": {
+          "package_name": "com.jp.foodyvilla_backoffice"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "936302589972-bjm4nnn6sie66eaqalfi0l6re6ja7fju.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBbYNgOxeg0Q07UydzQyQaH_QGky8aCGV8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "936302589972-bjm4nnn6sie66eaqalfi0l6re6ja7fju.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
