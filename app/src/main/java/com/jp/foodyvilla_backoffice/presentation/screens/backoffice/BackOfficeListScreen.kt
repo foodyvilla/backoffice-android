@@ -50,6 +50,8 @@ internal fun BackOfficeListScreen(
     onSearch: (String) -> Unit,
     onCreate: () -> Unit,
     onOrderStatusChange: (JsonObject, String) -> Unit,
+    onPunchIn: () -> Unit,
+    onPunchOut: () -> Unit,
     onOpenDetails: (JsonObject) -> Unit
 ) {
     val rows = remember(state.rows, state.searchQuery) {
@@ -80,22 +82,47 @@ internal fun BackOfficeListScreen(
         }
         item {
             PremiumCard {
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth().padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(route.icon, contentDescription = null, tint = RoyalBlue)
-                    Column(Modifier.weight(1f)) {
-                        Text("${rows.size} records", color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
-                        Text(state.selectedTable.description, color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
-                    Button(
-                        onClick = onCreate,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Text("New")
+                        Icon(route.icon, contentDescription = null, tint = RoyalBlue)
+                        Column(Modifier.weight(1f)) {
+                            Text("${rows.size} records", color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
+                            Text(state.selectedTable.description, color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                        if (route.canCreate) {
+                            Button(
+                                onClick = onCreate,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                            ) {
+                                Text("New")
+                            }
+                        }
+                    }
+                    if (route == AdminRoute.Attendance) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(
+                                onClick = onPunchIn,
+                                enabled = !state.isSaving,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Success)
+                            ) {
+                                Text("Punch In")
+                            }
+                            OutlinedButton(
+                                onClick = onPunchOut,
+                                enabled = !state.isSaving,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+                            ) {
+                                Text("Punch Out")
+                            }
+                        }
                     }
                 }
             }
@@ -115,6 +142,7 @@ internal fun BackOfficeListScreen(
             items(rows, key = { it[state.selectedTable.primaryKey].toDisplayText() }) { row ->
                 when (route) {
                     AdminRoute.Products -> ProductRecordCard(row, onClick = { onOpenDetails(row) })
+                    AdminRoute.OrderItems -> OrderItemRecordCard(row, onClick = { onOpenDetails(row) })
                     AdminRoute.Orders -> OrderRecordCard(
                         row = row,
                         onStatusChange = { status -> onOrderStatusChange(row, status) },
@@ -124,6 +152,7 @@ internal fun BackOfficeListScreen(
                     AdminRoute.Reviews -> ReviewRecordCard(row, onClick = { onOpenDetails(row) })
                     AdminRoute.Offers, AdminRoute.Banners -> MediaRecordCard(state.selectedTable, row, onClick = { onOpenDetails(row) })
                     AdminRoute.Employees -> EmployeeRecordCard(row, onClick = { onOpenDetails(row) })
+                    AdminRoute.OutletMenu -> OutletMenuRecordCard(row, onClick = { onOpenDetails(row) })
                     else -> GenericRecordCard(state.selectedTable, row, onClick = { onOpenDetails(row) })
                 }
             }
@@ -187,7 +216,7 @@ internal fun BackOfficeDetailScreen(
                             Text("No linked order_items rows found.", color = Muted)
                         } else {
                             orderItems.forEach { item ->
-                                val product = productsById[item["productid"].toDisplayText()]
+                                val product = productsById[item["menu_item_id"].toDisplayText()]
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     RecordImage(product?.firstImageUrl(), product?.get("name").toDisplayText("Product"), 52)
                                     Column(Modifier.weight(1f)) {
@@ -198,6 +227,24 @@ internal fun BackOfficeDetailScreen(
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+        if (table.name == "outlet_menu_items") {
+            item {
+                PremiumCard {
+                    Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("Product catalog details", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        DetailLine("Product", row["product_name"].toDisplayText("Product"))
+                        DetailLine("Category", row["product_category"].toDisplayText())
+                        DetailLine("Description", row["product_description"].toDisplayText())
+                        DetailLine("Veg", row["product_is_veg"].toDisplayText())
+                        DetailLine("Prep time", row["product_prep_time"].toDisplayText())
+                        DetailLine("Menu price", "Rs ${row["price"].toDisplayText("0")}")
+                        DetailLine("Discount", row["discount"].toDisplayText("0"))
+                        DetailLine("Available", row["is_available"].toDisplayText())
+                        DetailLine("Out of stock", row["is_out_of_stock"].toDisplayText())
                     }
                 }
             }
@@ -216,7 +263,7 @@ internal fun ProductRecordCard(row: JsonObject, onClick: () -> Unit) {
                 Text(row["category"].toDisplayText("No category"), color = Muted, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatusPill("Rs ${row["price"].toDisplayText("0")}", RoyalBlue)
-                    if (row["isBestSeller"].toDisplayText().equals("true", true)) StatusPill("Bestseller", Success)
+                    if (row["is_bestseller"].toDisplayText().equals("true", true)) StatusPill("Bestseller", Success)
                 }
             }
         }
@@ -259,7 +306,7 @@ internal fun OrderRecordCard(
 @Composable
 private fun OrderStatusDropdown(current: String, onStatusChange: (String) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
-    val statuses = listOf("Placed", "Preparing", "Ready", "Out for Delivery", "Cancelled")
+    val statuses = listOf("pending", "accepted", "preparing", "ready", "completed", "rejected")
     androidx.compose.material3.Surface(
         modifier = modifier.height(50.dp).clickable { expanded = true },
         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
@@ -331,7 +378,7 @@ internal fun ReviewRecordCard(row: JsonObject, onClick: () -> Unit) {
             RecordImage(row.firstImageUrl(), "Review", 68)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(row["title"].toDisplayText("Review"), fontWeight = FontWeight.Bold)
-                Text(row["desc"].toDisplayText("No description"), color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(row["description"].toDisplayText("No description"), color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 StatusPill("${row["rating"].toDisplayText("0")} stars", Warning)
             }
         }
@@ -345,7 +392,7 @@ internal fun MediaRecordCard(table: AdminTable, row: JsonObject, onClick: () -> 
             RecordImage(row.firstImageUrl(table), row["title"].toDisplayText(table.title), 86)
             Column(Modifier.weight(1f)) {
                 Text(row["title"].toDisplayText(table.title), fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                Text(row["desc"].toDisplayText(row["created_at"].toDisplayText()), color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(row["description"].toDisplayText(row["created_at"].toDisplayText()), color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -366,19 +413,59 @@ internal fun EmployeeRecordCard(row: JsonObject, onClick: () -> Unit) {
 }
 
 @Composable
-internal fun GenericRecordCard(table: AdminTable, row: JsonObject, onClick: () -> Unit) {
+internal fun OutletMenuRecordCard(row: JsonObject, onClick: () -> Unit) {
     PremiumCard(onClick = onClick) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(table.title, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-            table.displayColumns.take(4).forEach { column ->
-                DetailLine(column.replace("_", " "), row[column].toDisplayText())
+        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            RecordImage(row.firstImageUrl(), row["product_name"].toDisplayText("Menu item"), 84)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(row["product_name"].toDisplayText("Product"), fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(row["product_category"].toDisplayText("No category"), color = Muted, fontSize = 13.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatusPill("Rs ${row["price"].toDisplayText("0")}", RoyalBlue)
+                    StatusPill(if (row["is_available"].toDisplayText().equals("true", true)) "Available" else "Hidden", if (row["is_available"].toDisplayText().equals("true", true)) Success else Muted)
+                    if (row["is_out_of_stock"].toDisplayText().equals("true", true)) StatusPill("Out of stock", Danger)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun DetailLine(label: String, value: String) {
+internal fun OrderItemRecordCard(row: JsonObject, onClick: () -> Unit) {
+    PremiumCard(onClick = onClick) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            RecordImage(row.firstImageUrl(), row["product_name"].toDisplayText("Order item"), 76)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(row["product_name"].toDisplayText("Product"), fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(row["order_label"].toDisplayText("Order #${row["order_id"].toDisplayText().take(8)}"), color = Muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatusPill("Qty ${row["qty"].toDisplayText("1")}", RoyalBlue)
+                    StatusPill("Rs ${row["total_price"].toDisplayText("0")}", Success)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun GenericRecordCard(table: AdminTable, row: JsonObject, onClick: () -> Unit) {
+    PremiumCard(onClick = onClick) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            row.firstImageUrl(table)?.let { image ->
+                RecordImage(image, table.title, 62)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(table.title, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                table.displayColumns.take(4).forEach { column ->
+                    DetailLine(column.replace("_", " "), row[column].toDisplayText())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun DetailLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = Muted, fontSize = 13.sp, modifier = Modifier.weight(.42f))
         Text(value, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(.58f), maxLines = 2, overflow = TextOverflow.Ellipsis)

@@ -2,11 +2,14 @@ package com.jp.foodyvilla_backoffice.presentation.screens.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.google.firebase.messaging.FirebaseMessaging
 import com.jp.foodyvilla_backoffice.data.model.user.UserProfile
 import com.jp.foodyvilla_backoffice.data.repo.AuthRepo
 import com.jp.foodyvilla_backoffice.data.repo.LocationRepository
 import com.jp.foodyvilla_backoffice.data.repo.UserRepository
+import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.utils.UiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +19,19 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-class LoginViewModel(private val authRepo: AuthRepo, private val userRepository: UserRepository, private val locationRepository: LocationRepository) :
+sealed interface LoginUiState {
+    data object Idle : LoginUiState
+    data object Loading : LoginUiState
+    data class Success(val session: UserSession) : LoginUiState
+    data class Error(val message: String) : LoginUiState
+}
+
+class LoginViewModel(
+    private val authRepo: AuthRepo,
+    private val userRepository: UserRepository,
+    private val locationRepository: LocationRepository,
+    private val backOfficeAuthRepository: AuthRepository
+) :
     ViewModel() {
 
 
@@ -31,6 +46,10 @@ class LoginViewModel(private val authRepo: AuthRepo, private val userRepository:
 
     private val _loginUiState = MutableStateFlow<UiState<String>>(UiState.Idle)
     val loginUiState = _loginUiState.asStateFlow()
+
+    private val _credentialLoginUiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
+    val credentialLoginUiState = _credentialLoginUiState.asStateFlow()
+    val currentSession = backOfficeAuthRepository.currentSession
 
 
     private val _getOtpState = MutableStateFlow<UiState<String>>(UiState.Idle)
@@ -110,6 +129,51 @@ class LoginViewModel(private val authRepo: AuthRepo, private val userRepository:
                 }
             }
 
+        }
+    }
+
+    fun loginOutlet(username: String, password: String) {
+        viewModelScope.launch {
+            Log.d(TAG, "Outlet login requested for username=${username.trim()}")
+            _credentialLoginUiState.value = LoginUiState.Loading
+            backOfficeAuthRepository.loginOutlet(username = username, password = password)
+                .onSuccess { session ->
+                    Log.d(TAG, "Outlet login success: outletId=${session.outletId}, username=${session.username}, role=${session.role}")
+                    _credentialLoginUiState.value = LoginUiState.Success(session)
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "Outlet login failed: ${throwable.message}", throwable)
+                    _credentialLoginUiState.value =
+                        LoginUiState.Error(throwable.message ?: "Unable to sign in")
+                }
+        }
+    }
+
+    fun loginEmployee(identifier: String, password: String) {
+        viewModelScope.launch {
+            Log.d(TAG, "Employee login requested for identifier=${identifier.trim()}")
+            _credentialLoginUiState.value = LoginUiState.Loading
+            backOfficeAuthRepository.loginEmployee(identifier = identifier, password = password)
+                .onSuccess { session ->
+                    Log.d(
+                        TAG,
+                        "Employee login success: empId=${session.empId}, outletId=${session.outletId}, designationId=${session.designationId}, role=${session.role}, name=${session.name}, contact=${session.contact}, permissions=${session.permissions}"
+                    )
+                    _credentialLoginUiState.value = LoginUiState.Success(session)
+                }
+                .onFailure { throwable ->
+                    Log.e(TAG, "Employee login failed: ${throwable.message}", throwable)
+                    _credentialLoginUiState.value =
+                        LoginUiState.Error(throwable.message ?: "Unable to sign in")
+                }
+        }
+    }
+
+    fun logoutBackOffice() {
+        viewModelScope.launch {
+            Log.d(TAG, "Backoffice logout requested")
+            backOfficeAuthRepository.logout()
+            _credentialLoginUiState.value = LoginUiState.Idle
         }
     }
 
@@ -245,6 +309,10 @@ val updateState = _updateState.asStateFlow()
 
     fun resetUpdateState(){
         _updateState.value = UiState.Idle
+    }
+
+    private companion object {
+        const val TAG = "BackOfficeLoginVM"
     }
 }
 

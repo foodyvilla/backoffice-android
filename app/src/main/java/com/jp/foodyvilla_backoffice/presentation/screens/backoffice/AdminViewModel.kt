@@ -30,6 +30,7 @@ data class AdminUiState(
     val orderItemsByOrderId: Map<String, List<JsonObject>> = emptyMap(),
     val productsById: Map<String, JsonObject> = emptyMap(),
     val dashboardRows: Map<String, List<JsonObject>> = emptyMap(),
+    val lookupRows: Map<String, List<JsonObject>> = emptyMap(),
     val uploadingColumn: String? = null,
     val newOrder: JsonObject? = null
 )
@@ -67,6 +68,7 @@ class AdminViewModel(
                 productsById = emptyMap()
             )
         }
+        loadLookupsFor(table)
         observeJob = viewModelScope.launch {
             repository.observeRows(table).collect { result ->
                 result.fold(
@@ -145,6 +147,19 @@ class AdminViewModel(
 
     fun startCreate() {
         val table = _uiState.value.selectedTable
+        _uiState.update {
+            it.copy(
+                editingRow = null,
+                formValues = repository.toEditableValues(table, null),
+                error = null,
+                successMessage = null
+            )
+        }
+    }
+
+    fun startCreateFor(tableName: String) {
+        val table = adminTables.firstOrNull { it.name == tableName } ?: return
+        selectTable(table)
         _uiState.update {
             it.copy(
                 editingRow = null,
@@ -296,6 +311,38 @@ class AdminViewModel(
         }
     }
 
+    fun punchIn() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, error = null, successMessage = null) }
+            runCatching { repository.punchIn() }
+                .onSuccess {
+                    _uiState.update { it.copy(isSaving = false, successMessage = "Punch in recorded") }
+                    refresh()
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(isSaving = false, error = throwable.message ?: "Punch in failed")
+                    }
+                }
+        }
+    }
+
+    fun punchOut() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, error = null, successMessage = null) }
+            runCatching { repository.punchOut() }
+                .onSuccess {
+                    _uiState.update { it.copy(isSaving = false, successMessage = "Punch out recorded") }
+                    refresh()
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(isSaving = false, error = throwable.message ?: "Punch out failed")
+                    }
+                }
+        }
+    }
+
     fun clearMessage() {
         _uiState.update { it.copy(error = null, successMessage = null) }
     }
@@ -311,6 +358,20 @@ class AdminViewModel(
                 table.name to runCatching { repository.loadRows(table) }.getOrDefault(emptyList())
             } + ("order_items" to runCatching { repository.loadOrderItems() }.getOrDefault(emptyList()))
             _uiState.update { it.copy(dashboardRows = rowsByTable) }
+        }
+    }
+
+    private fun loadLookupsFor(table: AdminTable) {
+        val referenceTables = table.editableColumns
+            .mapNotNull { it.reference?.table }
+            .distinct()
+        if (referenceTables.isEmpty()) return
+
+        viewModelScope.launch {
+            val lookupRows = referenceTables.associateWith { tableName ->
+                runCatching { repository.loadLookupRows(tableName) }.getOrDefault(emptyList())
+            }
+            _uiState.update { it.copy(lookupRows = it.lookupRows + lookupRows) }
         }
     }
 
@@ -330,6 +391,6 @@ class AdminViewModel(
     }
 
     private companion object {
-        val dashboardTableNames = setOf("orders", "products", "users", "reviews", "offers", "banners", "employee", "attendance")
+        val dashboardTableNames = setOf("orders", "product_catalog", "outlet_menu_items", "users", "reviews", "offers", "banners", "employee", "attendance", "outlets", "payments")
     }
 }

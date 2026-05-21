@@ -23,6 +23,8 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
@@ -43,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminColumn
 import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminColumnType
+import kotlinx.serialization.json.JsonObject
 
 @Composable
 internal fun BackOfficeFormScreen(
@@ -51,6 +54,7 @@ internal fun BackOfficeFormScreen(
     onBack: () -> Unit,
     onFormChange: (String, String) -> Unit,
     onUploadImage: (Uri, String) -> Unit,
+    onCreateProduct: (() -> Unit)? = null,
     onSave: () -> Unit
 ) {
     val title = if (mode == FormMode.Create) state.selectedTable.createLabel else "Edit ${state.selectedTable.title.removeSuffix("s")}"
@@ -97,8 +101,14 @@ internal fun BackOfficeFormScreen(
                                 AdminFormField(
                                     column = column,
                                     value = state.formValues[column.name].orEmpty(),
+                                    options = column.reference?.let { state.lookupRows[it.table].orEmpty() }.orEmpty(),
                                     onChange = { onFormChange(column.name, it) }
                                 )
+                                if (state.selectedTable.name == "outlet_menu_items" && column.name == "product_id" && onCreateProduct != null) {
+                                    OutlinedButton(onClick = onCreateProduct, modifier = Modifier.fillMaxWidth()) {
+                                        Text("Add new product catalog item")
+                                    }
+                                }
                             }
                     }
                 }
@@ -183,8 +193,20 @@ private fun ImageUploadField(
 }
 
 @Composable
-private fun AdminFormField(column: AdminColumn, value: String, onChange: (String) -> Unit) {
-    if (column.type == AdminColumnType.Boolean) {
+private fun AdminFormField(
+    column: AdminColumn,
+    value: String,
+    options: List<JsonObject>,
+    onChange: (String) -> Unit
+) {
+    if (column.reference != null && options.isNotEmpty()) {
+        ReferenceDropdownField(
+            column = column,
+            value = value,
+            options = options,
+            onChange = onChange
+        )
+    } else if (column.type == AdminColumnType.Boolean) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(column.label, color = Muted, fontSize = 13.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -209,6 +231,55 @@ private fun AdminFormField(column: AdminColumn, value: String, onChange: (String
             )
         )
     }
+}
+
+@Composable
+private fun ReferenceDropdownField(
+    column: AdminColumn,
+    value: String,
+    options: List<JsonObject>,
+    onChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val reference = column.reference ?: return
+    val selected = options.firstOrNull { it[reference.valueColumn].toDisplayText() == value }
+    val selectedLabel = selected?.referenceLabel(reference.labelColumns)
+        ?: value.takeIf { it.isNotBlank() }
+        ?: "Select ${column.label}"
+
+    Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth().height(58.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp)
+        ) {
+            Text(
+                text = selectedLabel,
+                modifier = Modifier.weight(1f),
+                color = Ink
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { row ->
+                val id = row[reference.valueColumn].toDisplayText()
+                DropdownMenuItem(
+                    text = { Text(row.referenceLabel(reference.labelColumns)) },
+                    onClick = {
+                        expanded = false
+                        onChange(id)
+                    }
+                )
+            }
+        }
+    }
+}
+
+private fun JsonObject.referenceLabel(columns: List<String>): String {
+    val pieces = columns.mapNotNull { column ->
+        this[column].toDisplayText().takeIf { it != "-" }
+    }
+    val fallback = this["id"].toDisplayText()
+    return pieces.joinToString(" - ").ifBlank { fallback }
 }
 
 private fun AdminColumn.isImageColumn(): Boolean {

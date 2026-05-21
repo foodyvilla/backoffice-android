@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.RestaurantMenu
@@ -48,19 +49,24 @@ internal enum class AdminRoute(
     val canCreate: Boolean = false
 ) {
     Dashboard("Dashboard", "Live store overview", Icons.Default.Home),
-    Products("Products", "Menu items and stock", Icons.Default.RestaurantMenu, "products", true),
+    Products("Products", "Product catalog", Icons.Default.RestaurantMenu, "product_catalog", true),
     Categories("Categories", "Menu hierarchy", Icons.Default.Category),
     Orders("Orders", "Kitchen and delivery queue", Icons.Default.ReceiptLong, "orders", true),
+    OrderItems("Order Items", "Line items and pricing", Icons.Default.Inventory, "order_items", true),
     Customers("Customers", "Profiles and activity", Icons.Default.People, "users", true),
     Reviews("Reviews", "Ratings and moderation", Icons.Default.Star, "reviews", true),
     Offers("Offers/Coupons", "Campaigns and coupons", Icons.Default.LocalOffer, "offers", true),
     Banners("Banners", "Promotional media", Icons.Default.Campaign, "banners", true),
     Employees("Employees", "Team and roles", Icons.Default.Badge, "employee", true),
     Attendance("Attendance", "Shifts and punches", Icons.Default.DateRange, "attendance", true),
+    Payments("Payments", "Settlements and Razorpay records", Icons.Default.Payments, "payments"),
+    Cart("Cart", "Active customer carts", Icons.Default.Inventory, "cart", true),
+    OutletMenu("Outlet Menu", "Local pricing and availability", Icons.Default.Inventory, "outlet_menu_items", true),
+    Outlets("Outlets", "Branch registry and configuration", Icons.Default.Storefront, "outlets", true),
     Notifications("Notifications", "Push and in-app alerts", Icons.Default.Notifications),
     Analytics("Analytics", "Revenue and operational trends", Icons.Default.Analytics),
     Settings("Settings", "Store, tax, printer, permissions", Icons.Default.Settings),
-    Profile("Profile/Store", "Outlet profile", Icons.Default.Storefront),
+    Profile("Profile", "Employee account and details", Icons.Default.Badge),
     Details("Details", "Full screen details", Icons.Default.Inventory),
     Form("Create/Edit", "Full screen editor", Icons.Default.Edit)
 }
@@ -69,42 +75,47 @@ internal enum class FormMode { Create, Edit }
 
 internal val drawerGroups = listOf(
     "Overview" to listOf(AdminRoute.Dashboard, AdminRoute.Analytics, AdminRoute.Notifications),
-    "Operations" to listOf(AdminRoute.Orders, AdminRoute.Attendance),
-    "Catalog" to listOf(AdminRoute.Products, AdminRoute.Categories, AdminRoute.Offers, AdminRoute.Banners),
+    "Operations" to listOf(AdminRoute.Orders, AdminRoute.OrderItems, AdminRoute.Attendance, AdminRoute.Payments, AdminRoute.Cart),
+    "Catalog" to listOf(AdminRoute.Products, AdminRoute.OutletMenu, AdminRoute.Categories, AdminRoute.Offers, AdminRoute.Banners),
     "Customers" to listOf(AdminRoute.Customers, AdminRoute.Reviews),
     "Team" to listOf(AdminRoute.Employees),
-    "Control" to listOf(AdminRoute.Settings, AdminRoute.Profile)
+    "Control" to listOf(AdminRoute.Outlets, AdminRoute.Settings, AdminRoute.Profile)
 )
 
 internal fun routeForTable(tableName: String): AdminRoute = when (tableName) {
     "orders" -> AdminRoute.Orders
-    "products" -> AdminRoute.Products
+    "order_items" -> AdminRoute.OrderItems
+    "product_catalog" -> AdminRoute.Products
     "users" -> AdminRoute.Customers
     "reviews" -> AdminRoute.Reviews
     "offers" -> AdminRoute.Offers
     "banners" -> AdminRoute.Banners
     "employee" -> AdminRoute.Employees
     "attendance" -> AdminRoute.Attendance
+    "payments" -> AdminRoute.Payments
+    "cart" -> AdminRoute.Cart
+    "outlet_menu_items" -> AdminRoute.OutletMenu
+    "outlets" -> AdminRoute.Outlets
     else -> AdminRoute.Dashboard
 }
 
 internal fun statusColor(status: String): Color = when (status.normalizeOrderStatus().lowercase()) {
-    "placed" -> Warning
+    "pending" -> Warning
+    "accepted" -> RoyalBlue
     "preparing" -> Orange
     "ready" -> RoyalBlue
-    "out for delivery" -> Purple
-    "cancelled" -> Danger
-    "delivered" -> Success
+    "rejected" -> Danger
+    "completed" -> Success
     else -> Muted
 }
 
 internal fun String.normalizeOrderStatus(): String = when {
+    contains("ACCEPT", true) -> "Accepted"
     contains("PREPAR", true) -> "Preparing"
     contains("READY", true) -> "Ready"
-    contains("OUT", true) -> "Out for Delivery"
-    contains("CANCEL", true) -> "Cancelled"
-    contains("DELIVER", true) -> "Delivered"
-    contains("PLACED", true) || this == "-" -> "Placed"
+    contains("COMPLETE", true) || contains("DELIVER", true) -> "Completed"
+    contains("REJECT", true) || contains("CANCEL", true) -> "Rejected"
+    contains("PEND", true) || contains("PLACED", true) || this == "-" -> "Pending"
     else -> replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
 }
 
@@ -123,10 +134,16 @@ internal fun JsonElement?.asNumber(): Double {
 
 internal fun JsonObject.firstImageUrl(table: AdminTable? = null): String? {
     val names = table?.columns?.map { it.name }.orEmpty() + keys
-    val imageColumns = names.distinct().filter { name ->
+    val imageColumns = names.distinct().sortedWith(compareBy<String> {
+        when (it.lowercase()) {
+            "image", "img_url", "logo_url", "banner_url", "profile_img" -> 0
+            else -> 1
+        }
+    }).filter { name ->
         name.contains("img", true) || name.contains("image", true) || name.contains("photo", true)
     }
     return imageColumns.firstNotNullOfOrNull { this[it].firstUrlOrNull() }
+        ?: values.firstNotNullOfOrNull { it.firstUrlOrNull() }
 }
 
 internal fun JsonElement?.firstUrlOrNull(): String? {
@@ -139,7 +156,11 @@ internal fun JsonElement?.firstUrlOrNull(): String? {
 }
 
 internal fun String.extractUrl(): String? {
-    val trimmed = trim().trim('"')
+    val trimmed = trim()
+        .trim('"')
+        .replace("\\/", "/")
+        .replace("\\u0026", "&")
+        .replace("\\\"", "\"")
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed
     return Regex("""https?://[^\s,\]"}]+""").find(trimmed)?.value?.trimEnd('.', ')')
 }

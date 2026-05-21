@@ -33,7 +33,6 @@ import kotlin.math.sin
 
 import com.jp.foodyvilla_backoffice.presentation.navigation.Screen
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
-import com.jp.foodyvilla_backoffice.presentation.utils.UiState
  import  com.jp.foodyvilla_backoffice.R
 @Composable
 fun SplashScreen(
@@ -41,8 +40,7 @@ fun SplashScreen(
     navController: NavController
 ) {
 
-    val isLoggedIn =
-        loginViewModel.isLoggedIn.collectAsStateWithLifecycle().value
+    val currentSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
 
     var splashFinished by remember {
         mutableStateOf(false)
@@ -54,46 +52,15 @@ fun SplashScreen(
         splashFinished = true
     }
 
-    // Navigate only after BOTH:
-    // 1. splash completed
-    // 2. auth state received
-    LaunchedEffect(isLoggedIn, splashFinished) {
+    LaunchedEffect(currentSession, splashFinished) {
 
         if (!splashFinished) return@LaunchedEffect
-//
-//        when (isLoggedIn) {
-//
-//            is UiState.Success -> {
-//
-//                if (isLoggedIn.data) {
-//
-                    navController.navigate(Screen.Home) {
-                        popUpTo(Screen.Splash) {
-                            inclusive = true
-                        }
-                    }
-//
-//                } else {
-//
-//                    navController.navigate(Screen.Login) {
-//                        popUpTo(Screen.Splash) {
-//                            inclusive = true
-//                        }
-//                    }
-//                }
-//            }
-//
-//            is UiState.Error -> {
-//
-//                navController.navigate(Screen.Login) {
-//                    popUpTo(Screen.Splash) {
-//                        inclusive = true
-//                    }
-//                }
-//            }
-//
-//            else -> Unit
-//        }
+
+        navController.navigate(if (currentSession != null) Screen.BackOffice else Screen.BackOfficeLogin) {
+            popUpTo(Screen.Splash) {
+                inclusive = true
+            }
+        }
     }
 
     SplashScreen0()

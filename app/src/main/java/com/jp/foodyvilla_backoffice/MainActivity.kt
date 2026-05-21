@@ -8,7 +8,6 @@ import androidx.activity.viewModels
 import com.jp.foodyvilla_backoffice.fcm.createNotificationChannel
 import com.jp.foodyvilla_backoffice.fcm.subscribeToTopic
 import com.jp.foodyvilla_backoffice.presentation.navigation.FoodyVillaNavGraph
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.CRMHomeScreen
 import com.jp.foodyvilla_backoffice.presentation.screens.home.HomeViewModel
 import com.jp.foodyvilla_backoffice.presentation.utils.HideSystemBars
 import com.jp.foodyvilla_backoffice.ui.theme.AppTheme
@@ -30,12 +29,11 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
             AppTheme(dynamicColor = false) {
                 HideSystemBars()
 
-                CRMHomeScreen()
+                FoodyVillaNavGraph()
 //
 ////                MobileLoginScreen { }
 //
 ////                OtpVerificationScreen {  }
-//                FoodyVillaNavGraph()
 //            val context = LocalContext.current
 //                GoogleSignInScreen()
 

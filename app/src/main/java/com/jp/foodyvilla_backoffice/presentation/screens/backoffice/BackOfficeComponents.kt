@@ -1,5 +1,6 @@
 package com.jp.foodyvilla_backoffice.presentation.screens.backoffice
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,6 +50,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 internal fun PremiumCard(
@@ -150,6 +153,8 @@ internal fun StatusPill(label: String, color: Color) {
 
 @Composable
 internal fun RecordImage(url: String?, label: String?, size: Int = 72) {
+    val context = LocalContext.current
+    val cleanedUrl = url?.cleanImageUrl()
     Box(
         modifier = Modifier
             .size(size.dp)
@@ -157,11 +162,22 @@ internal fun RecordImage(url: String?, label: String?, size: Int = 72) {
             .background(Color(0xFFE8EEFF)),
         contentAlignment = Alignment.Center
     ) {
-        if (url.isNullOrBlank()) {
+        if (cleanedUrl.isNullOrBlank()) {
             Icon(Icons.Default.Image, contentDescription = null, tint = RoyalBlue)
         } else {
             AsyncImage(
-                model = url,
+                model = ImageRequest.Builder(context)
+                    .data(cleanedUrl)
+                    .crossfade(true)
+                    .listener(
+                        onError = { _, result ->
+                            Log.e("FoodyImages", "Image failed: $cleanedUrl | ${result.throwable.message}", result.throwable)
+                        },
+                        onSuccess = { _, _ ->
+                            Log.d("FoodyImages", "Image loaded: $cleanedUrl")
+                        }
+                    )
+                    .build(),
                 contentDescription = label,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -172,6 +188,8 @@ internal fun RecordImage(url: String?, label: String?, size: Int = 72) {
 
 @Composable
 internal fun LargeRecordImage(url: String?, label: String?) {
+    val context = LocalContext.current
+    val cleanedUrl = url?.cleanImageUrl()
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -180,17 +198,36 @@ internal fun LargeRecordImage(url: String?, label: String?) {
             .background(Color(0xFFE8EEFF)),
         contentAlignment = Alignment.Center
     ) {
-        if (url.isNullOrBlank()) {
+        if (cleanedUrl.isNullOrBlank()) {
             Icon(Icons.Default.Image, contentDescription = null, tint = RoyalBlue, modifier = Modifier.size(42.dp))
         } else {
             AsyncImage(
-                model = url,
+                model = ImageRequest.Builder(context)
+                    .data(cleanedUrl)
+                    .crossfade(true)
+                    .listener(
+                        onError = { _, result ->
+                            Log.e("FoodyImages", "Large image failed: $cleanedUrl | ${result.throwable.message}", result.throwable)
+                        },
+                        onSuccess = { _, _ ->
+                            Log.d("FoodyImages", "Large image loaded: $cleanedUrl")
+                        }
+                    )
+                    .build(),
                 contentDescription = label,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
         }
     }
+}
+
+private fun String.cleanImageUrl(): String {
+    return trim()
+        .trim('"')
+        .replace("\\/", "/")
+        .replace("\\u0026", "&")
+        .substringBefore(" ")
 }
 
 @Composable

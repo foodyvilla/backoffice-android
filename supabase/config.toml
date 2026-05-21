@@ -1,0 +1,2 @@
+[functions.backoffice_login]
+verify_jwt = false

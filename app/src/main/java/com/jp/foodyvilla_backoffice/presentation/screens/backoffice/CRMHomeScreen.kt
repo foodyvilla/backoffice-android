@@ -48,8 +48,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jp.foodyvilla_backoffice.fcm.MyFirebaseMessagingService
+import com.jp.foodyvilla_backoffice.domain.security.AppFeature
+import com.jp.foodyvilla_backoffice.domain.security.OutletRole
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
+import com.jp.foodyvilla_backoffice.presentation.components.security.FeatureGate
 import com.jp.foodyvilla_backoffice.presentation.utils.RequestNotificationPermission
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -57,14 +62,24 @@ import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CRMHomeScreen(viewModel: AdminViewModel = koinViewModel()) {
+fun CRMHomeScreen(
+    session: UserSession?,
+    onLogout: () -> Unit,
+    viewModel: AdminViewModel = koinViewModel()
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var route by remember { mutableStateOf(AdminRoute.Dashboard) }
+    val firstAllowedRoute = remember(session) {
+        drawerGroups.asSequence()
+            .flatMap { it.second.asSequence() }
+            .firstOrNull { route -> session.isRouteAllowed(route, AdminRoute.Dashboard) }
+            ?: AdminRoute.Dashboard
+    }
+    var route by remember(session) { mutableStateOf(firstAllowedRoute) }
     var previousListRoute by remember { mutableStateOf(AdminRoute.Orders) }
     var selectedRow by remember { mutableStateOf<JsonObject?>(null) }
     var formMode by remember { mutableStateOf(FormMode.Create) }
@@ -130,12 +145,16 @@ fun CRMHomeScreen(viewModel: AdminViewModel = koinViewModel()) {
                     modifier = Modifier.width(318.dp).fillMaxHeight()
                 ) {
                     BackOfficeDrawer(
+                        session = session,
                         selectedRoute = if (route in listOf(AdminRoute.Form, AdminRoute.Details)) previousListRoute else route,
                         onRouteSelected = { next ->
-                            route = next
-                            selectedRow = null
+                            if (session.isRouteAllowed(next, route)) {
+                                route = next
+                                selectedRow = null
+                            }
                             scope.launch { drawerState.close() }
-                        }
+                        },
+                        onLogout = onLogout
                     )
                 }
             }
@@ -145,79 +164,119 @@ fun CRMHomeScreen(viewModel: AdminViewModel = koinViewModel()) {
                 snackbarHost = { SnackbarHost(snackbarHostState) }
             ) { padding ->
                 androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
-                    when (route) {
-                        AdminRoute.Dashboard -> DashboardScreen(
-                            state = state,
-                            onMenu = { scope.launch { drawerState.open() } },
-                            onRefresh = viewModel::refresh,
-                            onOpenRoute = { next ->
-                                route = next
-                                previousListRoute = next
-                            }
-                        )
+                    FeatureGate(feature = route.gatedFeature(previousListRoute)) {
+                        when {
+                            !session.isRouteAllowed(route, previousListRoute) -> AccessDeniedRoute(
+                                route = route,
+                                onMenu = { scope.launch { drawerState.open() } }
+                            )
 
-                        AdminRoute.Products,
-                        AdminRoute.Orders,
-                        AdminRoute.Customers,
-                        AdminRoute.Reviews,
-                        AdminRoute.Offers,
-                        AdminRoute.Banners,
-                        AdminRoute.Employees,
-                        AdminRoute.Attendance -> BackOfficeListScreen(
-                            route = route,
-                            state = state,
-                            onMenu = { scope.launch { drawerState.open() } },
-                            onRefresh = viewModel::refresh,
-                            onSearch = viewModel::updateSearch,
-                            onCreate = {
-                                previousListRoute = route
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                route = AdminRoute.Form
-                            },
-                            onOrderStatusChange = viewModel::updateOrderStatus,
-                            onOpenDetails = { row ->
-                                previousListRoute = route
-                                selectedRow = row
-                                route = AdminRoute.Details
-                            }
-                        )
+                            route == AdminRoute.Dashboard -> DashboardScreen(
+                                state = state,
+                                onMenu = { scope.launch { drawerState.open() } },
+                                onRefresh = viewModel::refresh,
+                                onOpenRoute = { next ->
+                                    if (session.isRouteAllowed(next, route)) {
+                                        route = next
+                                        previousListRoute = next
+                                    }
+                                }
+                            )
 
-                        AdminRoute.Details -> BackOfficeDetailScreen(
-                            table = state.selectedTable,
-                            row = selectedRow,
-                            orderItems = state.orderItemsByOrderId[selectedRow?.get("id").toDisplayText()].orEmpty(),
-                            productsById = state.productsById,
-                            onBack = { route = previousListRoute },
-                            onEdit = {
-                                selectedRow?.let(viewModel::startEdit)
-                                formMode = FormMode.Edit
-                                route = AdminRoute.Form
-                            }
-                        )
+                            route in listOf(
+                                AdminRoute.Products,
+                                AdminRoute.OutletMenu,
+                                AdminRoute.Orders,
+                                AdminRoute.OrderItems,
+                                AdminRoute.Customers,
+                                AdminRoute.Reviews,
+                                AdminRoute.Offers,
+                                AdminRoute.Banners,
+                                AdminRoute.Employees,
+                                AdminRoute.Attendance,
+                                AdminRoute.Payments,
+                                AdminRoute.Cart,
+                                AdminRoute.Outlets
+                            ) -> BackOfficeListScreen(
+                                route = route,
+                                state = state,
+                                onMenu = { scope.launch { drawerState.open() } },
+                                onRefresh = viewModel::refresh,
+                                onSearch = viewModel::updateSearch,
+                                onCreate = {
+                                    previousListRoute = route
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    route = AdminRoute.Form
+                                },
+                                onOrderStatusChange = viewModel::updateOrderStatus,
+                                onPunchIn = viewModel::punchIn,
+                                onPunchOut = viewModel::punchOut,
+                                onOpenDetails = { row ->
+                                    previousListRoute = route
+                                    selectedRow = row
+                                    route = AdminRoute.Details
+                                }
+                            )
 
-                        AdminRoute.Form -> BackOfficeFormScreen(
-                            state = state,
-                            mode = formMode,
-                            onBack = { route = previousListRoute },
-                            onFormChange = viewModel::updateFormValue,
-                            onUploadImage = { uri, column -> viewModel.uploadImage(context, uri, column) },
-                            onSave = {
-                                viewModel.save()
-                                route = previousListRoute
-                            }
-                        )
+                            route == AdminRoute.Details -> BackOfficeDetailScreen(
+                                table = state.selectedTable,
+                                row = selectedRow,
+                                orderItems = state.orderItemsByOrderId[selectedRow?.get("id").toDisplayText()].orEmpty(),
+                                productsById = state.productsById,
+                                onBack = { route = previousListRoute },
+                                onEdit = {
+                                    selectedRow?.let(viewModel::startEdit)
+                                    formMode = FormMode.Edit
+                                    route = AdminRoute.Form
+                                }
+                            )
 
-                        AdminRoute.Categories,
-                        AdminRoute.Notifications,
-                        AdminRoute.Analytics,
-                        AdminRoute.Settings,
-                        AdminRoute.Profile -> BackOfficeUtilityScreen(
-                            route = route,
-                            state = state,
-                            onMenu = { scope.launch { drawerState.open() } }
-                        )
+                            route == AdminRoute.Form -> BackOfficeFormScreen(
+                                state = state,
+                                mode = formMode,
+                                onBack = { route = previousListRoute },
+                                onFormChange = viewModel::updateFormValue,
+                                onUploadImage = { uri, column -> viewModel.uploadImage(context, uri, column) },
+                                onCreateProduct = if (state.selectedTable.name == "outlet_menu_items") {
+                                    {
+                                        previousListRoute = AdminRoute.OutletMenu
+                                        formMode = FormMode.Create
+                                        viewModel.startCreateFor("product_catalog")
+                                        route = AdminRoute.Form
+                                    }
+                                } else {
+                                    null
+                                },
+                                onSave = {
+                                    viewModel.save()
+                                    route = previousListRoute
+                                }
+                            )
+
+                            route == AdminRoute.Profile -> EmployeeProfileScreen(
+                                session = session,
+                                state = state,
+                                onMenu = { scope.launch { drawerState.open() } }
+                            )
+
+                            route in listOf(
+                                AdminRoute.Categories,
+                                AdminRoute.Notifications,
+                                AdminRoute.Analytics,
+                                AdminRoute.Settings
+                            ) -> BackOfficeUtilityScreen(
+                                route = route,
+                                state = state,
+                                onMenu = { scope.launch { drawerState.open() } }
+                            )
+
+                            else -> AccessDeniedRoute(
+                                route = route,
+                                onMenu = { scope.launch { drawerState.open() } }
+                            )
+                        }
                     }
                 }
             }
@@ -234,7 +293,7 @@ fun CRMHomeScreen(viewModel: AdminViewModel = koinViewModel()) {
             itemCount = items.sumOf { it["qty"].asNumber() }.toInt().takeIf { it > 0 }?.toString().orEmpty(),
             onDismiss = viewModel::clearNewOrder,
             onAccept = {
-                viewModel.updateOrderStatus(order, "Preparing")
+                viewModel.updateOrderStatus(order, "accepted")
                 viewModel.clearNewOrder()
             },
             onViewOrder = {
@@ -266,6 +325,124 @@ fun CRMHomeScreen(viewModel: AdminViewModel = koinViewModel()) {
     }
 }
 
+private fun AdminRoute.gatedFeature(previousListRoute: AdminRoute): AppFeature {
+    val effectiveRoute = if (this in listOf(AdminRoute.Form, AdminRoute.Details)) {
+        previousListRoute
+    } else {
+        this
+    }
+
+    return when (effectiveRoute) {
+        AdminRoute.Dashboard,
+        AdminRoute.Analytics,
+        AdminRoute.Notifications,
+        AdminRoute.Profile,
+        AdminRoute.Outlets -> AppFeature.Dashboard
+        AdminRoute.Products,
+        AdminRoute.OutletMenu,
+        AdminRoute.Categories,
+        AdminRoute.Offers,
+        AdminRoute.Banners -> AppFeature.InventoryManagement
+        AdminRoute.Orders -> AppFeature.OrderProcessing
+        AdminRoute.OrderItems -> AppFeature.OrderProcessing
+        AdminRoute.Cart -> AppFeature.OrderProcessing
+        AdminRoute.Customers,
+        AdminRoute.Reviews -> AppFeature.CustomerManagement
+        AdminRoute.Employees -> AppFeature.EmployeeManagement
+        AdminRoute.Attendance -> AppFeature.BiometricAttendance
+        AdminRoute.Payments -> AppFeature.Dashboard
+            AdminRoute.Settings -> AppFeature.Settings
+        AdminRoute.Form,
+        AdminRoute.Details -> AppFeature.Dashboard
+    }
+}
+
+private fun List<AdminRoute>.onlyAllowedFor(session: UserSession?): List<AdminRoute> {
+    return filter { route ->
+        session.isRouteAllowed(route, AdminRoute.Dashboard)
+    }
+}
+
+private fun UserSession?.isRouteAllowed(route: AdminRoute, previousListRoute: AdminRoute): Boolean {
+    val session = this ?: return false
+    val effectiveRoute = if (route in listOf(AdminRoute.Form, AdminRoute.Details)) previousListRoute else route
+    if (effectiveRoute !in session.allowedAdminRoutes()) return false
+    return effectiveRoute.gatedFeature(previousListRoute).isAccessibleBy(session)
+}
+
+private fun UserSession.allowedAdminRoutes(): Set<AdminRoute> {
+    val role = when (this) {
+        is UserSession.EmployeeSession -> role
+        is UserSession.OutletSession -> role
+    }
+
+    return when (role) {
+        OutletRole.OWNER -> setOf(
+            AdminRoute.Dashboard,
+            AdminRoute.Orders,
+            AdminRoute.OrderItems,
+            AdminRoute.Employees,
+            AdminRoute.Analytics,
+            AdminRoute.Attendance,
+            AdminRoute.Products,
+            AdminRoute.OutletMenu,
+            AdminRoute.Offers,
+            AdminRoute.Banners,
+            AdminRoute.Reviews,
+            AdminRoute.Payments,
+            AdminRoute.Cart,
+            AdminRoute.Outlets,
+            AdminRoute.Settings
+        )
+
+        OutletRole.HEAD -> setOf(
+            AdminRoute.Dashboard,
+            AdminRoute.Orders,
+            AdminRoute.OrderItems,
+            AdminRoute.Employees,
+            AdminRoute.Products,
+            AdminRoute.OutletMenu,
+            AdminRoute.Categories,
+            AdminRoute.Profile,
+            AdminRoute.Attendance,
+            AdminRoute.Offers,
+            AdminRoute.Banners,
+            AdminRoute.Reviews,
+            AdminRoute.Payments,
+            AdminRoute.Analytics,
+            AdminRoute.Settings
+        )
+
+        OutletRole.CHEF -> setOf(
+            AdminRoute.Orders,
+            AdminRoute.OrderItems,
+            AdminRoute.Attendance,
+            AdminRoute.Profile,
+            AdminRoute.Offers,
+            AdminRoute.Banners,
+            AdminRoute.Reviews
+        )
+
+        OutletRole.EMPLOYEE,
+        OutletRole.WAITER,
+        OutletRole.CASHIER,
+        OutletRole.MANAGER,
+        OutletRole.KITCHEN,
+        null -> setOf(
+            AdminRoute.Dashboard,
+            AdminRoute.Orders,
+            AdminRoute.OrderItems,
+            AdminRoute.Attendance,
+            AdminRoute.Profile,
+            AdminRoute.Offers,
+            AdminRoute.Banners,
+            AdminRoute.Customers,
+            AdminRoute.Reviews,
+            AdminRoute.Payments
+        )
+    }
+}
+
 private data class FcmOrderPopup(
     val title: String,
     val body: String,
@@ -274,6 +451,26 @@ private data class FcmOrderPopup(
     val amount: String,
     val itemCount: String
 )
+
+@Composable
+private fun AccessDeniedRoute(route: AdminRoute, onMenu: () -> Unit) {
+    LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        item {
+            PremiumTopBar(
+                title = route.title,
+                subtitle = "This tool is not available for your role.",
+                icon = route.icon,
+                onMenu = onMenu
+            )
+        }
+        item {
+            EmptyState(
+                title = "Access restricted",
+                message = "Your employee role does not include this backoffice area."
+            )
+        }
+    }
+}
 
 @Composable
 private fun NewOrderDialog(
@@ -323,10 +520,17 @@ private fun NewOrderDialog(
 }
 
 @Composable
-private fun BackOfficeDrawer(selectedRoute: AdminRoute, onRouteSelected: (AdminRoute) -> Unit) {
+private fun BackOfficeDrawer(
+    session: UserSession?,
+    selectedRoute: AdminRoute,
+    onRouteSelected: (AdminRoute) -> Unit,
+    onLogout: () -> Unit
+) {
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
         item { DrawerHeader() }
         drawerGroups.forEach { (group, routes) ->
+            val allowedRoutes = routes.onlyAllowedFor(session)
+            if (allowedRoutes.isEmpty()) return@forEach
             item {
                 Text(
                     group,
@@ -335,7 +539,7 @@ private fun BackOfficeDrawer(selectedRoute: AdminRoute, onRouteSelected: (AdminR
                     fontWeight = FontWeight.Bold
                 )
             }
-            items(routes) { route ->
+            items(allowedRoutes) { route ->
                 NavigationDrawerItem(
                     label = { Text(route.title) },
                     selected = route == selectedRoute,
@@ -351,12 +555,21 @@ private fun BackOfficeDrawer(selectedRoute: AdminRoute, onRouteSelected: (AdminR
             }
             item { Spacer(Modifier.height(4.dp)) }
         }
+        item {
+            HorizontalDivider(Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+            TextButton(
+                onClick = onLogout,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
+            ) {
+                Text("Sign out")
+            }
+        }
     }
 }
 
 @Composable
 private fun BackOfficeUtilityScreen(route: AdminRoute, state: AdminUiState, onMenu: () -> Unit) {
-    val products = state.dashboardRows["products"].orEmpty()
+    val products = state.dashboardRows["product_catalog"].orEmpty()
     val categories = products.mapNotNull { it["category"].toDisplayText().takeIf { value -> value != "-" } }.distinct()
 
     LazyColumn(
@@ -400,9 +613,6 @@ private fun BackOfficeUtilityScreen(route: AdminRoute, state: AdminUiState, onMe
                         }
                     }
                 }
-            }
-            AdminRoute.Profile -> item {
-                EmptyState("Store profile", "Connect store profile fields to Supabase to edit them here.")
             }
             else -> item { HorizontalDivider() }
         }

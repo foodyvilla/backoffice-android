@@ -18,6 +18,12 @@ sealed interface Screen {
     @Serializable
     data object Home : Screen
 
+    @Serializable
+    data object BackOffice : Screen
+
+    @Serializable
+    data object BackOfficeLogin : Screen
+
 
 
     @Serializable

@@ -47,7 +47,7 @@ internal fun DashboardScreen(
 ) {
     val orders = state.dashboardRows["orders"].orEmpty()
     val orderItems = state.dashboardRows["order_items"].orEmpty()
-    val products = state.dashboardRows["products"].orEmpty()
+    val products = state.dashboardRows["product_catalog"].orEmpty()
     val users = state.dashboardRows["users"].orEmpty()
     val productsById = remember(products) { products.associateBy { it["id"].toDisplayText() } }
     var selectedRange by remember { mutableStateOf("Today") }
@@ -59,15 +59,15 @@ internal fun DashboardScreen(
     val filteredItems = remember(orderItems, filteredOrderIds, selectedProductId) {
         orderItems.filter { item ->
             item["order_id"].toDisplayText() in filteredOrderIds &&
-                (selectedProductId == null || item["productid"].toDisplayText() == selectedProductId)
+                (selectedProductId == null || item["menu_item_id"].toDisplayText() == selectedProductId)
         }
     }
-    val pending = filteredOrders.count { it["status"].toDisplayText().normalizeOrderStatus() in listOf("Placed", "Preparing", "Ready", "Out for Delivery") }
-    val cancelled = filteredOrders.count { it["status"].toDisplayText().normalizeOrderStatus() == "Cancelled" }
-    val delivered = filteredOrders.count { it["status"].toDisplayText().normalizeOrderStatus() == "Delivered" }
+    val pending = filteredOrders.count { it["status"].toDisplayText().normalizeOrderStatus() in listOf("Pending", "Accepted", "Preparing", "Ready") }
+    val cancelled = filteredOrders.count { it["status"].toDisplayText().normalizeOrderStatus() == "Rejected" }
+    val delivered = filteredOrders.count { it["status"].toDisplayText().normalizeOrderStatus() == "Completed" }
     val revenue = filteredItems.sumOf { it["total_price"].asNumber() }
     val topProductIds = filteredItems
-        .groupBy { it["productid"].toDisplayText() }
+        .groupBy { it["menu_item_id"].toDisplayText() }
         .entries
         .sortedByDescending { (_, rows) -> rows.sumOf { it["qty"].asNumber() } }
         .map { it.key }
@@ -103,16 +103,16 @@ internal fun DashboardScreen(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 MetricCard("Pending", pending.toString(), Icons.Default.PendingActions, Warning, Modifier.weight(1f))
-                MetricCard("Cancelled", cancelled.toString(), Icons.Default.Cancel, Danger, Modifier.weight(1f))
+                MetricCard("Rejected", cancelled.toString(), Icons.Default.Cancel, Danger, Modifier.weight(1f))
             }
         }
         item {
             PremiumCard {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Orders status", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    StatusPill("Delivered: $delivered", Success)
+                    StatusPill("Completed: $delivered", Success)
                     StatusPill("Active: $pending", Warning)
-                    StatusPill("Cancelled: $cancelled", Danger)
+                    StatusPill("Rejected: $cancelled", Danger)
                 }
             }
         }
