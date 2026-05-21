@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
+import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminTable
+import kotlinx.serialization.json.JsonObject
 
 @Composable
 internal fun PremiumCard(
@@ -219,6 +221,33 @@ internal fun LargeRecordImage(url: String?, label: String?) {
                 contentScale = ContentScale.Crop
             )
         }
+    }
+}
+
+@Composable
+internal fun GenericRecordCard(table: AdminTable, row: JsonObject, onClick: () -> Unit) {
+    PremiumCard(onClick = onClick) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            row.firstImageUrl(table)?.let { image ->
+                RecordImage(image, table.title, 62)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(table.title, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                table.displayColumns.take(4).forEach { columnName ->
+                    val column = table.columns.firstOrNull { it.name == columnName }
+                    val displayValue = if (column != null) row[columnName].toCompactText(column) else row[columnName].toDisplayText()
+                    DetailLine(columnName.replace("_", " "), displayValue)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun DetailLine(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = Muted, fontSize = 13.sp, modifier = Modifier.weight(.42f))
+        Text(value, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(.58f), maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 

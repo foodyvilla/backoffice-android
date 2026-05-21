@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PendingActions
@@ -41,8 +42,6 @@ import java.time.OffsetDateTime
 @Composable
 internal fun DashboardScreen(
     state: AdminUiState,
-    onMenu: () -> Unit,
-    onRefresh: () -> Unit,
     onOpenRoute: (AdminRoute) -> Unit
 ) {
     val orders = state.dashboardRows["orders"].orEmpty()
@@ -77,15 +76,6 @@ internal fun DashboardScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            PremiumTopBar(
-                title = "Dashboard",
-                subtitle = "Real-time Supabase overview",
-                icon = AdminRoute.Dashboard.icon,
-                onMenu = onMenu,
-                onRefresh = onRefresh
-            )
-        }
-        item {
             SalesFilters(
                 selectedRange = selectedRange,
                 onRangeChange = { selectedRange = it },
@@ -96,7 +86,7 @@ internal fun DashboardScreen(
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                MetricCard("Total Orders", filteredOrders.size.toString(), Icons.Default.ReceiptLong, RoyalBlue, Modifier.weight(1f))
+                MetricCard("Total Orders", filteredOrders.size.toString(), Icons.AutoMirrored.Filled.ReceiptLong, RoyalBlue, Modifier.weight(1f))
                 MetricCard("Revenue", "Rs %.0f".format(revenue), Icons.Default.Payments, Success, Modifier.weight(1f))
             }
         }

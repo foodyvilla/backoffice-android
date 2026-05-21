@@ -65,14 +65,6 @@ internal fun BackOfficeFormScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                PremiumTopBar(
-                    title = title,
-                    subtitle = "Full screen editor",
-                    icon = AdminRoute.Form.icon,
-                    onBack = onBack
-                )
-            }
-            item {
                 val imageColumns = state.selectedTable.editableColumns.filter { it.isImageColumn() }
                 if (imageColumns.isNotEmpty()) {
                     PremiumCard {

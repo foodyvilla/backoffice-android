@@ -81,6 +81,14 @@ class LoginViewModel(
         getUserProfile()
         updateFcmToken()
 
+        // Observe session changes to update FCM token immediately when logged in
+        viewModelScope.launch {
+            currentSession.collectLatest { session ->
+                if (session != null) {
+                    updateFcmToken()
+                }
+            }
+        }
     }
 
 
@@ -140,6 +148,7 @@ class LoginViewModel(
                 .onSuccess { session ->
                     Log.d(TAG, "Outlet login success: outletId=${session.outletId}, username=${session.username}, role=${session.role}")
                     _credentialLoginUiState.value = LoginUiState.Success(session)
+                    updateFcmToken()
                 }
                 .onFailure { throwable ->
                     Log.e(TAG, "Outlet login failed: ${throwable.message}", throwable)
@@ -160,6 +169,7 @@ class LoginViewModel(
                         "Employee login success: empId=${session.empId}, outletId=${session.outletId}, designationId=${session.designationId}, role=${session.role}, name=${session.name}, contact=${session.contact}, permissions=${session.permissions}"
                     )
                     _credentialLoginUiState.value = LoginUiState.Success(session)
+                    updateFcmToken()
                 }
                 .onFailure { throwable ->
                     Log.e(TAG, "Employee login failed: ${throwable.message}", throwable)

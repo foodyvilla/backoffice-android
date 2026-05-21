@@ -52,7 +52,19 @@ class UserRepository(private val supabase: SupabaseClient) {
             ?: throw Exception("User not logged in")
 
         try {
+            // Update users table
             supabase.from("users").update(
+                {
+                    set("fcm_token", fcmToken)
+                }
+            ) {
+                filter {
+                    eq("auth_user_id", userId)
+                }
+            }
+
+            // Also update employee table for backoffice users
+            supabase.from("employee").update(
                 {
                     set("fcm_token", fcmToken)
                 }

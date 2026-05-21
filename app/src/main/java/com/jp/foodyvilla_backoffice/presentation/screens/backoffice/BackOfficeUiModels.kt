@@ -41,7 +41,7 @@ internal val Orange = Color(0xFFF97316)
 internal val Purple = Color(0xFF7C3AED)
 internal val Danger = Color(0xFFDC2626)
 
-internal enum class AdminRoute(
+enum class AdminRoute(
     val title: String,
     val subtitle: String,
     val icon: ImageVector,
@@ -71,9 +71,9 @@ internal enum class AdminRoute(
     Form("Create/Edit", "Full screen editor", Icons.Default.Edit)
 }
 
-internal enum class FormMode { Create, Edit }
+enum class FormMode { Create, Edit }
 
-internal val drawerGroups = listOf(
+val drawerGroups = listOf(
     "Overview" to listOf(AdminRoute.Dashboard, AdminRoute.Analytics, AdminRoute.Notifications),
     "Operations" to listOf(AdminRoute.Orders, AdminRoute.OrderItems, AdminRoute.Attendance, AdminRoute.Payments, AdminRoute.Cart),
     "Catalog" to listOf(AdminRoute.Products, AdminRoute.OutletMenu, AdminRoute.Categories, AdminRoute.Offers, AdminRoute.Banners),

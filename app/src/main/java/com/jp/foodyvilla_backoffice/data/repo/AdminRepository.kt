@@ -80,6 +80,26 @@ class AdminRepository(
             .decodeList<JsonObject>()
     }
 
+    suspend fun loadCustomerOrders(customerId: String): List<JsonObject> {
+        val rows = supabase.from("orders")
+            .select(adminTables.first { it.name == "orders" }.selectColumns()) {
+                filter { eq("customer_id", customerId.toLongOrNull() ?: 0L) }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<JsonObject>()
+        return rows.map { it.withDisplayJoins("orders") }
+    }
+
+    suspend fun loadCustomerCart(customerId: String): List<JsonObject> {
+        val rows = supabase.from("cart")
+            .select(adminTables.first { it.name == "cart" }.selectColumns()) {
+                filter { eq("customer_id", customerId.toLongOrNull() ?: 0L) }
+                order("created_at", Order.DESCENDING)
+            }
+            .decodeList<JsonObject>()
+        return rows.map { it.withDisplayJoins("cart") }
+    }
+
     suspend fun loadLookupRows(tableName: String): List<JsonObject> {
         val table = adminTables.firstOrNull { it.name == tableName }
         val rows = if (table != null) {
@@ -427,6 +447,16 @@ class AdminRepository(
         )
     }
 
+    @OptIn(InternalAPI::class)
+    suspend fun sendNotificationToCart(title: String, body: String) {
+        supabase.functions.invoke("send_notification_to_cart") {
+            this.body = buildJsonObject {
+                put("title", title)
+                put("body", body)
+            }.toString()
+        }
+    }
+
     private fun AdminColumn.toJsonElement(raw: String): JsonElement {
         if (raw.isBlank()) return JsonNull
         return when (type) {
@@ -516,8 +546,12 @@ private fun JsonObject.withDisplayJoins(tableName: String): JsonObject {
                 val menuItem = this@withDisplayJoins["outlet_menu_items"] as? JsonObject
                 val product = menuItem?.get("product_catalog") as? JsonObject
                 user?.get("name")?.let { put("customer_name", it) }
+                user?.get("phone")?.let { put("customer_phone", it) }
+                user?.get("fcm_token")?.let { put("customer_fcm", it) }
                 outlet?.get("name")?.let { put("outlet_name", it) }
                 product?.get("name")?.let { put("product_name", it) }
+                menuItem?.get("price")?.let { put("product_price", it) }
+                menuItem?.get("image")?.let { put("product_image", it) }
             }
         }
     }
@@ -538,7 +572,12 @@ private fun AdminTable.storageBucketCandidates(): List<String> {
 }
 
 private fun AdminTable.supportsDeleteRealtime(): Boolean {
-    return name != "attendance"
+    // Some tables might not have DELETE events enabled in Supabase Realtime config
+    // or we may want to avoid tracking deletions for these tables in realtime.
+    return when (name) {
+        "attendance", "outlets", "payments", "users", "employee" -> false
+        else -> true
+    }
 }
 
 private fun UserSession.isOwner(): Boolean {

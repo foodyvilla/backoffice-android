@@ -48,8 +48,7 @@ import kotlinx.serialization.json.JsonObject
 @Composable
 internal fun EmployeeProfileScreen(
     session: UserSession?,
-    state: AdminUiState,
-    onMenu: () -> Unit
+    state: AdminUiState
 ) {
     val employee = remember(session, state.dashboardRows) {
         val empId = (session as? UserSession.EmployeeSession)?.empId?.toString()
@@ -77,15 +76,6 @@ internal fun EmployeeProfileScreen(
         contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            PremiumTopBar(
-                title = "Employee Profile",
-                subtitle = "Your account, role, outlet, and attendance details",
-                icon = Icons.Default.Badge,
-                onMenu = onMenu
-            )
-        }
-
         item {
             EmployeeProfileHeader(session = session, employee = employee)
         }

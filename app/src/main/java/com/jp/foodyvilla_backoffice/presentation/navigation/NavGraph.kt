@@ -10,7 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.jp.foodyvilla_backoffice.presentation.screens.MainScreen
 import com.jp.foodyvilla_backoffice.presentation.screens.account.ProfileScreen
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.CRMHomeScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.MainBackOfficeScreen
 import com.jp.foodyvilla_backoffice.presentation.screens.cart.CartScreen
 import com.jp.foodyvilla_backoffice.presentation.screens.contactUs.ContactUsScreen
 import com.jp.foodyvilla_backoffice.presentation.screens.detail.DetailScreen
@@ -103,7 +103,7 @@ fun FoodyVillaNavGraph() {
                     }
                 )
             } else {
-                CRMHomeScreen(
+                MainBackOfficeScreen(
                     session = currentSession,
                     onLogout = {
                         loginViewModel.logoutBackOffice()

@@ -288,7 +288,7 @@ val adminTables = listOf(
         title = "Payments",
         description = "Razorpay settlement records and payment status tracking.",
         primaryKeyType = AdminColumnType.LongNumber,
-        displayColumns = listOf("order_id", "amount", "payment_status", "payment_method", "created_at"),
+        displayColumns = listOf("order_customer", "amount", "payment_status", "payment_method", "created_at"),
         createLabel = "New payment",
         columns = listOf(
             AdminColumn("id", type = AdminColumnType.LongNumber, editable = false),

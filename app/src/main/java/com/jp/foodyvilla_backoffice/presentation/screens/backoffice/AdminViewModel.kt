@@ -29,10 +29,12 @@ data class AdminUiState(
     val searchQuery: String = "",
     val orderItemsByOrderId: Map<String, List<JsonObject>> = emptyMap(),
     val productsById: Map<String, JsonObject> = emptyMap(),
+    val customerOrders: List<JsonObject> = emptyList(),
+    val customerCart: List<JsonObject> = emptyList(),
     val dashboardRows: Map<String, List<JsonObject>> = emptyMap(),
     val lookupRows: Map<String, List<JsonObject>> = emptyMap(),
     val uploadingColumn: String? = null,
-    val newOrder: JsonObject? = null
+    val pendingOrders: List<JsonObject> = emptyList()
 )
 
 class AdminViewModel(
@@ -42,11 +44,35 @@ class AdminViewModel(
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 
     private var observeJob: Job? = null
-    private var knownOrderIds: Set<String> = emptySet()
-    private var hasLoadedInitialOrders = false
+    private var globalOrdersJob: Job? = null
 
     init {
         selectTable(adminTables.first())
+        startGlobalOrderObservation()
+    }
+
+    private fun startGlobalOrderObservation() {
+        globalOrdersJob?.cancel()
+        val ordersTable = adminTables.first { it.name == "orders" }
+        globalOrdersJob = viewModelScope.launch {
+            repository.observeRows(ordersTable).collect { result ->
+                result.onSuccess { allOrders ->
+                    val pending = allOrders.filter { 
+                        it["status"].toDisplayText().lowercase() == "pending" 
+                    }
+                    _uiState.update { it.copy(pendingOrders = pending) }
+                    
+                    if (pending.isNotEmpty()) {
+                        loadOrderItemsFor(pending)
+                    }
+                }
+                result.onFailure { throwable ->
+                    Log.e("AdminViewModel", "Global order observation failed: ${throwable.message}")
+                    delay(5000) // Retry after delay
+                    startGlobalOrderObservation()
+                }
+            }
+        }
     }
 
     fun selectTable(table: AdminTable) {
@@ -73,9 +99,6 @@ class AdminViewModel(
             repository.observeRows(table).collect { result ->
                 result.fold(
                     onSuccess = { rows ->
-                        if (table.name == "orders") {
-                            detectNewOrder(rows)
-                        }
                         _uiState.update {
                             it.copy(rows = rows, isLoading = false, error = null)
                         }
@@ -126,11 +149,11 @@ class AdminViewModel(
                 val productsById = repository.loadProducts()
                     .associateBy { it["id"].toDisplayText() }
                 itemsByOrder to productsById
-            }.onSuccess { itemsByOrder ->
+            }.onSuccess { (itemsByOrder, productsById) ->
                 _uiState.update {
                     it.copy(
-                        orderItemsByOrderId = itemsByOrder.first,
-                        productsById = itemsByOrder.second
+                        orderItemsByOrderId = it.orderItemsByOrderId + itemsByOrder,
+                        productsById = it.productsById + productsById
                     )
                 }
             }.onFailure { throwable ->
@@ -143,6 +166,15 @@ class AdminViewModel(
 
     fun updateSearch(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
+    }
+
+    fun loadCustomerDetails(customerId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, customerOrders = emptyList(), customerCart = emptyList()) }
+            val orders = runCatching { repository.loadCustomerOrders(customerId) }.getOrDefault(emptyList())
+            val cart = runCatching { repository.loadCustomerCart(customerId) }.getOrDefault(emptyList())
+            _uiState.update { it.copy(isLoading = false, customerOrders = orders, customerCart = cart) }
+        }
     }
 
     fun startCreate() {
@@ -343,12 +375,38 @@ class AdminViewModel(
         }
     }
 
-    fun clearMessage() {
-        _uiState.update { it.copy(error = null, successMessage = null) }
+    fun sendFcmToToken(token: String, title: String, body: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, error = null, successMessage = null) }
+            runCatching { repository.sendFcmToToken(token, title, body) }
+                .onSuccess {
+                    _uiState.update { it.copy(isSaving = false, successMessage = "Notification sent") }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(isSaving = false, error = throwable.message ?: "Failed to send notification")
+                    }
+                }
+        }
     }
 
-    fun clearNewOrder() {
-        _uiState.update { it.copy(newOrder = null) }
+    fun sendOfferToCart(title: String, body: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, error = null, successMessage = null) }
+            runCatching { repository.sendNotificationToCart(title, body) }
+                .onSuccess {
+                    _uiState.update { it.copy(isSaving = false, successMessage = "Offers sent to cart customers") }
+                }
+                .onFailure { throwable ->
+                    _uiState.update {
+                        it.copy(isSaving = false, error = throwable.message ?: "Failed to send offers")
+                    }
+                }
+        }
+    }
+
+    fun clearMessage() {
+        _uiState.update { it.copy(error = null, successMessage = null) }
     }
 
     private fun loadDashboardRows() {
@@ -372,21 +430,6 @@ class AdminViewModel(
                 runCatching { repository.loadLookupRows(tableName) }.getOrDefault(emptyList())
             }
             _uiState.update { it.copy(lookupRows = it.lookupRows + lookupRows) }
-        }
-    }
-
-    private fun detectNewOrder(rows: List<JsonObject>) {
-        val latestIds = rows.map { it["id"].toDisplayText() }.toSet()
-        if (!hasLoadedInitialOrders) {
-            knownOrderIds = latestIds
-            hasLoadedInitialOrders = true
-            return
-        }
-
-        val newRows = rows.filter { it["id"].toDisplayText() !in knownOrderIds }
-        knownOrderIds = latestIds
-        newRows.maxByOrNull { it["created_at"].toDisplayText() }?.let { row ->
-            _uiState.update { it.copy(newOrder = row) }
         }
     }
 
