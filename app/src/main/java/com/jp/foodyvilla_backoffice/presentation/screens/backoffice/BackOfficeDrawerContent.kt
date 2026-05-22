@@ -39,7 +39,7 @@ fun BackOfficeDrawerContent(
         else -> "Guest"
     }
     val roleName = when (session) {
-        is UserSession.EmployeeSession -> session.role?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Staff"
+        is UserSession.EmployeeSession -> session.role?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "employee"
         is UserSession.OutletSession -> session.role.name.lowercase().replaceFirstChar { it.uppercase() }
         else -> "Backoffice"
     }

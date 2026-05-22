@@ -30,6 +30,19 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
+
+val backofficeJson = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    coerceInputValues = true
+}
+
+inline fun <reified T> JsonObject.toModel(): T {
+    return backofficeJson.decodeFromJsonElement(this)
+}
+
 internal val RoyalBlue = Color(0xFF1238D8)
 internal val Ink = Color(0xFF111827)
 internal val Muted = Color(0xFF667085)
@@ -58,7 +71,8 @@ enum class AdminRoute(
     Offers("Offers/Coupons", "Campaigns and coupons", Icons.Default.LocalOffer, "offers", true),
     Banners("Banners", "Promotional media", Icons.Default.Campaign, "banners", true),
     Employees("Employees", "Team and roles", Icons.Default.Badge, "employee", true),
-    Attendance("Attendance", "Shifts and punches", Icons.Default.DateRange, "attendance", true),
+    Attendance("Attendance", "My shifts and punches", Icons.Default.DateRange, "attendance"),
+    PunchReport("Punch Report", "Employee attendance history", Icons.Default.Inventory, "attendance"),
     Payments("Payments", "Settlements and Razorpay records", Icons.Default.Payments, "payments"),
     Cart("Cart", "Active customer carts", Icons.Default.Inventory, "cart", true),
     OutletMenu("Outlet Menu", "Local pricing and availability", Icons.Default.Inventory, "outlet_menu_items", true),
@@ -75,7 +89,7 @@ enum class FormMode { Create, Edit }
 
 val drawerGroups = listOf(
     "Overview" to listOf(AdminRoute.Dashboard, AdminRoute.Analytics, AdminRoute.Notifications),
-    "Operations" to listOf(AdminRoute.Orders, AdminRoute.OrderItems, AdminRoute.Attendance, AdminRoute.Payments, AdminRoute.Cart),
+    "Operations" to listOf(AdminRoute.Orders, AdminRoute.OrderItems, AdminRoute.Attendance, AdminRoute.PunchReport, AdminRoute.Payments, AdminRoute.Cart),
     "Catalog" to listOf(AdminRoute.Products, AdminRoute.OutletMenu, AdminRoute.Categories, AdminRoute.Offers, AdminRoute.Banners),
     "Customers" to listOf(AdminRoute.Customers, AdminRoute.Reviews),
     "Team" to listOf(AdminRoute.Employees),
@@ -100,22 +114,25 @@ internal fun routeForTable(tableName: String): AdminRoute = when (tableName) {
 }
 
 internal fun statusColor(status: String): Color = when (status.normalizeOrderStatus().lowercase()) {
-    "pending" -> Warning
+    "placed", "pending" -> Warning
     "accepted" -> RoyalBlue
     "preparing" -> Orange
-    "ready" -> RoyalBlue
-    "rejected" -> Danger
-    "completed" -> Success
+    "ready" -> Color(0xFF9C27B0) // Purple
+    "picked" -> Color(0xFF00BCD4) // Cyan
+    "delivered", "completed" -> Success
+    "rejected", "cancelled" -> Danger
     else -> Muted
 }
 
 internal fun String.normalizeOrderStatus(): String = when {
+    contains("PLACED", true) || contains("PEND", true) || this == "-" -> "Placed"
     contains("ACCEPT", true) -> "Accepted"
     contains("PREPAR", true) -> "Preparing"
     contains("READY", true) -> "Ready"
-    contains("COMPLETE", true) || contains("DELIVER", true) -> "Completed"
-    contains("REJECT", true) || contains("CANCEL", true) -> "Rejected"
-    contains("PEND", true) || contains("PLACED", true) || this == "-" -> "Pending"
+    contains("PICK", true) -> "Picked"
+    contains("DELIVER", true) || contains("COMPLETE", true) -> "Delivered"
+    contains("REJECT", true) -> "Rejected"
+    contains("CANCEL", true) -> "Cancelled"
     else -> replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
 }
 

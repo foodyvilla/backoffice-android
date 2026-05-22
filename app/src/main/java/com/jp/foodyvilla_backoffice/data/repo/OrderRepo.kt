@@ -98,63 +98,72 @@ class OrderRepository(
     // ===========================
     fun observeOrders(): Flow<UiState<List<OrderModel>>> = callbackFlow {
 
-        val authId = supabase.auth.currentUserOrNull()?.id
-        if (authId == null) {
-            trySend(UiState.Error())
-            close()
-            return@callbackFlow
-        }
+        try {
+            val authId = supabase.auth.currentUserOrNull()?.id
+            if (authId == null) {
+                trySend(UiState.Error(Exception("User not logged in")))
+                close()
+                return@callbackFlow
+            }
 
-        val user = supabase.postgrest["users"]
-            .select { filter { eq("auth_user_id", authId) } }
-            .decodeSingleOrNull<UserProfile>()
+            val user = supabase.postgrest["users"]
+                .select { filter { eq("auth_user_id", authId) } }
+                .decodeSingleOrNull<UserProfile>()
 
-        val customerId = user?.id
-        if (customerId == null) {
-            trySend(UiState.Error())
-            close()
-            return@callbackFlow
-        }
+            val customerId = user?.id
+            if (customerId == null) {
+                trySend(UiState.Error(Exception("Customer record not found")))
+                close()
+                return@callbackFlow
+            }
 
-        val channel = supabase.realtime.channel("orders-channel")
+            val channel = supabase.realtime.channel("orders-channel")
 
-        // ✅ Attach listener BEFORE subscribe
-        val job = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
-            table = "orders"
-        }.onEach {
-            val orders = supabase.postgrest["orders"]
-                .select {
+            // ✅ Attach listener BEFORE subscribe
+            val job = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+                table = "orders"
+            }.onEach {
+                try {
+                    val orders = supabase.postgrest["orders"]
+                        .select {
+                            filter { eq("customer_id", customerId) }
+                            order("created_at", Order.DESCENDING)
+                        }
+                        .decodeList<OrderModel>()
+
+                    trySend(UiState.Success(orders))
+                } catch (e: Exception) {
+                    trySend(UiState.Error(e))
+                }
+            }.launchIn(this)
+
+            channel.subscribe()
+
+            // ✅ Initial load
+            val initial = supabase.postgrest["orders"]
+                .select(
+                    Columns.raw(
+                        "*, order_items(*, products(name, image))"
+                    )
+                ) {
                     filter { eq("customer_id", customerId) }
                     order("created_at", Order.DESCENDING)
                 }
                 .decodeList<OrderModel>()
 
-            trySend(UiState.Success(orders))
-        }.launchIn(this)
+            trySend(UiState.Success(initial))
 
-        channel.subscribe()
-
-        // ✅ Initial load
-
-        val initial = supabase.postgrest["orders"]
-            .select(
-                Columns.raw(
-                    "*, order_items(*, products(name, image))"
-                )
-            ) {
-                filter { eq("customer_id", customerId) }
-                order("created_at", Order.DESCENDING)
+            awaitClose {
+                job.cancel()
+                launch {
+                    channel.unsubscribe()
+                    supabase.realtime.removeChannel(channel)
+                }
             }
-            .decodeList<OrderModel>()
-
-        trySend(UiState.Success(initial))
-
-        awaitClose {
-            job.cancel()
-            launch {
-                channel.unsubscribe()
-                supabase.realtime.removeChannel(channel)
-            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            trySend(UiState.Error(e))
+            close(e)
         }
     }
 

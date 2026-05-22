@@ -3,10 +3,7 @@ package com.jp.foodyvilla_backoffice.data.repo
 import android.content.Context
 import android.net.Uri
 import com.jp.foodyvilla_backoffice.data.utils.compressImage
-import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminColumn
-import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminColumnType
-import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminTable
-import com.jp.foodyvilla_backoffice.data.model.backoffice.adminTables
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 import com.jp.foodyvilla_backoffice.domain.security.OutletRole
 import com.jp.foodyvilla_backoffice.domain.security.UserSession
@@ -45,12 +42,18 @@ class AdminRepository(
     private val authRepository: AuthRepository,
     private val locationRepository: LocationRepository
 ) {
+    val authSession: kotlinx.coroutines.flow.StateFlow<UserSession?> = authRepository.currentSession
+
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
 
     suspend fun loadRows(table: AdminTable): List<JsonObject> {
+        return loadTableRows(table)
+    }
+
+    private suspend fun loadTableRows(table: AdminTable): List<JsonObject> {
         val rows = supabase.from(table.name)
             .select(table.selectColumns()) {
                 order(table.orderBy, Order.DESCENDING)
@@ -59,9 +62,24 @@ class AdminRepository(
         return scopeRows(table.name, rows).map { row -> row.withDisplayJoins(table.name) }
     }
 
+    suspend fun loadOutlets() = loadTableRows(adminTables.first { it.name == "outlets" })
+    suspend fun loadOrders() = loadTableRows(adminTables.first { it.name == "orders" })
+    suspend fun loadProductCatalog() = loadTableRows(adminTables.first { it.name == "product_catalog" })
+    suspend fun loadUsers() = loadTableRows(adminTables.first { it.name == "users" })
+    suspend fun loadCart() = loadTableRows(adminTables.first { it.name == "cart" })
+    suspend fun loadBanners() = loadTableRows(adminTables.first { it.name == "banners" })
+    suspend fun loadOffers() = loadTableRows(adminTables.first { it.name == "offers" })
+    suspend fun loadReviews() = loadTableRows(adminTables.first { it.name == "reviews" })
+    suspend fun loadEmployees() = loadTableRows(adminTables.first { it.name == "employee" })
+    suspend fun loadAttendance() = loadTableRows(adminTables.first { it.name == "attendance" })
+    suspend fun loadPayments() = loadTableRows(adminTables.first { it.name == "payments" })
+    suspend fun loadOutletMenuItems() = loadTableRows(adminTables.first { it.name == "outlet_menu_items" })
+    suspend fun loadAuthOtp() = loadTableRows(adminTables.first { it.name == "auth_otp" })
+
     suspend fun loadOrderItems(): List<JsonObject> {
+        val table = adminTables.first { it.name == "order_items" }
         val rows = supabase.from("order_items")
-            .select {
+            .select(table.selectColumns()) {
                 order("created_at", Order.ASCENDING)
             }
             .decodeList<JsonObject>()
@@ -70,6 +88,7 @@ class AdminRepository(
             .map { it["id"].toDisplayText() }
             .toSet()
         return rows.filter { it["order_id"].toDisplayText() in scopedOrderIds }
+            .map { it.withDisplayJoins("order_items") }
     }
 
     suspend fun loadProducts(): List<JsonObject> {
@@ -153,6 +172,7 @@ class AdminRepository(
 
     private suspend fun scopeAttendance(rows: List<JsonObject>, session: UserSession): List<JsonObject> {
         val role = session.roleOrNull()
+        if (role == OutletRole.OWNER) return rows
         if (role == OutletRole.HEAD || role == OutletRole.MANAGER) {
             val outletEmployeeIds = loadRowsBypassScope("employee")
                 .filter { it["outlet_id"].toDisplayText() == session.outletId.toString() }
@@ -205,9 +225,13 @@ class AdminRepository(
         throw lastError ?: IllegalStateException("Image upload failed")
     }
 
-    fun observeRows(table: AdminTable): Flow<Result<List<JsonObject>>> = callbackFlow {
+    fun observeRows(table: AdminTable): Flow<Result<List<JsonObject>>> {
+        return observeTableRows(table)
+    }
+
+    private fun observeTableRows(table: AdminTable): Flow<Result<List<JsonObject>>> = callbackFlow {
         suspend fun pushRows() {
-            trySend(runCatching { loadRows(table) })
+            trySend(runCatching { loadTableRows(table) })
         }
 
         val channel = supabase.realtime.channel("backoffice-${table.name}-${UUID.randomUUID()}")
@@ -283,7 +307,17 @@ class AdminRepository(
     suspend fun punchIn() {
         val session = authRepository.currentSession.value as? UserSession.EmployeeSession
             ?: throw IllegalStateException("Employee session required for attendance punch")
+        
+        val outlet = supabase.from("outlets")
+            .select { filter { eq("id", session.outletId) } }
+            .decodeSingleOrNull<Outlet>() ?: throw IllegalStateException("Outlet not found")
+
         val location = locationRepository.fetchLocation().getOrThrow()
+        
+        val distance = calculateDistance(location.first, location.second, outlet.lat, outlet.lng)
+        if (distance > (outlet.radiusKm * 1000)) {
+            throw IllegalStateException("You are %.1f meters away from the outlet. Please punch in within %d meters.".format(distance, (outlet.radiusKm * 1000).toInt()))
+        }
 
         supabase.from("attendance").insert(
             buildJsonObject {
@@ -299,7 +333,18 @@ class AdminRepository(
     suspend fun punchOut() {
         val session = authRepository.currentSession.value as? UserSession.EmployeeSession
             ?: throw IllegalStateException("Employee session required for attendance punch")
+        
+        val outlet = supabase.from("outlets")
+            .select { filter { eq("id", session.outletId) } }
+            .decodeSingleOrNull<Outlet>() ?: throw IllegalStateException("Outlet not found")
+
         val location = locationRepository.fetchLocation().getOrThrow()
+        
+        val distance = calculateDistance(location.first, location.second, outlet.lat, outlet.lng)
+        if (distance > (outlet.radiusKm * 1000)) {
+            throw IllegalStateException("You are %.1f meters away from the outlet. Please punch out within %d meters.".format(distance, (outlet.radiusKm * 1000).toInt()))
+        }
+
         val openAttendance = supabase.from("attendance")
             .select {
                 filter { eq("emp_id", session.empId) }
@@ -324,12 +369,49 @@ class AdminRepository(
         }
     }
 
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6371e3 // Earth's radius in meters
+        val phi1 = Math.toRadians(lat1)
+        val phi2 = Math.toRadians(lat2)
+        val deltaPhi = Math.toRadians(lat2 - lat1)
+        val deltaLambda = Math.toRadians(lon2 - lon1)
+
+        val a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+                Math.cos(phi1) * Math.cos(phi2) *
+                Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2)
+        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+        return r * c
+    }
+
     suspend fun createRow(table: AdminTable, values: Map<String, String>) {
+        insertRow(table, values)
+    }
+
+    private suspend fun insertRow(table: AdminTable, values: Map<String, String>) {
         val payload = buildPayload(table, values, includeEmptyRequired = false)
         supabase.from(table.name).insert(payload)
     }
 
+    suspend fun createOutlet(values: Map<String, String>) = insertRow(adminTables.first { it.name == "outlets" }, values)
+    suspend fun createOrder(values: Map<String, String>) = insertRow(adminTables.first { it.name == "orders" }, values)
+    suspend fun createProduct(values: Map<String, String>) = insertRow(adminTables.first { it.name == "product_catalog" }, values)
+    suspend fun createUser(values: Map<String, String>) = insertRow(adminTables.first { it.name == "users" }, values)
+    suspend fun createCart(values: Map<String, String>) = insertRow(adminTables.first { it.name == "cart" }, values)
+    suspend fun createBanner(values: Map<String, String>) = insertRow(adminTables.first { it.name == "banners" }, values)
+    suspend fun createOffer(values: Map<String, String>) = insertRow(adminTables.first { it.name == "offers" }, values)
+    suspend fun createReview(values: Map<String, String>) = insertRow(adminTables.first { it.name == "reviews" }, values)
+    suspend fun createEmployee(values: Map<String, String>) = insertRow(adminTables.first { it.name == "employee" }, values)
+    suspend fun createAttendance(values: Map<String, String>) = insertRow(adminTables.first { it.name == "attendance" }, values)
+    suspend fun createOrderItem(values: Map<String, String>) = insertRow(adminTables.first { it.name == "order_items" }, values)
+    suspend fun createOutletMenuItem(values: Map<String, String>) = insertRow(adminTables.first { it.name == "outlet_menu_items" }, values)
+    suspend fun createPayment(values: Map<String, String>) = insertRow(adminTables.first { it.name == "payments" }, values)
+
     suspend fun updateRow(table: AdminTable, row: JsonObject, values: Map<String, String>) {
+        performUpdate(table, row, values)
+    }
+
+    private suspend fun performUpdate(table: AdminTable, row: JsonObject, values: Map<String, String>) {
         val id = row[table.primaryKey]?.asFilterValue(table.primaryKeyType)
             ?: throw IllegalArgumentException("Missing ${table.primaryKey}")
         val payload = buildPayload(table, values, includeEmptyRequired = true)
@@ -338,13 +420,58 @@ class AdminRepository(
         }
     }
 
+    suspend fun updateOutlet(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "outlets" }, row, values)
+    suspend fun updateOrder(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "orders" }, row, values)
+    suspend fun updateProduct(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "product_catalog" }, row, values)
+    suspend fun updateUser(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "users" }, row, values)
+    suspend fun updateCart(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "cart" }, row, values)
+    suspend fun updateBanner(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "banners" }, row, values)
+    suspend fun updateOffer(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "offers" }, row, values)
+    suspend fun updateReview(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "reviews" }, row, values)
+    suspend fun updateEmployee(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "employee" }, row, values)
+    suspend fun updateAttendance(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "attendance" }, row, values)
+    suspend fun updateOrderItem(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "order_items" }, row, values)
+    suspend fun updateOutletMenuItem(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "outlet_menu_items" }, row, values)
+    suspend fun updatePayment(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "payments" }, row, values)
+
     suspend fun deleteRow(table: AdminTable, row: JsonObject) {
+        performDelete(table, row)
+    }
+
+    private suspend fun performDelete(table: AdminTable, row: JsonObject) {
         val id = row[table.primaryKey]?.asFilterValue(table.primaryKeyType)
             ?: throw IllegalArgumentException("Missing ${table.primaryKey}")
         supabase.from(table.name).delete {
             filter { eq(table.primaryKey, id) }
         }
     }
+
+    suspend fun deleteOutlet(row: JsonObject) = performDelete(adminTables.first { it.name == "outlets" }, row)
+    suspend fun deleteOrder(row: JsonObject) = performDelete(adminTables.first { it.name == "orders" }, row)
+    suspend fun deleteProduct(row: JsonObject) = performDelete(adminTables.first { it.name == "product_catalog" }, row)
+    suspend fun deleteUser(row: JsonObject) = performDelete(adminTables.first { it.name == "users" }, row)
+    suspend fun deleteCart(row: JsonObject) = performDelete(adminTables.first { it.name == "cart" }, row)
+    suspend fun deleteBanner(row: JsonObject) = performDelete(adminTables.first { it.name == "banners" }, row)
+    suspend fun deleteOffer(row: JsonObject) = performDelete(adminTables.first { it.name == "offers" }, row)
+    suspend fun deleteReview(row: JsonObject) = performDelete(adminTables.first { it.name == "reviews" }, row)
+    suspend fun deleteEmployee(row: JsonObject) = performDelete(adminTables.first { it.name == "employee" }, row)
+    suspend fun deleteAttendance(row: JsonObject) = performDelete(adminTables.first { it.name == "attendance" }, row)
+    suspend fun deleteOrderItem(row: JsonObject) = performDelete(adminTables.first { it.name == "order_items" }, row)
+    suspend fun deleteOutletMenuItem(row: JsonObject) = performDelete(adminTables.first { it.name == "outlet_menu_items" }, row)
+    suspend fun deletePayment(row: JsonObject) = performDelete(adminTables.first { it.name == "payments" }, row)
+
+    fun observeOutlets() = observeTableRows(adminTables.first { it.name == "outlets" })
+    fun observeOrders() = observeTableRows(adminTables.first { it.name == "orders" })
+    fun observeProductCatalog() = observeTableRows(adminTables.first { it.name == "product_catalog" })
+    fun observeUsers() = observeTableRows(adminTables.first { it.name == "users" })
+    fun observeCart() = observeTableRows(adminTables.first { it.name == "cart" })
+    fun observeBanners() = observeTableRows(adminTables.first { it.name == "banners" })
+    fun observeOffers() = observeTableRows(adminTables.first { it.name == "offers" })
+    fun observeReviews() = observeTableRows(adminTables.first { it.name == "reviews" })
+    fun observeEmployees() = observeTableRows(adminTables.first { it.name == "employee" })
+    fun observeAttendance() = observeTableRows(adminTables.first { it.name == "attendance" })
+    fun observePayments() = observeTableRows(adminTables.first { it.name == "payments" })
+    fun observeOutletMenuItems() = observeTableRows(adminTables.first { it.name == "outlet_menu_items" })
 
     @OptIn(InternalAPI::class)
     suspend fun sendFcmToTopic(topic: String, title: String, body: String, imageUrl: String? = null) {
@@ -597,11 +724,10 @@ private fun String.extractUrl(): String? {
     return Regex("""https?://[^\s,\]"}]+""").find(trimmed)?.value?.trimEnd('.', ')')
 }
 
-private fun String.toOrderDbStatus(): String = when (trim().lowercase().replace(" ", "_")) {
+private fun String.toOrderDbStatus(): String = when (val s = trim().lowercase().replace(" ", "_")) {
     "placed" -> "pending"
-    "cancelled" -> "rejected"
     "delivered" -> "completed"
-    else -> trim().lowercase().replace(" ", "_")
+    else -> s
 }
 
 fun JsonElement?.toDisplayText(): String {

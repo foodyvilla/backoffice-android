@@ -12,17 +12,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.serialization.json.JsonObject
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 
 @Composable
-internal fun CustomerRecordCard(row: JsonObject, onClick: () -> Unit) {
+internal fun CustomerRecordCard(user: User, onClick: () -> Unit) {
     PremiumCard(onClick = onClick) {
         Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            RecordImage(row.firstImageUrl(), row["name"].toDisplayText("Customer"), 64)
+            RecordImage(user.fcmToken?.extractUrl() ?: user.address?.extractUrl(), user.name ?: "Customer", 64)
             Column(Modifier.weight(1f)) {
-                Text(row["name"].toDisplayText("No name"), fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                Text(row["phone"].toDisplayText("No phone"), color = Muted)
-                Text(row["email"].toDisplayText("No email"), color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(user.name ?: "No name", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text(user.phone ?: "No phone", color = Muted)
+                Text(user.email ?: "No email", color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -30,20 +30,20 @@ internal fun CustomerRecordCard(row: JsonObject, onClick: () -> Unit) {
 
 @Composable
 internal fun CartRecordCard(
-    row: JsonObject,
+    cart: Cart,
     onSendNotification: (String) -> Unit,
     onClick: () -> Unit
 ) {
     PremiumCard(onClick = onClick) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                RecordImage(row["product_image"].firstUrlOrNull(), row["product_name"].toDisplayText("Product"), 64)
+                RecordImage(cart.productImage?.firstOrNull(), cart.productName ?: "Product", 64)
                 Column(Modifier.weight(1f)) {
-                    Text(row["customer_name"].toDisplayText("Customer"), fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                    Text(row["product_name"].toDisplayText("Product"), color = Muted, fontSize = 14.sp)
+                    Text(cart.customerName ?: "Customer", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text(cart.productName ?: "Product", color = Muted, fontSize = 14.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        StatusPill("Qty ${row["qty"].toDisplayText("1")}", RoyalBlue)
-                        StatusPill("Rs ${row["product_price"].toDisplayText("0")}", Success)
+                        StatusPill("Qty ${cart.qty}", RoyalBlue)
+                        StatusPill("Rs ${cart.productPrice ?: 0.0}", Success)
                     }
                 }
             }
@@ -57,11 +57,11 @@ internal fun CartRecordCard(
             ) {
                 Column {
                     Text("Added on", color = Muted, fontSize = 11.sp)
-                    Text(row["created_at"].toDisplayText().formatTimestamp(), color = Ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(cart.createdAt?.formatTimestamp() ?: "-", color = Ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
                 
-                val fcmToken = row["customer_fcm"].toDisplayText()
-                if (fcmToken != "-") {
+                val fcmToken = cart.customerFcm
+                if (!fcmToken.isNullOrBlank() && fcmToken != "-") {
                     Button(
                         onClick = { onSendNotification(fcmToken) },
                         shape = RoundedCornerShape(12.dp),
@@ -80,16 +80,16 @@ internal fun CartRecordCard(
 }
 
 @Composable
-internal fun ReviewRecordCard(row: JsonObject, onClick: () -> Unit) {
+internal fun ReviewRecordCard(review: Review, onClick: () -> Unit) {
     PremiumCard(onClick = onClick) {
         Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            RecordImage(row.firstImageUrl(), "Review", 68)
+            RecordImage(null, "Review", 68)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(row["title"].toDisplayText("Review"), fontWeight = FontWeight.Bold)
-                Text(row["description"].toDisplayText("No description"), color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(review.title ?: "Review", fontWeight = FontWeight.Bold)
+                Text(review.description ?: "No description", color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    StatusPill("${row["rating"].toDisplayText("0")} stars", Warning)
-                    Text(row["created_at"].toDisplayText().formatTimestamp(), color = Muted, fontSize = 11.sp)
+                    StatusPill("${review.rating} stars", Warning)
+                    Text(review.createdAt?.formatTimestamp() ?: "-", color = Muted, fontSize = 11.sp)
                 }
             }
         }

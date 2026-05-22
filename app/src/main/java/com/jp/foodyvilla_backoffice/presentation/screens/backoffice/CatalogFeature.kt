@@ -9,19 +9,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.serialization.json.JsonObject
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 
 @Composable
-internal fun ProductRecordCard(row: JsonObject, onClick: () -> Unit) {
+internal fun ProductRecordCard(product: ProductCatalog, onClick: () -> Unit) {
     PremiumCard(onClick = onClick) {
         Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            RecordImage(row.firstImageUrl(), row["name"].toDisplayText("Product"), 84)
+            RecordImage(product.firstImageUrl(), product.name, 84)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(row["name"].toDisplayText("Untitled product"), fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(row["category"].toDisplayText("No category"), color = Muted, fontSize = 13.sp)
+                Text(product.name, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(product.category ?: "No category", color = Muted, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusPill("Rs ${row["price"].toDisplayText("0")}", RoyalBlue)
-                    if (row["is_bestseller"].toDisplayText().equals("true", true)) StatusPill("Bestseller", Success)
+                    if (product.isBestseller) StatusPill("Bestseller", Success)
                 }
             }
         }
@@ -29,17 +28,17 @@ internal fun ProductRecordCard(row: JsonObject, onClick: () -> Unit) {
 }
 
 @Composable
-internal fun OutletMenuRecordCard(row: JsonObject, onClick: () -> Unit) {
+internal fun OutletMenuRecordCard(item: OutletMenuItem, onClick: () -> Unit) {
     PremiumCard(onClick = onClick) {
         Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            RecordImage(row.firstImageUrl(), row["product_name"].toDisplayText("Menu item"), 84)
+            RecordImage(item.image?.firstOrNull(), item.productName ?: "Menu item", 84)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(row["product_name"].toDisplayText("Product"), fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(row["product_category"].toDisplayText("No category"), color = Muted, fontSize = 13.sp)
+                Text(item.productName ?: "Product", fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.productCategory ?: "No category", color = Muted, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusPill("Rs ${row["price"].toDisplayText("0")}", RoyalBlue)
-                    StatusPill(if (row["is_available"].toDisplayText().equals("true", true)) "Available" else "Hidden", if (row["is_available"].toDisplayText().equals("true", true)) Success else Muted)
-                    if (row["is_out_of_stock"].toDisplayText().equals("true", true)) StatusPill("Out of stock", Danger)
+                    StatusPill("Rs ${item.price}", RoyalBlue)
+                    StatusPill(if (item.isAvailable) "Available" else "Hidden", if (item.isAvailable) Success else Muted)
+                    if (item.isOutOfStock) StatusPill("Out of stock", Danger)
                 }
             }
         }
@@ -47,19 +46,25 @@ internal fun OutletMenuRecordCard(row: JsonObject, onClick: () -> Unit) {
 }
 
 @Composable
-internal fun MenuDetailsSection(row: JsonObject) {
+internal fun MenuDetailsSection(item: OutletMenuItem) {
     PremiumCard {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Product catalog details", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            DetailLine("Product", row["product_name"].toDisplayText("Product"))
-            DetailLine("Category", row["product_category"].toDisplayText())
-            DetailLine("Description", row["product_description"].toDisplayText())
-            DetailLine("Veg", row["product_is_veg"].toDisplayText())
-            DetailLine("Prep time", row["product_prep_time"].toDisplayText())
-            DetailLine("Menu price", "Rs ${row["price"].toDisplayText("0")}")
-            DetailLine("Discount", row["discount"].toDisplayText("0"))
-            DetailLine("Available", row["is_available"].toDisplayText())
-            DetailLine("Out of stock", row["is_out_of_stock"].toDisplayText())
+            DetailLine("Product", item.productName ?: "Product")
+            DetailLine("Category", item.productCategory ?: "-")
+            DetailLine("Description", item.productDescription ?: "-")
+            DetailLine("Veg", if (item.productIsVeg == true) "Yes" else "No")
+            DetailLine("Prep time", item.productPrepTime ?: "-")
+            DetailLine("Menu price", "Rs ${item.price}")
+            DetailLine("Discount", item.discount.toString())
+            DetailLine("Available", if (item.isAvailable) "Yes" else "No")
+            DetailLine("Out of stock", if (item.isOutOfStock) "Yes" else "No")
         }
     }
+}
+
+private fun ProductCatalog.firstImageUrl(): String? {
+    // ProductCatalog doesn't have a direct image field in this schema, 
+    // it's usually in outlet_menu_items.
+    return null
 }

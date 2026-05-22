@@ -30,6 +30,11 @@ import com.jp.foodyvilla_backoffice.domain.security.OutletRole
 import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.fcm.MyFirebaseMessagingService
 import com.jp.foodyvilla_backoffice.presentation.components.security.FeatureGate
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.attendance.AttendanceCalendarScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.forms.EmployeeForm
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.forms.OrderForm
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.forms.ProductForm
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.utils.GlobalOrderNotification
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -57,7 +62,7 @@ fun MainBackOfficeScreen(
     val context = LocalContext.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
-    val pendingOrderIds = state.pendingOrders.map { it["id"].toDisplayText() }.toSet()
+    val pendingOrderIds = state.pendingOrders.map { it.id.orEmpty() }.toSet()
     var knownPendingOrderIds by remember { mutableStateOf(setOf<String>()) }
 
     LaunchedEffect(pendingOrderIds) {
@@ -85,6 +90,24 @@ fun MainBackOfficeScreen(
     var selectedRow by remember { mutableStateOf<JsonObject?>(null) }
     var formMode by remember { mutableStateOf(FormMode.Create) }
     var dismissedOrderIds by remember { mutableStateOf(setOf<String>()) }
+    var cancelledOrderIds by remember { mutableStateOf(setOf<String>()) }
+
+    LaunchedEffect(state.rows) {
+        val cancelled = state.rows.filter { 
+            it["status"].toDisplayText().normalizeOrderStatus().lowercase() == "cancelled" 
+        }.map { it["id"].toDisplayText() }.toSet()
+        
+        val newCancelled = cancelled - cancelledOrderIds
+        if (newCancelled.isNotEmpty()) {
+            runCatching {
+                RingtoneManager.getRingtone(
+                    context,
+                    RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                )?.play()
+            }
+        }
+        cancelledOrderIds = cancelled
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -198,11 +221,45 @@ fun MainBackOfficeScreen(
                             }
                         )
 
+                        currentRoute == AdminRoute.PunchReport -> BackOfficeListScreen(
+                            session = session,
+                            route = currentRoute,
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onOrderDateChange = viewModel::updateOrderDateFilter,
+                            onOrderStatusFilterChange = viewModel::updateOrderStatusFilter,
+                            onAttendanceDateChange = viewModel::updateAttendanceDateFilter,
+                            onAttendanceOutletChange = viewModel::updateAttendanceOutletFilter,
+                            onAttendanceSearch = viewModel::updateAttendanceSearch,
+                            onCreate = {
+                                previousListRoute = currentRoute
+                                selectedRow = null
+                                formMode = FormMode.Create
+                                viewModel.startCreate()
+                                currentRoute = AdminRoute.Form
+                            },
+                            onOrderStatusChange = viewModel::updateOrderStatus,
+                            onPunchIn = viewModel::punchIn,
+                            onPunchOut = viewModel::punchOut,
+                            onSendFcm = viewModel::sendFcmToToken,
+                            onSendOfferToAll = viewModel::sendOfferToCart,
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
                         currentRoute.tableName != null -> BackOfficeListScreen(
                             session = session,
                             route = currentRoute,
                             state = state,
                             onSearch = viewModel::updateSearch,
+                            onOrderDateChange = viewModel::updateOrderDateFilter,
+                            onOrderStatusFilterChange = viewModel::updateOrderStatusFilter,
+                            onAttendanceDateChange = viewModel::updateAttendanceDateFilter,
+                            onAttendanceOutletChange = viewModel::updateAttendanceOutletFilter,
+                            onAttendanceSearch = viewModel::updateAttendanceSearch,
                             onCreate = {
                                 previousListRoute = currentRoute
                                 selectedRow = null
@@ -240,26 +297,64 @@ fun MainBackOfficeScreen(
                             }
                         )
 
-                        currentRoute == AdminRoute.Form -> BackOfficeFormScreen(
-                            state = state,
-                            mode = formMode,
-                            onBack = { currentRoute = previousListRoute },
-                            onFormChange = viewModel::updateFormValue,
-                            onUploadImage = { uri, column -> viewModel.uploadImage(context, uri, column) },
-                            onCreateProduct = if (state.selectedTable.name == "outlet_menu_items") {
-                                {
-                                    previousListRoute = AdminRoute.OutletMenu
-                                    formMode = FormMode.Create
-                                    viewModel.startCreateFor("product_catalog")
-                                    currentRoute = AdminRoute.Form
-                                }
-                            } else {
-                                null
-                            },
-                            onSave = {
-                                viewModel.save()
-                                currentRoute = previousListRoute
+                        currentRoute == AdminRoute.Form -> {
+                            when (state.selectedTable.name) {
+                                "orders" -> OrderForm(
+                                    state = state,
+                                    onBack = { currentRoute = previousListRoute },
+                                    onFormChange = viewModel::updateFormValue,
+                                    onSave = {
+                                        viewModel.save()
+                                        currentRoute = previousListRoute
+                                    }
+                                )
+                                "product_catalog" -> ProductForm(
+                                    state = state,
+                                    onBack = { currentRoute = previousListRoute },
+                                    onFormChange = viewModel::updateFormValue,
+                                    onSave = {
+                                        viewModel.save()
+                                        currentRoute = previousListRoute
+                                    }
+                                )
+                                "employee" -> EmployeeForm(
+                                    state = state,
+                                    onBack = { currentRoute = previousListRoute },
+                                    onFormChange = viewModel::updateFormValue,
+                                    onUploadImage = { uri, column -> viewModel.uploadImage(context, uri, column) },
+                                    onSave = {
+                                        viewModel.save()
+                                        currentRoute = previousListRoute
+                                    }
+                                )
+                                else -> BackOfficeFormScreen(
+                                    state = state,
+                                    mode = formMode,
+                                    onBack = { currentRoute = previousListRoute },
+                                    onFormChange = viewModel::updateFormValue,
+                                    onUploadImage = { uri, column -> viewModel.uploadImage(context, uri, column) },
+                                    onCreateProduct = if (state.selectedTable.name == "outlet_menu_items") {
+                                        {
+                                            previousListRoute = AdminRoute.OutletMenu
+                                            formMode = FormMode.Create
+                                            viewModel.startCreateFor("product_catalog")
+                                            currentRoute = AdminRoute.Form
+                                        }
+                                    } else {
+                                        null
+                                    },
+                                    onSave = {
+                                        viewModel.save()
+                                        currentRoute = previousListRoute
+                                    }
+                                )
                             }
+                        }
+
+                        currentRoute == AdminRoute.Attendance -> AttendanceCalendarScreen(
+                            state = state,
+                            onPunchIn = viewModel::punchIn,
+                            onPunchOut = viewModel::punchOut
                         )
 
                         currentRoute == AdminRoute.Profile -> EmployeeProfileScreen(
@@ -273,27 +368,34 @@ fun MainBackOfficeScreen(
 
                 // Global Order Notification Overlay (Supabase Realtime)
                 val visibleOrders = state.pendingOrders.filter { 
-                    it["id"].toDisplayText() !in dismissedOrderIds 
+                    it.id !in dismissedOrderIds 
                 }
                 
                 visibleOrders.firstOrNull()?.let { order ->
-                    val orderId = order["id"].toDisplayText()
+                    val orderId = order.id ?: ""
                     val items = state.orderItemsByOrderId[orderId].orEmpty()
                     
                     GlobalOrderNotification(
                         title = "New Order Received!",
                         orderId = orderId,
-                        customerName = order["customer_name"].toDisplayText("Customer"),
-                        itemCount = items.sumOf { it["qty"].asNumber() }.toInt().toString(),
-                        amount = "Rs %.0f".format(items.sumOf { it["total_price"].asNumber() }),
+                        customerName = order.customerName ?: "Customer",
+                        itemCount = items.sumOf { it.qty }.toInt().toString(),
+                        amount = "Rs %.0f".format(items.sumOf { it.totalPrice }),
                         onDismiss = { dismissedOrderIds = dismissedOrderIds + orderId },
                         onAccept = {
-                            viewModel.updateOrderStatus(order, "accepted")
+                            // Find the original JsonObject to update status
+                            state.dashboardRows["orders"]?.firstOrNull { it["id"].toDisplayText() == orderId }?.let { row ->
+                                viewModel.updateOrderStatus(row, "accepted")
+
+                                dismissedOrderIds = dismissedOrderIds + orderId
+                            }
                         },
                         onView = {
-                            selectedRow = order
-                            previousListRoute = AdminRoute.Orders
-                            currentRoute = AdminRoute.Details
+                            state.dashboardRows["orders"]?.firstOrNull { it["id"].toDisplayText() == orderId }?.let { row ->
+                                selectedRow = row
+                                previousListRoute = AdminRoute.Orders
+                                currentRoute = AdminRoute.Details
+                            }
                         }
                     )
                 }
@@ -302,46 +404,46 @@ fun MainBackOfficeScreen(
     }
 }
 
-@Composable
-fun GlobalOrderNotification(
-    title: String,
-    orderId: String,
-    customerName: String,
-    itemCount: String = "",
-    amount: String = "",
-    onDismiss: () -> Unit,
-    onAccept: () -> Unit,
-    onView: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .statusBarsPadding(),
-        elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.NotificationsActive, null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(8.dp))
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(8.dp))
-            Text("Order #${orderId.take(8)} from $customerName", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-            if (itemCount.isNotBlank() && itemCount != "0") {
-                Text("Items: $itemCount | Total: $amount", style = MaterialTheme.typography.bodySmall)
-            }
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                TextButton(onClick = onDismiss) { Text("Dismiss") }
-                TextButton(onClick = onView) { Text("View") }
-                Button(onClick = onAccept) { Text("Accept") }
-            }
-        }
-    }
-}
+//@Composable
+//fun GlobalOrderNotification(
+//    title: String,
+//    orderId: String,
+//    customerName: String,
+//    itemCount: String = "",
+//    amount: String = "",
+//    onDismiss: () -> Unit,
+//    onAccept: () -> Unit,
+//    onView: () -> Unit
+//) {
+//    Card(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .padding(16.dp)
+//            .statusBarsPadding(),
+//        elevation = CardDefaults.cardElevation(8.dp),
+//        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+//        shape = RoundedCornerShape(16.dp)
+//    ) {
+//        Column(modifier = Modifier.padding(16.dp)) {
+//            Row(verticalAlignment = Alignment.CenterVertically) {
+//                Icon(Icons.Default.NotificationsActive, null, tint = MaterialTheme.colorScheme.primary)
+//                Spacer(Modifier.width(8.dp))
+//                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+//            }
+//            Spacer(Modifier.height(8.dp))
+//            Text("Order #${orderId.take(8)} from $customerName", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+//            if (itemCount.isNotBlank() && itemCount != "0") {
+//                Text("Items: $itemCount | Total: $amount", style = MaterialTheme.typography.bodySmall)
+//            }
+//            Spacer(Modifier.height(12.dp))
+//            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+//                TextButton(onClick = onDismiss) { Text("Dismiss") }
+//                TextButton(onClick = onView) { Text("View") }
+//                Button(onClick = onAccept) { Text("Accept") }
+//            }
+//        }
+//    }
+//}
 
 @Composable
 fun AccessDeniedView(route: AdminRoute) {
@@ -380,8 +482,8 @@ fun UserSession?.isRouteAllowed(route: AdminRoute, previousListRoute: AdminRoute
     } ?: return false
 
     val allowedRoutes = when (role) {
-        OutletRole.OWNER -> AdminRoute.values().toSet()
-        OutletRole.HEAD -> AdminRoute.values().toSet() - AdminRoute.Payments
+        OutletRole.OWNER -> AdminRoute.entries.toSet()
+        OutletRole.HEAD -> AdminRoute.entries.toSet() - AdminRoute.Payments
         else -> setOf(
             AdminRoute.Dashboard,
             AdminRoute.Orders,
@@ -393,6 +495,10 @@ fun UserSession?.isRouteAllowed(route: AdminRoute, previousListRoute: AdminRoute
             AdminRoute.Attendance,
             AdminRoute.Profile
         )
+    }
+
+    if (effectiveRoute == AdminRoute.PunchReport && role !in listOf(OutletRole.OWNER, OutletRole.HEAD)) {
+        return false
     }
 
     return effectiveRoute in allowedRoutes && effectiveRoute.gatedFeature(previousListRoute).isAccessibleBy(session)

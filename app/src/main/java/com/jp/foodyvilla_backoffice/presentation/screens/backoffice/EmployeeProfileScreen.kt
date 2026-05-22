@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import kotlinx.serialization.json.JsonObject
 
@@ -55,20 +56,23 @@ internal fun EmployeeProfileScreen(
         state.dashboardRows["employee"]
             .orEmpty()
             .firstOrNull { row -> row["id"].toDisplayText() == empId }
+            ?.toModel<Employee>()
     }
     val outlet = remember(session, state.dashboardRows, employee) {
-        val outletId = employee?.get("outlet_id")?.toDisplayText()
+        val outletId = employee?.outletId?.toString()
             ?: session?.outletId?.toString()
         state.dashboardRows["outlets"]
             .orEmpty()
             .firstOrNull { row -> row["id"].toDisplayText() == outletId }
+            ?.toModel<Outlet>()
     }
     val attendance = remember(session, state.dashboardRows) {
         val empId = (session as? UserSession.EmployeeSession)?.empId?.toString()
         state.dashboardRows["attendance"]
             .orEmpty()
             .filter { row -> row["emp_id"].toDisplayText() == empId }
-            .sortedByDescending { row -> row["created_at"].toDisplayText("") }
+            .map { it.toModel<Attendance>() }
+            .sortedByDescending { it.createdAt ?: "" }
     }
 
     LazyColumn(
@@ -82,42 +86,42 @@ internal fun EmployeeProfileScreen(
 
         item {
             ProfileSection(title = "Employee Details", icon = Icons.Default.Work) {
-                DetailLine("Employee ID", employee?.get("id").toDisplayText((session as? UserSession.EmployeeSession)?.empId?.toString() ?: "-"))
-                DetailLine("Name", employee?.get("name").toDisplayText((session as? UserSession.EmployeeSession)?.name ?: "-"))
-                DetailLine("Role", employee?.get("role").toDisplayText((session as? UserSession.EmployeeSession)?.role?.name ?: "-"))
-                DetailLine("Contact", employee?.get("contact").toDisplayText((session as? UserSession.EmployeeSession)?.contact ?: "-"))
-                DetailLine("Joining date", employee?.get("joining_date").toDisplayText().formatDate())
-                DetailLine("Status", employee?.get("is_active").toDisplayText("Active"))
+                DetailLine("Employee ID", employee?.id?.toString() ?: (session as? UserSession.EmployeeSession)?.empId?.toString() ?: "-")
+                DetailLine("Name", employee?.name ?: (session as? UserSession.EmployeeSession)?.name ?: "-")
+                DetailLine("Role", employee?.role ?: (session as? UserSession.EmployeeSession)?.role?.name ?: "-")
+                DetailLine("Contact", employee?.contact ?: (session as? UserSession.EmployeeSession)?.contact ?: "-")
+                DetailLine("Joining date", employee?.joiningDate?.formatDate() ?: "-")
+                DetailLine("Status", if (employee?.isActive == true) "Active" else "Inactive")
             }
         }
 
         item {
             ProfileSection(title = "Personal Information", icon = Icons.Default.ContactEmergency) {
-                DetailLine("Address", employee?.get("address").toDisplayText())
-                DetailLine("Aadhar no", employee?.get("aadhar_no").toDisplayText())
-                DetailLine("Emergency contact", employee?.get("emergency_contact").toDisplayText())
-                DetailLine("Salary", employee?.get("salary").toDisplayText())
+                DetailLine("Address", employee?.address ?: "-")
+                DetailLine("Aadhar no", employee?.aadharNo ?: "-")
+                DetailLine("Emergency contact", employee?.emergencyContact ?: "-")
+                DetailLine("Salary", employee?.salary?.toString() ?: "-")
             }
         }
 
         item {
             ProfileSection(title = "Outlet Details", icon = Icons.Default.Business) {
-                DetailLine("Outlet ID", outlet?.get("id").toDisplayText(session?.outletId?.toString() ?: "-"))
-                DetailLine("Outlet", outlet?.get("name").toDisplayText("Foody Villa"))
-                DetailLine("City", outlet?.get("city").toDisplayText())
-                DetailLine("Phone", outlet?.get("phone").toDisplayText())
-                DetailLine("Email", outlet?.get("email").toDisplayText())
-                DetailLine("Address", outlet?.get("address").toDisplayText())
-                DetailLine("Hours", "${outlet?.get("opens_at").toDisplayText()} - ${outlet?.get("closes_at").toDisplayText()}")
+                DetailLine("Outlet ID", outlet?.id?.toString() ?: session?.outletId?.toString() ?: "-")
+                DetailLine("Outlet", outlet?.name ?: "Foody Villa")
+                DetailLine("City", outlet?.city ?: "-")
+                DetailLine("Phone", outlet?.phone ?: "-")
+                DetailLine("Email", outlet?.email ?: "-")
+                DetailLine("Address", outlet?.address ?: "-")
+                DetailLine("Hours", "${outlet?.opensAt ?: "-"} - ${outlet?.closesAt ?: "-"}")
             }
         }
 
         item {
             ProfileSection(title = "Attendance", icon = Icons.Default.CalendarMonth) {
                 val latest = attendance.firstOrNull()
-                DetailLine("Last status", latest?.get("status").toDisplayText())
-                DetailLine("Punch in", latest?.get("in_time").toDisplayText().formatTimestamp())
-                DetailLine("Punch out", latest?.get("out_time").toDisplayText().formatTimestamp())
+                DetailLine("Last status", latest?.status ?: "-")
+                DetailLine("Punch in", latest?.inTime?.formatTimestamp() ?: "-")
+                DetailLine("Punch out", latest?.outTime?.formatTimestamp() ?: "-")
                 DetailLine("Punch location", employeePunchLocation(employee))
                 DetailLine("Visible records", attendance.size.toString())
             }
@@ -150,27 +154,15 @@ internal fun EmployeeProfileScreen(
             }
         }
 
-        if (employee != null) {
-            item {
-                ProfileSection(title = "Complete Employee Record", icon = Icons.Default.CreditCard) {
-                    employee.entries
-                        .sortedBy { it.key }
-                        .forEach { (key, value) ->
-                            DetailLine(key.profileLabel(), value.toDisplayText())
-                        }
-                }
-            }
-        }
-
         item { Spacer(Modifier.height(8.dp)) }
     }
 }
 
 @Composable
-private fun EmployeeProfileHeader(session: UserSession?, employee: JsonObject?) {
-    val name = employee?.get("name").toDisplayText((session as? UserSession.EmployeeSession)?.name ?: "Employee")
-    val role = employee?.get("role").toDisplayText((session as? UserSession.EmployeeSession)?.role?.dbValue ?: "Backoffice")
-    val contact = employee?.get("contact").toDisplayText((session as? UserSession.EmployeeSession)?.contact ?: "-")
+private fun EmployeeProfileHeader(session: UserSession?, employee: Employee?) {
+    val name = employee?.name ?: (session as? UserSession.EmployeeSession)?.name ?: "Employee"
+    val role = employee?.role ?: (session as? UserSession.EmployeeSession)?.role?.dbValue ?: "Backoffice"
+    val contact = employee?.contact ?: (session as? UserSession.EmployeeSession)?.contact ?: "-"
 
     PremiumCard {
         Box(
@@ -184,7 +176,7 @@ private fun EmployeeProfileHeader(session: UserSession?, employee: JsonObject?) 
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val image = employee?.firstImageUrl()
+                val image = employee?.profileImg
                 if (image.isNullOrBlank()) {
                     Surface(shape = CircleShape, color = Color.White.copy(alpha = .18f), modifier = Modifier.size(78.dp)) {
                         Box(contentAlignment = Alignment.Center) {
@@ -238,12 +230,8 @@ private fun ProfileSection(
     }
 }
 
-private fun employeePunchLocation(employee: JsonObject?): String {
-    val lat = employee?.get("punch_lat").toDisplayText()
-    val lng = employee?.get("punch_lng").toDisplayText()
-    return if (lat == "-" && lng == "-") "-" else "$lat, $lng"
-}
-
-private fun String.profileLabel(): String {
-    return replace("_", " ").replaceFirstChar { it.uppercase() }
+private fun employeePunchLocation(employee: Employee?): String {
+    val lat = employee?.punchLat
+    val lng = employee?.punchLng
+    return if (lat == null && lng == null) "-" else "$lat, $lng"
 }

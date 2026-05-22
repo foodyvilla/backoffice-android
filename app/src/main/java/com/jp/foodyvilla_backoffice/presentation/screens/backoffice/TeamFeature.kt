@@ -8,18 +8,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 internal fun EmployeeRecordCard(row: JsonObject, onClick: () -> Unit) {
+    val employee = remember(row) { row.toModel<Employee>() }
     PremiumCard(onClick = onClick) {
         Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            RecordImage(row.firstImageUrl(), row["name"].toDisplayText("Employee"), 68)
+            RecordImage(employee.profileImg, employee.name, 68)
             Column(Modifier.weight(1f)) {
-                Text(row["name"].toDisplayText("No name"), fontWeight = FontWeight.Bold)
-                Text(row["role"].toDisplayText("No role"), color = Muted)
-                Text(row["contact"].toDisplayText("No contact"), color = Muted, fontSize = 12.sp)
-                Text("Joined: ${row["joining_date"].toDisplayText().formatDate()}", color = Muted, fontSize = 11.sp)
+                Text(employee.name, fontWeight = FontWeight.Bold)
+                Text(employee.role ?: "No role", color = Muted)
+                Text(employee.contact ?: "No contact", color = Muted, fontSize = 12.sp)
+                Text("Joined: ${employee.joiningDate?.formatDate() ?: "-"}", color = Muted, fontSize = 11.sp)
             }
         }
     }

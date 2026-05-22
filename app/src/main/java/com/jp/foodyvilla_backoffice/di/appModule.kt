@@ -9,6 +9,7 @@ import com.jp.foodyvilla_backoffice.data.repo.OfferRepo
 import com.jp.foodyvilla_backoffice.data.repo.OrderRepository
 import com.jp.foodyvilla_backoffice.data.repo.ProductRepo
 import com.jp.foodyvilla_backoffice.data.repo.ReviewRepository
+import com.jp.foodyvilla_backoffice.data.repo.TaskCategoryRepository
 import com.jp.foodyvilla_backoffice.data.repo.SupabaseAuthRepository
 import com.jp.foodyvilla_backoffice.data.repo.UserRepository
 import com.jp.foodyvilla_backoffice.data.domain.repository.OrderWorkflowRepository
@@ -25,6 +26,7 @@ import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.menu.MenuViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.offers.OffersViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.reviews.ReviewsViewModel
+import com.jp.foodyvilla_backoffice.presentation.screens.task_category.TaskCategoryViewModel
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
@@ -79,6 +81,7 @@ val appModule = module{
     single { UserRepository(get()) }
     single{ CartRepository(get()) }
     single{ OrderRepository(get()) }
+    single { TaskCategoryRepository(get()) }
     single<OrderWorkflowRepository> { SupabaseOrderWorkflowRepository(get()) }
     single { ObserveIncomingOrdersUseCase(get()) }
     single { AcceptOrderUseCase(get()) }
@@ -105,6 +108,10 @@ val appModule = module{
 
     viewModel{
         ReviewsViewModel(get())
+    }
+
+    viewModel {
+        TaskCategoryViewModel(get())
     }
 
     viewModel{

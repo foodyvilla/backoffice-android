@@ -42,34 +42,6 @@ fun FoodyVillaNavGraph() {
             )
         }
 
-
-        composable<Screen.Login> {
-
-            MobileLoginScreen(
-                loginViewModel = loginViewModel,
-                navController = navController,
-                onGetOtp = {
-                    loginViewModel.updateOtp("")
-                    loginViewModel.login()
-                })
-        }
-
-        composable<Screen.Otp> {
-            val maskedPhone = loginViewModel.phoneNumber.collectAsStateWithLifecycle().value
-            OtpVerificationScreen(
-                maskedPhone = maskedPhone.dropLast(4) + "****",
-                loginViewModel = loginViewModel,
-                navController = navController,
-                onVerify = {
-                    loginViewModel.login(otp = it)
-//                    navController.navigate(Screen.Home)
-                },
-            ) {
-                loginViewModel.updateOtp("")
-                loginViewModel.login()
-            }
-        }
-
         composable<Screen.BackOfficeLogin> {
             BackOfficeLoginScreen(
                 loginViewModel = loginViewModel,
@@ -81,13 +53,6 @@ fun FoodyVillaNavGraph() {
                     }
                 }
             )
-        }
-
-        composable<Screen.Home> {
-            val homeViewModel = koinViewModel<HomeViewModel>()
-            MainScreen(navController = navController, viewModel = homeViewModel)
-
-
         }
 
         composable<Screen.BackOffice> {
@@ -116,88 +81,5 @@ fun FoodyVillaNavGraph() {
                 )
             }
         }
-
-        composable<Screen.Detail> { backStack ->
-            val homeViewModel = koinViewModel<HomeViewModel>()
-            val detail: Screen.Detail = backStack.toRoute()
-            DetailScreen(
-                itemId = detail.itemId,
-                onBack = { navController.popBackStack() },
-
-                onItemClick = { navController.navigate(Screen.Detail(it)) },
-                onCartClick = { navController.navigate(Screen.Cart) }, homeViewModel = homeViewModel
-            )
-        }
-
-        composable<Screen.OnLineMenu> { backStack ->
-            OrderOnlineScreen(onBackClick = { navController.navigateUp() })
-        }
-//
-        composable<Screen.Cart> {
-            val homeViewModel = koinViewModel<HomeViewModel>()
-            CartScreen(
-                onBack = { navController.popBackStack() },
-                onBrowseMenu = { navController.navigate(Screen.Home) }, viewModel = homeViewModel, loginViewModel = loginViewModel
-            )
-        }
-
-
-
-        composable<Screen.CustomerSupport> {
-            ContactUsScreen(
-                onNavigateBack = { navController.popBackStack() },
-            )
-        }
-        composable<Screen.AddReviews> {
-            AddReviewScreen(
-                viewModel = koinViewModel(),
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-
-//
-//        composable<Screen.Login> {
-//            LoginScreen(
-//                onLoginSuccess = {
-//                    navController.navigate(Screen.Home) {
-//                        popUpTo(Screen.Login) { inclusive = true }
-//                    }
-//                },
-//                onNavigateToRegister = { navController.navigate(Screen.Register) }
-//            )
-//        }
-//
-//        composable<Screen.Register> {
-//            RegisterScreen(
-//                onRegisterSuccess = {
-//                    navController.navigate(Screen.Home) {
-//                        popUpTo(Screen.Register) { inclusive = true }
-//                    }
-//                },
-//                onNavigateToLogin = { navController.popBackStack() }
-//            )
-//        }
-//
-        composable<Screen.Profile> {
-            ProfileScreen(
-                viewModel = loginViewModel,
-                onLogout = {
-                    loginViewModel.logout()
-                    navController.navigate(Screen.Login) {
-                        popUpTo(Screen.Profile) {
-                            inclusive = true
-                        }
-                    }
-                },
-                onSaveChanges = {},
-                onNavigateBack = {
-                    navController.navigateUp()
-                }
-
-            )
-        }
     }
-
-
 }

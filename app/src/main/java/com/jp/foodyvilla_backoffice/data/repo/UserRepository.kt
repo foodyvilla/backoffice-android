@@ -14,34 +14,39 @@ import kotlin.time.ExperimentalTime
 class UserRepository(private val supabase: SupabaseClient) {
 
      fun getCurrentUserProfile(): Flow<UiState<UserProfile>> = flow {
-        val session = supabase.auth.currentSessionOrNull()
+        emit(UiState.Loading)
+        try {
+            val session = supabase.auth.currentSessionOrNull()
 
-
-        if(session == null){
-            emit(UiState.Error(Exception("user not logged in")))
-            return@flow
-        }
-        val user = session.user
-        val authUserId = user?.id
-
-        if(authUserId == null){
-            emit(UiState.Error(Exception("user not logged in")))
-            return@flow
-        }
-        val response = supabase.postgrest["users"]
-            .select {
-                filter {
-                    eq("auth_user_id", authUserId)
-                }
+            if (session == null) {
+                emit(UiState.Error(Exception("user not logged in")))
+                return@flow
             }
-            .decodeSingleOrNull<UserProfile>()
+            val user = session.user
+            val authUserId = user?.id
 
-        println("User $response")
-         if(response == null){
-             emit(UiState.Error(Exception("User Not found")))
-             return@flow
-         }
-       emit(UiState.Success(response!!))
+            if (authUserId == null) {
+                emit(UiState.Error(Exception("user not logged in")))
+                return@flow
+            }
+            val response = supabase.postgrest["users"]
+                .select {
+                    filter {
+                        eq("auth_user_id", authUserId)
+                    }
+                }
+                .decodeSingleOrNull<UserProfile>()
+
+            println("User $response")
+            if (response == null) {
+                emit(UiState.Error(Exception("User Not found")))
+                return@flow
+            }
+            emit(UiState.Success(response))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emit(UiState.Error(e))
+        }
     }
 
 

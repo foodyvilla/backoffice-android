@@ -17,8 +17,6 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PendingActions
-import androidx.compose.material.icons.filled.ReceiptLong
-import androidx.compose.material3.Icon
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 import kotlinx.serialization.json.JsonObject
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -44,31 +43,38 @@ internal fun DashboardScreen(
     state: AdminUiState,
     onOpenRoute: (AdminRoute) -> Unit
 ) {
-    val orders = state.dashboardRows["orders"].orEmpty()
-    val orderItems = state.dashboardRows["order_items"].orEmpty()
+    val orders = remember(state.dashboardRows) { 
+        state.dashboardRows["orders"].orEmpty().map { it.toModel<Order>() } 
+    }
+    val orderItems = remember(state.dashboardRows) { 
+        state.dashboardRows["order_items"].orEmpty().map { it.toModel<OrderItem>() } 
+    }
     val products = state.dashboardRows["product_catalog"].orEmpty()
     val users = state.dashboardRows["users"].orEmpty()
     val productsById = remember(products) { products.associateBy { it["id"].toDisplayText() } }
     var selectedRange by remember { mutableStateOf("Today") }
     var selectedProductId by remember { mutableStateOf<String?>(null) }
+    
     val filteredOrders = remember(orders, selectedRange) {
         orders.filter { it.matchesDateRange(selectedRange) }
     }
-    val filteredOrderIds = remember(filteredOrders) { filteredOrders.map { it["id"].toDisplayText() }.toSet() }
+    val filteredOrderIds = remember(filteredOrders) { filteredOrders.map { it.id }.toSet() }
     val filteredItems = remember(orderItems, filteredOrderIds, selectedProductId) {
         orderItems.filter { item ->
-            item["order_id"].toDisplayText() in filteredOrderIds &&
-                (selectedProductId == null || item["menu_item_id"].toDisplayText() == selectedProductId)
+            item.orderId in filteredOrderIds &&
+                (selectedProductId == null || item.menuItemId.toString() == selectedProductId)
         }
     }
-    val pending = filteredOrders.count { it["status"].toDisplayText().normalizeOrderStatus() in listOf("Pending", "Accepted", "Preparing", "Ready") }
-    val cancelled = filteredOrders.count { it["status"].toDisplayText().normalizeOrderStatus() == "Rejected" }
-    val delivered = filteredOrders.count { it["status"].toDisplayText().normalizeOrderStatus() == "Completed" }
-    val revenue = filteredItems.sumOf { it["total_price"].asNumber() }
+    
+    val pending = filteredOrders.count { it.status.normalizeOrderStatus() in listOf("Pending", "Accepted", "Preparing", "Ready") }
+    val cancelled = filteredOrders.count { it.status.normalizeOrderStatus() == "Rejected" }
+    val delivered = filteredOrders.count { it.status.normalizeOrderStatus() == "Completed" }
+    val revenue = filteredItems.sumOf { it.totalPrice }
+    
     val topProductIds = filteredItems
-        .groupBy { it["menu_item_id"].toDisplayText() }
+        .groupBy { it.menuItemId.toString() }
         .entries
-        .sortedByDescending { (_, rows) -> rows.sumOf { it["qty"].asNumber() } }
+        .sortedByDescending { (_, rows) -> rows.sumOf { it.qty } }
         .map { it.key }
 
     LazyColumn(
@@ -113,7 +119,7 @@ internal fun DashboardScreen(
                     if (filteredItems.isEmpty()) {
                         Text("No order item sales found for this filter.", color = Muted)
                     } else {
-                        DashboardSparkline(values = filteredItems.map { it["total_price"].asNumber().toFloat() })
+                        DashboardSparkline(values = filteredItems.map { it.totalPrice.toFloat() })
                     }
                 }
             }
@@ -126,7 +132,7 @@ internal fun DashboardScreen(
         }
         items(topProductIds.take(5)) { productId ->
             productsById[productId]?.let { row ->
-                ProductRecordCard(row = row, onClick = { onOpenRoute(AdminRoute.Products) })
+                ProductRecordCard(product = row.toModel<ProductCatalog>(), onClick = { onOpenRoute(AdminRoute.Products) })
             }
         }
         item {
@@ -135,8 +141,8 @@ internal fun DashboardScreen(
                 EmptyState("No orders", "Orders from Supabase will appear here.")
             }
         }
-        items(filteredOrders.take(5)) { row ->
-            OrderRecordCard(row = row, onClick = { onOpenRoute(AdminRoute.Orders) })
+        items(filteredOrders.take(5)) { order ->
+            OrderRecordCard(order = order, onClick = { onOpenRoute(AdminRoute.Orders) })
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -214,15 +220,15 @@ private fun DashboardSparkline(values: List<Float>) {
     }
 }
 
-private fun JsonObject.matchesDateRange(range: String): Boolean {
+private fun Order.matchesDateRange(range: String): Boolean {
     if (range == "All") return true
-    val createdAt = this["created_at"].toDisplayText().toLocalDateOrNull() ?: return false
+    val createdAtDate = this.createdAt?.toLocalDateOrNull() ?: return false
     val today = LocalDate.now()
     return when (range) {
-        "Today" -> createdAt == today
-        "Week" -> !createdAt.isBefore(today.minusDays(6))
-        "Month" -> createdAt.year == today.year && createdAt.month == today.month
-        "Year" -> createdAt.year == today.year
+        "Today" -> createdAtDate == today
+        "Week" -> !createdAtDate.isBefore(today.minusDays(6))
+        "Month" -> createdAtDate.year == today.year && createdAtDate.month == today.month
+        "Year" -> createdAtDate.year == today.year
         else -> true
     }
 }

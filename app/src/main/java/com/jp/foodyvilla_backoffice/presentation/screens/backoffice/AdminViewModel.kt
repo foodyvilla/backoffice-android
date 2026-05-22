@@ -2,19 +2,22 @@ package com.jp.foodyvilla_backoffice.presentation.screens.backoffice
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminColumnType
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminTable
-import com.jp.foodyvilla_backoffice.data.model.backoffice.adminTables
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 import com.jp.foodyvilla_backoffice.data.repo.AdminRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
+import org.koin.androidx.compose.koinViewModel
 
 data class AdminUiState(
     val tables: List<AdminTable> = adminTables,
@@ -27,14 +30,21 @@ data class AdminUiState(
     val editingRow: JsonObject? = null,
     val formValues: Map<String, String> = emptyMap(),
     val searchQuery: String = "",
-    val orderItemsByOrderId: Map<String, List<JsonObject>> = emptyMap(),
+    val orderItemsByOrderId: Map<String, List<OrderItem>> = emptyMap(),
     val productsById: Map<String, JsonObject> = emptyMap(),
-    val customerOrders: List<JsonObject> = emptyList(),
-    val customerCart: List<JsonObject> = emptyList(),
+    val customerOrders: List<Order> = emptyList(),
+    val customerCart: List<Cart> = emptyList(),
     val dashboardRows: Map<String, List<JsonObject>> = emptyMap(),
     val lookupRows: Map<String, List<JsonObject>> = emptyMap(),
     val uploadingColumn: String? = null,
-    val pendingOrders: List<JsonObject> = emptyList()
+    val pendingOrders: List<Order> = emptyList(),
+    
+    // Filters
+    val orderDateFilter: String? = null, // yyyy-MM-dd
+    val orderStatusFilter: String? = null,
+    val attendanceDateFilter: String? = null,
+    val attendanceOutletFilter: String? = null,
+    val attendanceSearchQuery: String = ""
 )
 
 class AdminViewModel(
@@ -53,17 +63,16 @@ class AdminViewModel(
 
     private fun startGlobalOrderObservation() {
         globalOrdersJob?.cancel()
-        val ordersTable = adminTables.first { it.name == "orders" }
         globalOrdersJob = viewModelScope.launch {
-            repository.observeRows(ordersTable).collect { result ->
+            repository.observeOrders().collect { result ->
                 result.onSuccess { allOrders ->
-                    val pending = allOrders.filter { 
-                        it["status"].toDisplayText().lowercase() == "pending" 
+                    val pending = allOrders.map { it.toModel<Order>() }.filter { 
+                        it.status.lowercase() == "pending" 
                     }
                     _uiState.update { it.copy(pendingOrders = pending) }
                     
                     if (pending.isNotEmpty()) {
-                        loadOrderItemsFor(pending)
+                        loadOrderItemsFor(allOrders)
                     }
                 }
                 result.onFailure { throwable ->
@@ -96,7 +105,22 @@ class AdminViewModel(
         }
         loadLookupsFor(table)
         observeJob = viewModelScope.launch {
-            repository.observeRows(table).collect { result ->
+            val flow = when (table.name) {
+                "outlets" -> repository.observeOutlets()
+                "orders" -> repository.observeOrders()
+                "product_catalog" -> repository.observeProductCatalog()
+                "users" -> repository.observeUsers()
+                "cart" -> repository.observeCart()
+                "banners" -> repository.observeBanners()
+                "offers" -> repository.observeOffers()
+                "reviews" -> repository.observeReviews()
+                "employee" -> repository.observeEmployees()
+                "attendance" -> repository.observeAttendance()
+                "payments" -> repository.observePayments()
+                "outlet_menu_items" -> repository.observeOutletMenuItems()
+                else -> repository.observeRows(table)
+            }
+            flow.collect { result ->
                 result.fold(
                     onSuccess = { rows ->
                         _uiState.update {
@@ -124,7 +148,24 @@ class AdminViewModel(
         val table = _uiState.value.selectedTable
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            runCatching { repository.loadRows(table) }
+            runCatching {
+                when (table.name) {
+                    "outlets" -> repository.loadOutlets()
+                    "orders" -> repository.loadOrders()
+                    "product_catalog" -> repository.loadProductCatalog()
+                    "users" -> repository.loadUsers()
+                    "cart" -> repository.loadCart()
+                    "banners" -> repository.loadBanners()
+                    "offers" -> repository.loadOffers()
+                    "reviews" -> repository.loadReviews()
+                    "employee" -> repository.loadEmployees()
+                    "attendance" -> repository.loadAttendance()
+                    "payments" -> repository.loadPayments()
+                    "outlet_menu_items" -> repository.loadOutletMenuItems()
+                    "auth_otp" -> repository.loadAuthOtp()
+                    else -> repository.loadRows(table)
+                }
+            }
                 .onSuccess { rows ->
                     _uiState.update { it.copy(rows = rows, isLoading = false) }
                     if (table.name == "orders") {
@@ -145,7 +186,8 @@ class AdminViewModel(
             runCatching {
                 val itemsByOrder = repository.loadOrderItems()
                     .filter { it["order_id"].toDisplayText() in orderIds }
-                    .groupBy { it["order_id"].toDisplayText() }
+                    .map { it.toModel<OrderItem>() }
+                    .groupBy { it.orderId ?: "" }
                 val productsById = repository.loadProducts()
                     .associateBy { it["id"].toDisplayText() }
                 itemsByOrder to productsById
@@ -168,11 +210,31 @@ class AdminViewModel(
         _uiState.update { it.copy(searchQuery = query) }
     }
 
+    fun updateOrderDateFilter(date: String?) {
+        _uiState.update { it.copy(orderDateFilter = date) }
+    }
+
+    fun updateOrderStatusFilter(status: String?) {
+        _uiState.update { it.copy(orderStatusFilter = status) }
+    }
+
+    fun updateAttendanceDateFilter(date: String?) {
+        _uiState.update { it.copy(attendanceDateFilter = date) }
+    }
+
+    fun updateAttendanceOutletFilter(outletId: String?) {
+        _uiState.update { it.copy(attendanceOutletFilter = outletId) }
+    }
+
+    fun updateAttendanceSearch(query: String) {
+        _uiState.update { it.copy(attendanceSearchQuery = query) }
+    }
+
     fun loadCustomerDetails(customerId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, customerOrders = emptyList(), customerCart = emptyList()) }
-            val orders = runCatching { repository.loadCustomerOrders(customerId) }.getOrDefault(emptyList())
-            val cart = runCatching { repository.loadCustomerCart(customerId) }.getOrDefault(emptyList())
+            val orders = runCatching { repository.loadCustomerOrders(customerId) }.getOrDefault(emptyList()).map { it.toModel<Order>() }
+            val cart = runCatching { repository.loadCustomerCart(customerId) }.getOrDefault(emptyList()).map { it.toModel<Cart>() }
             _uiState.update { it.copy(isLoading = false, customerOrders = orders, customerCart = cart) }
         }
     }
@@ -274,9 +336,39 @@ class AdminViewModel(
             _uiState.update { it.copy(isSaving = true, error = null, successMessage = null) }
             runCatching {
                 if (state.editingRow == null) {
-                    repository.createRow(state.selectedTable, state.formValues)
+                    when (state.selectedTable.name) {
+                        "outlets" -> repository.createOutlet(state.formValues)
+                        "orders" -> repository.createOrder(state.formValues)
+                        "product_catalog" -> repository.createProduct(state.formValues)
+                        "users" -> repository.createUser(state.formValues)
+                        "cart" -> repository.createCart(state.formValues)
+                        "banners" -> repository.createBanner(state.formValues)
+                        "offers" -> repository.createOffer(state.formValues)
+                        "reviews" -> repository.createReview(state.formValues)
+                        "employee" -> repository.createEmployee(state.formValues)
+                        "attendance" -> repository.createAttendance(state.formValues)
+                        "order_items" -> repository.createOrderItem(state.formValues)
+                        "outlet_menu_items" -> repository.createOutletMenuItem(state.formValues)
+                        "payments" -> repository.createPayment(state.formValues)
+                        else -> repository.createRow(state.selectedTable, state.formValues)
+                    }
                 } else {
-                    repository.updateRow(state.selectedTable, state.editingRow, state.formValues)
+                    when (state.selectedTable.name) {
+                        "outlets" -> repository.updateOutlet(state.editingRow, state.formValues)
+                        "orders" -> repository.updateOrder(state.editingRow, state.formValues)
+                        "product_catalog" -> repository.updateProduct(state.editingRow, state.formValues)
+                        "users" -> repository.updateUser(state.editingRow, state.formValues)
+                        "cart" -> repository.updateCart(state.editingRow, state.formValues)
+                        "banners" -> repository.updateBanner(state.editingRow, state.formValues)
+                        "offers" -> repository.updateOffer(state.editingRow, state.formValues)
+                        "reviews" -> repository.updateReview(state.editingRow, state.formValues)
+                        "employee" -> repository.updateEmployee(state.editingRow, state.formValues)
+                        "attendance" -> repository.updateAttendance(state.editingRow, state.formValues)
+                        "order_items" -> repository.updateOrderItem(state.editingRow, state.formValues)
+                        "outlet_menu_items" -> repository.updateOutletMenuItem(state.editingRow, state.formValues)
+                        "payments" -> repository.updatePayment(state.editingRow, state.formValues)
+                        else -> repository.updateRow(state.selectedTable, state.editingRow, state.formValues)
+                    }
                 }
             }.onSuccess {
                 runCatching {
@@ -306,7 +398,24 @@ class AdminViewModel(
         val table = _uiState.value.selectedTable
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null, successMessage = null) }
-            runCatching { repository.deleteRow(table, row) }
+            runCatching {
+                when (table.name) {
+                    "outlets" -> repository.deleteOutlet(row)
+                    "orders" -> repository.deleteOrder(row)
+                    "product_catalog" -> repository.deleteProduct(row)
+                    "users" -> repository.deleteUser(row)
+                    "cart" -> repository.deleteCart(row)
+                    "banners" -> repository.deleteBanner(row)
+                    "offers" -> repository.deleteOffer(row)
+                    "reviews" -> repository.deleteReview(row)
+                    "employee" -> repository.deleteEmployee(row)
+                    "attendance" -> repository.deleteAttendance(row)
+                    "order_items" -> repository.deleteOrderItem(row)
+                    "outlet_menu_items" -> repository.deleteOutletMenuItem(row)
+                    "payments" -> repository.deletePayment(row)
+                    else -> repository.deleteRow(table, row)
+                }
+            }
                 .onSuccess {
                     _uiState.update {
                         it.copy(
@@ -413,7 +522,23 @@ class AdminViewModel(
         viewModelScope.launch {
             val tables = _uiState.value.tables.filter { it.name in dashboardTableNames }
             val rowsByTable = tables.associate { table ->
-                table.name to runCatching { repository.loadRows(table) }.getOrDefault(emptyList())
+                table.name to runCatching {
+                    when (table.name) {
+                        "outlets" -> repository.loadOutlets()
+                        "orders" -> repository.loadOrders()
+                        "product_catalog" -> repository.loadProductCatalog()
+                        "users" -> repository.loadUsers()
+                        "cart" -> repository.loadCart()
+                        "banners" -> repository.loadBanners()
+                        "offers" -> repository.loadOffers()
+                        "reviews" -> repository.loadReviews()
+                        "employee" -> repository.loadEmployees()
+                        "attendance" -> repository.loadAttendance()
+                        "payments" -> repository.loadPayments()
+                        "outlet_menu_items" -> repository.loadOutletMenuItems()
+                        else -> repository.loadRows(table)
+                    }
+                }.getOrDefault(emptyList())
             } + ("order_items" to runCatching { repository.loadOrderItems() }.getOrDefault(emptyList()))
             _uiState.update { it.copy(dashboardRows = rowsByTable) }
         }

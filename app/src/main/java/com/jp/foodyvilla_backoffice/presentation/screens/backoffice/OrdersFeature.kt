@@ -19,11 +19,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 internal fun OrderRecordCard(
-    row: JsonObject,
+    order: Order,
     onStatusChange: ((String) -> Unit)? = null,
     onClick: () -> Unit
 ) {
@@ -33,40 +34,40 @@ internal fun OrderRecordCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = RoyalBlue)
                     Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                        Text(row["customer_name"].toDisplayText("No customer name"), fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("Order #${row["id"].toDisplayText().take(8)}", color = Muted, fontSize = 11.sp)
+                        Text(order.customerName ?: "No customer name", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("Order #${order.id?.take(8) ?: "N/A"}", color = Muted, fontSize = 11.sp)
                     }
-                    StatusPill(row["status"].toDisplayText().normalizeOrderStatus(), statusColor(row["status"].toDisplayText()))
+                    StatusPill(order.status.normalizeOrderStatus(), statusColor(order.status))
                 }
-                Text(row["created_at"].toDisplayText().formatTimestamp(), color = Muted, fontSize = 12.sp)
+                Text(order.createdAt?.formatTimestamp() ?: "-", color = Muted, fontSize = 12.sp)
             }
         }
         if (onStatusChange != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 OrderStatusDropdown(
-                    current = row["status"].toDisplayText().normalizeOrderStatus(),
+                    current = order.status.normalizeOrderStatus(),
                     onStatusChange = onStatusChange,
                     modifier = Modifier.weight(1f)
                 )
-                CallCustomerButton(row["phone"].toDisplayText(), Modifier.weight(1f))
+                CallCustomerButton(order.phone ?: "-", Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-internal fun OrderItemRecordCard(row: JsonObject, onClick: () -> Unit) {
+internal fun OrderItemRecordCard(item: OrderItem, onClick: () -> Unit) {
     PremiumCard(onClick = onClick) {
         Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            RecordImage(row.firstImageUrl(), row["product_name"].toDisplayText("Order item"), 76)
+            RecordImage(item.image?.firstOrNull(), item.productName ?: "Order item", 76)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(row["product_name"].toDisplayText("Product"), fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(row["order_label"].toDisplayText("Order #${row["order_id"].toDisplayText().take(8)}"), color = Muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.productName ?: "Untitled Product", fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.orderLabel ?: "Order #${item.orderId?.take(8)}", color = Muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    StatusPill("Qty ${row["qty"].toDisplayText("1")}", RoyalBlue)
-                    StatusPill("Rs ${row["total_price"].toDisplayText("0")}", Success)
+                    StatusPill("Qty ${item.qty}", RoyalBlue)
+                    StatusPill("Rs ${item.totalPrice}", Success)
                     Spacer(Modifier.weight(1f))
-                    Text(row["created_at"].toDisplayText().formatTimestamp(), color = Muted, fontSize = 10.sp)
+                    Text(item.createdAt?.formatTimestamp() ?: "-", color = Muted, fontSize = 10.sp)
                 }
             }
         }
@@ -75,25 +76,81 @@ internal fun OrderItemRecordCard(row: JsonObject, onClick: () -> Unit) {
 
 @Composable
 internal fun OrderDetailsSection(
-    orderItems: List<JsonObject>,
+    orderItems: List<OrderItem>,
     productsById: Map<String, JsonObject>
 ) {
+    val totalAmount = orderItems.sumOf { it.totalPrice }
+
     PremiumCard {
-        Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Order items", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "Order Breakdown",
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 18.sp,
+                color = Ink
+            )
+
             if (orderItems.isEmpty()) {
-                Text("No linked order_items rows found.", color = Muted)
+                Text(
+                    text = "No items found for this order.",
+                    color = Muted,
+                    style = MaterialTheme.typography.bodyMedium
+                )
             } else {
                 orderItems.forEach { item ->
-                    val product = productsById[item["menu_item_id"].toDisplayText()]
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        RecordImage(product?.firstImageUrl(), product?.get("name").toDisplayText("Product"), 52)
-                        Column(Modifier.weight(1f)) {
-                            Text(product?.get("name").toDisplayText("Product"), fontWeight = FontWeight.Bold)
-                            Text("Qty ${item["qty"].toDisplayText("1")}", color = Muted, fontSize = 12.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        RecordImage(
+                            url = item.image?.firstOrNull(),
+                            label = item.productName ?: "Product",
+                            size = 56
+                        )
+                        
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = item.productName ?: "Unknown Product",
+                                fontWeight = FontWeight.Bold,
+                                color = Ink
+                            )
+                            Text(
+                                text = "${item.qty} x Rs ${item.pricePerItem}",
+                                color = Muted,
+                                fontSize = 13.sp
+                            )
                         }
-                        Text("Rs ${item["total_price"].toDisplayText("0")}", fontWeight = FontWeight.Bold)
+                        
+                        Text(
+                            text = "Rs ${item.totalPrice}",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = RoyalBlue
+                        )
                     }
+                }
+
+                HorizontalDivider(thickness = 1.dp, color = SoftLine)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Total Amount",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = Ink
+                    )
+                    Text(
+                        text = "Rs $totalAmount",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        color = Success
+                    )
                 }
             }
         }
@@ -103,7 +160,7 @@ internal fun OrderDetailsSection(
 @Composable
 private fun OrderStatusDropdown(current: String, onStatusChange: (String) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
-    val statuses = listOf("pending", "accepted", "preparing", "ready", "completed", "rejected")
+    val statuses = listOf("placed", "accepted", "preparing", "ready", "picked", "delivered", "rejected", "cancelled")
     Surface(
         modifier = modifier.height(50.dp).clickable { expanded = true },
         shape = RoundedCornerShape(16.dp),
