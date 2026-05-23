@@ -87,9 +87,9 @@ internal fun PremiumCard(
     Card(
         modifier = clickModifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
-        border = BorderStroke(1.dp, Color.White)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         content()
     }
@@ -112,15 +112,15 @@ internal fun PremiumTopBar(
         when {
             onBack != null -> RoundIconButton(Icons.Default.ArrowBack, "Back", onBack)
             onMenu != null -> RoundIconButton(Icons.Default.Menu, "Menu", onMenu)
-            else -> Surface(shape = CircleShape, color = RoyalBlue, modifier = Modifier.size(48.dp)) {
+            else -> Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp)) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = Color.White)
+                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }
         Column(Modifier.weight(1f)) {
-            Text(title, color = Ink, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(subtitle, color = Muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         onRefresh?.let { RoundIconButton(Icons.Default.Refresh, "Refresh", it) }
     }
@@ -131,11 +131,11 @@ internal fun RoundIconButton(icon: ImageVector, contentDescription: String, onCl
     Surface(
         modifier = Modifier.size(46.dp).clickable(onClick = onClick),
         shape = CircleShape,
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 4.dp
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = contentDescription, tint = Ink, modifier = Modifier.size(21.dp))
+            Icon(icon, contentDescription = contentDescription, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(21.dp))
         }
     }
 }
@@ -152,10 +152,10 @@ internal fun SearchAndFilterBar(query: String, onQueryChange: (String) -> Unit, 
         singleLine = true,
         shape = RoundedCornerShape(22.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = RoyalBlue,
-            unfocusedBorderColor = SoftLine,
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface
         )
     )
 }
@@ -183,11 +183,11 @@ internal fun RecordImage(url: String?, label: String?, size: Int = 72) {
         modifier = Modifier
             .size(size.dp)
             .clip(RoundedCornerShape(22.dp))
-            .background(Color(0xFFE8EEFF)),
+            .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         if (cleanedUrl.isNullOrBlank()) {
-            Icon(Icons.Default.Image, contentDescription = null, tint = RoyalBlue)
+            Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         } else {
             AsyncImage(
                 model = ImageRequest.Builder(context)
@@ -219,11 +219,11 @@ internal fun LargeRecordImage(url: String?, label: String?) {
             .fillMaxWidth()
             .aspectRatio(16f / 10f)
             .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFFE8EEFF)),
+            .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
     ) {
         if (cleanedUrl.isNullOrBlank()) {
-            Icon(Icons.Default.Image, contentDescription = null, tint = RoyalBlue, modifier = Modifier.size(42.dp))
+            Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(42.dp))
         } else {
             AsyncImage(
                 model = ImageRequest.Builder(context)
@@ -268,8 +268,8 @@ internal fun GenericRecordCard(table: AdminTable, row: JsonObject, onClick: () -
 @Composable
 internal fun DetailLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = Muted, fontSize = 13.sp, modifier = Modifier.weight(.42f))
-        Text(value, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(.58f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.weight(.42f))
+        Text(value, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(.58f), maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -289,18 +289,18 @@ internal fun EmptyState(title: String, message: String, actionLabel: String? = n
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Surface(shape = CircleShape, color = Color(0xFFE8EEFF), modifier = Modifier.size(68.dp)) {
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(68.dp)) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = RoyalBlue)
+                    Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 }
             }
-            Text(title, color = Ink, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-            Text(message, color = Muted, fontSize = 13.sp)
+            Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             if (actionLabel != null && onAction != null) {
                 Button(
                     onClick = onAction,
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -324,8 +324,8 @@ internal fun MetricCard(title: String, value: String, icon: ImageVector, color: 
                 }
             }
             Column {
-                Text(value, color = Ink, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
-                Text(title, color = Muted, fontSize = 13.sp)
+                Text(value, color = MaterialTheme.colorScheme.onSurface, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
+                Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             }
         }
     }
@@ -349,13 +349,13 @@ internal fun ImageUploadField(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(column.label, color = Muted, fontSize = 13.sp)
+        Text(column.label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
         LargeRecordImage(previewUri?.toString() ?: value.extractUrl(), column.label)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
                 onClick = { picker.launch("image/*") },
                 enabled = !isUploading,
-                colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.CloudUpload, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -372,7 +372,7 @@ internal fun ImageUploadField(
             label = { Text("Stored URL") },
             minLines = 2,
             shape = RoundedCornerShape(18.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = RoyalBlue, unfocusedBorderColor = SoftLine)
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant)
         )
     }
 }
@@ -393,7 +393,7 @@ internal fun AdminFormField(
         )
     } else if (column.type == AdminColumnType.Boolean) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(column.label, color = Muted, fontSize = 13.sp)
+            Text(column.label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = value.equals("true", true), onClick = { onChange("true") }, label = { Text("True") })
                 FilterChip(selected = value.equals("false", true) || value.isBlank(), onClick = { onChange("false") }, label = { Text("False") })
@@ -409,10 +409,10 @@ internal fun AdminFormField(
             minLines = if (column.multiline) 4 else 1,
             shape = RoundedCornerShape(18.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = RoyalBlue,
-                unfocusedBorderColor = SoftLine,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             )
         )
     }
@@ -441,7 +441,7 @@ internal fun ReferenceDropdownField(
             Text(
                 text = selectedLabel,
                 modifier = Modifier.weight(1f),
-                color = Ink
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -561,12 +561,12 @@ internal fun DrawerHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.linearGradient(listOf(RoyalBlue, Color(0xFF355CFF))))
+            .background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer)))
             .padding(22.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Foody Villa", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
-            Text("Backoffice", color = Color.White.copy(alpha = .82f), fontSize = 13.sp)
+            Text("Foody Villa", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
+            Text("Backoffice", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = .82f), fontSize = 13.sp)
         }
     }
 }

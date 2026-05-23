@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminColumn
@@ -42,17 +44,6 @@ val backofficeJson = Json {
 inline fun <reified T> JsonObject.toModel(): T {
     return backofficeJson.decodeFromJsonElement(this)
 }
-
-internal val RoyalBlue = Color(0xFF1238D8)
-internal val Ink = Color(0xFF111827)
-internal val Muted = Color(0xFF667085)
-internal val CanvasColor = Color(0xFFF5F7FB)
-internal val SoftLine = Color(0xFFE5EAF3)
-internal val Success = Color(0xFF16A34A)
-internal val Warning = Color(0xFFF59E0B)
-internal val Orange = Color(0xFFF97316)
-internal val Purple = Color(0xFF7C3AED)
-internal val Danger = Color(0xFFDC2626)
 
 enum class AdminRoute(
     val title: String,
@@ -114,15 +105,19 @@ internal fun routeForTable(tableName: String): AdminRoute = when (tableName) {
     else -> AdminRoute.Dashboard
 }
 
-internal fun statusColor(status: String): Color = when (status.normalizeOrderStatus().lowercase()) {
-    "placed", "pending" -> Warning
-    "accepted" -> RoyalBlue
-    "preparing" -> Orange
-    "ready" -> Color(0xFF9C27B0) // Purple
-    "picked" -> Color(0xFF00BCD4) // Cyan
-    "delivered", "completed" -> Success
-    "rejected", "cancelled" -> Danger
-    else -> Muted
+@Composable
+internal fun statusColor(status: String): Color {
+    val colorScheme = MaterialTheme.colorScheme
+    return when (status.normalizeOrderStatus().lowercase()) {
+        "placed", "pending" -> colorScheme.secondary
+        "accepted" -> colorScheme.primary
+        "preparing" -> colorScheme.tertiary
+        "ready" -> colorScheme.secondary
+        "picked" -> colorScheme.primaryContainer
+        "delivered", "completed" -> colorScheme.primary
+        "rejected", "cancelled" -> colorScheme.error
+        else -> colorScheme.onSurfaceVariant
+    }
 }
 
 internal fun String.normalizeOrderStatus(): String = when {

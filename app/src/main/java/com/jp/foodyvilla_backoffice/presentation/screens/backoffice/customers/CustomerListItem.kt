@@ -37,11 +37,11 @@ fun CustomerListItem(
                 )
                 Text(
                     text = customer.phone ?: "No phone",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
                 if (customer.isVerified == true) {
-                    StatusPill("Verified", Success)
+                    StatusPill("Verified", MaterialTheme.colorScheme.primary)
                 }
             }
         }

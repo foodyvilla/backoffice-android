@@ -35,18 +35,18 @@ fun PunchReportListItem(
                 )
                 Text(
                     text = "In: ${attendance.inTime?.formatTimestamp() ?: "-"}",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
                 Text(
                     text = "Out: ${attendance.outTime?.formatTimestamp() ?: "-"}",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
             }
             StatusPill(
                 label = attendance.status?.uppercase() ?: "-",
-                color = if (attendance.status == "present" || attendance.status == "completed") Success else Warning
+                color = if (attendance.status == "present" || attendance.status == "completed") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
             )
         }
     }

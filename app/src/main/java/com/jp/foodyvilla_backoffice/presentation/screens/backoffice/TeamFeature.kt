@@ -19,9 +19,9 @@ internal fun EmployeeRecordCard(row: JsonObject, onClick: () -> Unit) {
             RecordImage(employee.profileImg, employee.name, 68)
             Column(Modifier.weight(1f)) {
                 Text(employee.name, fontWeight = FontWeight.Bold)
-                Text(employee.role ?: "No role", color = Muted)
-                Text(employee.contact ?: "No contact", color = Muted, fontSize = 12.sp)
-                Text("Joined: ${employee.joiningDate?.formatDate() ?: "-"}", color = Muted, fontSize = 11.sp)
+                Text(employee.role ?: "No role", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(employee.contact ?: "No contact", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                Text("Joined: ${employee.joiningDate?.formatDate() ?: "-"}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
             }
         }
     }

@@ -126,12 +126,12 @@ private fun AttendanceSummaryCard(stats: AttendanceStats) {
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            SummaryItem("${stats.present}", "Present", Success)
-            SummaryItem("${stats.absent}", "Absent", Danger)
-            SummaryItem("${stats.late}", "Late", Orange)
-            SummaryItem("${stats.halfDay}", "Half", Warning)
-            SummaryItem("${stats.leave}", "Leave", RoyalBlue)
-            SummaryItem("${stats.holiday}", "Holiday", Color(0xFF9C27B0))
+            SummaryItem("${stats.present}", "Present", MaterialTheme.colorScheme.primary)
+            SummaryItem("${stats.absent}", "Absent", MaterialTheme.colorScheme.error)
+            SummaryItem("${stats.late}", "Late", MaterialTheme.colorScheme.tertiary)
+            SummaryItem("${stats.halfDay}", "Half", MaterialTheme.colorScheme.secondary)
+            SummaryItem("${stats.leave}", "Leave", MaterialTheme.colorScheme.primary)
+            SummaryItem("${stats.holiday}", "Holiday", MaterialTheme.colorScheme.secondary)
         }
     }
 }
@@ -140,7 +140,7 @@ private fun AttendanceSummaryCard(stats: AttendanceStats) {
 private fun SummaryItem(value: String, label: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = color)
-        Text(label, fontSize = 11.sp, color = Muted)
+        Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -157,7 +157,7 @@ private fun PunchCard(state: AdminUiState, onPunchIn: () -> Unit, onPunchOut: ()
     PremiumCard {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Fingerprint, null, tint = RoyalBlue, modifier = Modifier.size(24.dp))
+                Icon(Icons.Default.Fingerprint, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(10.dp))
                 Text("Shift Control", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
@@ -167,7 +167,7 @@ private fun PunchCard(state: AdminUiState, onPunchIn: () -> Unit, onPunchOut: ()
                     onClick = onPunchIn,
                     enabled = todayRecord == null && !state.isSaving,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Success),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(14.dp),
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
@@ -180,7 +180,7 @@ private fun PunchCard(state: AdminUiState, onPunchIn: () -> Unit, onPunchOut: ()
                     onClick = onPunchOut,
                     enabled = isPunchedIn && !state.isSaving,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Orange),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                     shape = RoundedCornerShape(14.dp),
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
@@ -191,7 +191,7 @@ private fun PunchCard(state: AdminUiState, onPunchIn: () -> Unit, onPunchOut: ()
             }
             
             if (isCompleted) {
-                Text("Today's shift completed successfully.", color = Success, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                Text("Today's shift completed successfully.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             }
         }
     }
@@ -205,16 +205,16 @@ private fun CalendarHeader(currentMonth: YearMonth, onMonthChange: (YearMonth) -
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = { onMonthChange(currentMonth.minusMonths(1)) }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = Muted)
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
             text = "${currentMonth.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${currentMonth.year}",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.ExtraBold,
-            color = Ink
+            color = MaterialTheme.colorScheme.onSurface
         )
         IconButton(onClick = { onMonthChange(currentMonth.plusMonths(1)) }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = Muted)
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -231,7 +231,7 @@ private fun AttendanceGrid(month: YearMonth, records: List<JsonObject>, onDateCl
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth()) {
             listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { day ->
-                Text(day, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 13.sp, color = Muted, fontWeight = FontWeight.Bold)
+                Text(day, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             }
         }
         
@@ -253,13 +253,13 @@ private fun AttendanceGrid(month: YearMonth, records: List<JsonObject>, onDateCl
                     
                     val color = when {
                         record == null -> Color.Transparent
-                        record["out_time"].toDisplayText() == "-" -> Orange.copy(alpha = 0.15f)
-                        else -> Success.copy(alpha = 0.15f)
+                        record["out_time"].toDisplayText() == "-" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                     }
                     val textColor = when {
-                        record == null -> if (date == LocalDate.now()) RoyalBlue else Ink
-                        record["out_time"].toDisplayText() == "-" -> Orange
-                        else -> Success
+                        record == null -> if (date == LocalDate.now()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        record["out_time"].toDisplayText() == "-" -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.primary
                     }
                     
                     Box(
@@ -294,10 +294,10 @@ private fun AttendanceLegend() {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        LegendItem("Present", Success)
-        LegendItem("Absent", Danger)
-        LegendItem("Late", Orange)
-        LegendItem("Half day", Warning)
+        LegendItem("Present", MaterialTheme.colorScheme.primary)
+        LegendItem("Absent", MaterialTheme.colorScheme.error)
+        LegendItem("Late", MaterialTheme.colorScheme.tertiary)
+        LegendItem("Half day", MaterialTheme.colorScheme.secondary)
     }
 }
 
@@ -305,7 +305,7 @@ private fun AttendanceLegend() {
 private fun LegendItem(label: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.size(10.dp).clip(CircleShape).background(color))
-        Text(label, fontSize = 11.sp, color = Muted, fontWeight = FontWeight.Medium)
+        Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -314,22 +314,22 @@ private fun MonthlyFinancialsCard() {
     PremiumCard {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Monthly Financials", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink)
+                Text("Monthly Financials", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 TextButton(onClick = {}) {
-                    Text("Show More", fontSize = 13.sp, color = RoyalBlue)
+                    Text("Show More", fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
                     Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp))
                 }
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                FinancialItem(Modifier.weight(1f), "Total Earning", "₹ 0", Icons.Default.Payments, Success)
-                FinancialItem(Modifier.weight(1f), "Fixed Salary", "₹ 0", Icons.Default.CurrencyRupee, RoyalBlue)
+                FinancialItem(Modifier.weight(1f), "Total Earning", "₹ 0", Icons.Default.Payments, MaterialTheme.colorScheme.primary)
+                FinancialItem(Modifier.weight(1f), "Fixed Salary", "₹ 0", Icons.Default.CurrencyRupee, MaterialTheme.colorScheme.primary)
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                FinancialMiniItem(Modifier.weight(1f), "Incentive", "₹ 0", Icons.Default.TrendingUp, Success)
-                FinancialMiniItem(Modifier.weight(1f), "Bonus", "₹ 0", Icons.Default.CardGiftcard, Orange)
-                FinancialMiniItem(Modifier.weight(1f), "Penalty", "₹ 0", Icons.Default.ReportProblem, Danger)
+                FinancialMiniItem(Modifier.weight(1f), "Incentive", "₹ 0", Icons.Default.TrendingUp, MaterialTheme.colorScheme.primary)
+                FinancialMiniItem(Modifier.weight(1f), "Bonus", "₹ 0", Icons.Default.CardGiftcard, MaterialTheme.colorScheme.tertiary)
+                FinancialMiniItem(Modifier.weight(1f), "Penalty", "₹ 0", Icons.Default.ReportProblem, MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -349,8 +349,8 @@ private fun FinancialItem(modifier: Modifier, title: String, value: String, icon
                 }
             }
             Column {
-                Text(title, fontSize = 11.sp, color = Muted)
-                Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Ink)
+                Text(title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }
@@ -364,8 +364,8 @@ private fun FinancialMiniItem(modifier: Modifier, title: String, value: String, 
                 Icon(icon, null, tint = color, modifier = Modifier.size(16.dp))
             }
         }
-        Text(title, fontSize = 10.sp, color = Muted)
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Ink)
+        Text(title, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -375,27 +375,27 @@ private fun AttendanceDetailDialog(record: JsonObject, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Box(Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFFFF9C4)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.WbSunny, null, tint = Orange)
+                Box(Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.tertiaryContainer), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.WbSunny, null, tint = MaterialTheme.colorScheme.tertiary)
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(record["created_at"].toDisplayText().substringBefore("T"), fontWeight = FontWeight.ExtraBold)
-                Text(LocalDate.parse(record["created_at"].toDisplayText().substringBefore("T")).month.getDisplayName(TextStyle.FULL, Locale.getDefault()) + " " + LocalDate.parse(record["created_at"].toDisplayText().substringBefore("T")).year, fontSize = 13.sp, color = Muted)
+                Text(LocalDate.parse(record["created_at"].toDisplayText().substringBefore("T")).month.getDisplayName(TextStyle.FULL, Locale.getDefault()) + " " + LocalDate.parse(record["created_at"].toDisplayText().substringBefore("T")).year, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatusPill(
                     label = record["status"].toDisplayText().uppercase(),
-                    color = if (record["out_time"].toDisplayText() == "-") Orange else Success
+                    color = if (record["out_time"].toDisplayText() == "-") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
                 )
                 
-                DetailBox("Punch In", record["in_time"].toDisplayText().substringAfter("T").take(5), Icons.Default.Login, Success)
-                DetailBox("Punch Out", record["out_time"].toDisplayText().let { if (it == "-") "Active" else it.substringAfter("T").take(5) }, Icons.Default.Logout, Orange)
+                DetailBox("Punch In", record["in_time"].toDisplayText().substringAfter("T").take(5), Icons.Default.Login, MaterialTheme.colorScheme.primary)
+                DetailBox("Punch Out", record["out_time"].toDisplayText().let { if (it == "-") "Active" else it.substringAfter("T").take(5) }, Icons.Default.Logout, MaterialTheme.colorScheme.tertiary)
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MiniInfoBox(Modifier.weight(1f), "Total Work", "0h 00m", Icons.Default.Schedule, Orange)
-                    MiniInfoBox(Modifier.weight(1f), "Total Break", "0h 00m", Icons.Default.Coffee, RoyalBlue)
+                    MiniInfoBox(Modifier.weight(1f), "Total Work", "0h 00m", Icons.Default.Schedule, MaterialTheme.colorScheme.tertiary)
+                    MiniInfoBox(Modifier.weight(1f), "Total Break", "0h 00m", Icons.Default.Coffee, MaterialTheme.colorScheme.primary)
                 }
             }
         },
@@ -404,7 +404,7 @@ private fun AttendanceDetailDialog(record: JsonObject, onDismiss: () -> Unit) {
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Orange),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Behaviour")
@@ -413,7 +413,7 @@ private fun AttendanceDetailDialog(record: JsonObject, onDismiss: () -> Unit) {
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
                         Text("Dismiss")
                     }
-                    Button(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Orange)) {
+                    Button(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)) {
                         Text("See More")
                     }
                 }
@@ -432,8 +432,8 @@ private fun DetailBox(label: String, value: String, icon: ImageVector, color: Co
                 }
             }
             Column(Modifier.weight(1f)) {
-                Text(label, fontSize = 11.sp, color = Muted)
-                Text(value, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Ink)
+                Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }
@@ -449,8 +449,8 @@ private fun MiniInfoBox(modifier: Modifier, label: String, value: String, icon: 
                 }
             }
             Column {
-                Text(label, fontSize = 9.sp, color = Muted)
-                Text(value, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Ink)
+                Text(label, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }

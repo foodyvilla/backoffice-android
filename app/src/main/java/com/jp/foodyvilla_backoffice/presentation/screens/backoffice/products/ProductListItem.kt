@@ -39,13 +39,13 @@ fun ProductListItem(
                 )
                 Text(
                     text = product.category ?: "No category",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (product.isBestseller) StatusPill("Bestseller", Success)
-                    if (product.isVeg == true) StatusPill("Veg", Success)
-                    else if (product.isVeg == false) StatusPill("Non-Veg", Danger)
+                    if (product.isBestseller) StatusPill("Bestseller", MaterialTheme.colorScheme.primary)
+                    if (product.isVeg == true) StatusPill("Veg", MaterialTheme.colorScheme.primary)
+                    else if (product.isVeg == false) StatusPill("Non-Veg", MaterialTheme.colorScheme.error)
                 }
             }
         }

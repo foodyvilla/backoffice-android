@@ -8,7 +8,7 @@ import androidx.activity.viewModels
 import com.jp.foodyvilla_backoffice.fcm.createNotificationChannel
 import com.jp.foodyvilla_backoffice.fcm.subscribeToTopic
 import com.jp.foodyvilla_backoffice.presentation.navigation.FoodyVillaNavGraph
-import com.jp.foodyvilla_backoffice.presentation.screens.home.HomeViewModel
+
 import com.jp.foodyvilla_backoffice.presentation.utils.HideSystemBars
 import com.jp.foodyvilla_backoffice.ui.theme.AppTheme
 import com.razorpay.Checkout
@@ -16,8 +16,8 @@ import com.razorpay.PaymentData
 import com.razorpay.PaymentResultWithDataListener
 import kotlin.getValue
 
-class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
-    private val viewModel: HomeViewModel by viewModels()
+class MainActivity : ComponentActivity() {
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,30 +44,6 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        Checkout.clearUserData(this)
-    }
-    override fun onPaymentSuccess(razorpayPaymentId: String?, paymentData: PaymentData?) {
-       println("Success Payment $razorpayPaymentId")
 
-        println("Success Data $paymentData")
 
-        viewModel.onPaymentSuccess(
-            razorpayPaymentId = razorpayPaymentId ?: "",
-            razorpayOrderId = paymentData?.orderId ?: "",
-            razorpaySignature = paymentData?.signature ?: ""
-        )
-    }
-
-    override fun onPaymentError(errorCode: Int, errorDescription: String?, p2: PaymentData?) {
-        println("Error Payment $errorCode   $errorDescription")
-
-        println("Error Data $p2")
-
-        viewModel.onPaymentError(
-            errorCode = errorCode,
-            errorDescription = errorDescription ?: "Unknown error"
-        )
-    }
 }

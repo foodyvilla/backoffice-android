@@ -201,7 +201,7 @@ internal fun BackOfficeListScreen(
         if (route == AdminRoute.Attendance && session?.roleOrNull() in listOf(OutletRole.OWNER, OutletRole.HEAD)) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Attendance Report Filters", fontWeight = FontWeight.Bold, color = Ink)
+                    Text("Attendance Report Filters", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         DatePickerField(
                             label = "Date",
@@ -232,16 +232,16 @@ internal fun BackOfficeListScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Icon(route.icon, contentDescription = null, tint = RoyalBlue)
+                        Icon(route.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Column(Modifier.weight(1f)) {
-                            Text("${rows.size} records", color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
-                            Text(state.selectedTable.description, color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text("${rows.size} records", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
+                            Text(state.selectedTable.description, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
                         if (route.canCreate && (route != AdminRoute.Attendance || session?.roleOrNull() in listOf(OutletRole.OWNER, OutletRole.HEAD))) {
                             Button(
                                 onClick = onCreate,
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
                                 Text("New")
                             }
@@ -250,7 +250,7 @@ internal fun BackOfficeListScreen(
                             Button(
                                 onClick = { showOfferDialog = true },
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Orange)
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                             ) {
                                 Icon(Icons.Default.Campaign, null, Modifier.size(18.dp))
                                 Spacer(Modifier.width(8.dp))
@@ -265,7 +265,7 @@ internal fun BackOfficeListScreen(
                                 enabled = !state.isSaving && punchStatus != "Completed",
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (punchStatus == "Punch In") Success else Orange
+                                    containerColor = if (punchStatus == "Punch In") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
                                 )
                             ) {
                                 Text(punchStatus)
@@ -276,7 +276,7 @@ internal fun BackOfficeListScreen(
             }
         }
         if (state.isLoading) {
-            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = RoyalBlue) }
+            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary) }
         } else if (rows.isEmpty()) {
             item {
                 EmptyState(
@@ -343,7 +343,7 @@ internal fun BackOfficeDetailScreen(
                         Button(
                             onClick = onEdit,
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null)
                             Text("Edit", modifier = Modifier.padding(start = 8.dp))
@@ -371,11 +371,11 @@ internal fun BackOfficeDetailScreen(
         }
         if (table.name == "users") {
             item {
-                Text("Customer Activity", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Ink)
+                Text("Customer Activity", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
             }
             if (customerOrders.isNotEmpty()) {
                 item {
-                    Text("Recent Orders", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RoyalBlue)
+                    Text("Recent Orders", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                 }
                 items(customerOrders) { order ->
                     OrderRecordCard(order = order, onClick = {})
@@ -383,7 +383,7 @@ internal fun BackOfficeDetailScreen(
             }
             if (customerCart.isNotEmpty()) {
                 item {
-                    Text("Items in Cart", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RoyalBlue)
+                    Text("Items in Cart", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                 }
                 items(customerCart) { cartItem ->
                     CartRecordCard(cart = cartItem, onSendNotification = {}, onClick = {})

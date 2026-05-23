@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PendingActions
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -92,23 +93,23 @@ internal fun DashboardScreen(
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                MetricCard("Total Orders", filteredOrders.size.toString(), Icons.AutoMirrored.Filled.ReceiptLong, RoyalBlue, Modifier.weight(1f))
-                MetricCard("Revenue", "Rs %.0f".format(revenue), Icons.Default.Payments, Success, Modifier.weight(1f))
+                MetricCard("Total Orders", filteredOrders.size.toString(), Icons.AutoMirrored.Filled.ReceiptLong, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                MetricCard("Revenue", "Rs %.0f".format(revenue), Icons.Default.Payments, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
             }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                MetricCard("Pending", pending.toString(), Icons.Default.PendingActions, Warning, Modifier.weight(1f))
-                MetricCard("Rejected", cancelled.toString(), Icons.Default.Cancel, Danger, Modifier.weight(1f))
+                MetricCard("Pending", pending.toString(), Icons.Default.PendingActions, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
+                MetricCard("Rejected", cancelled.toString(), Icons.Default.Cancel, MaterialTheme.colorScheme.error, Modifier.weight(1f))
             }
         }
         item {
             PremiumCard {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Orders status", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    StatusPill("Completed: $delivered", Success)
-                    StatusPill("Active: $pending", Warning)
-                    StatusPill("Rejected: $cancelled", Danger)
+                    StatusPill("Completed: $delivered", MaterialTheme.colorScheme.primary)
+                    StatusPill("Active: $pending", MaterialTheme.colorScheme.secondary)
+                    StatusPill("Rejected: $cancelled", MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -117,7 +118,7 @@ internal fun DashboardScreen(
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Sales graph", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     if (filteredItems.isEmpty()) {
-                        Text("No order item sales found for this filter.", color = Muted)
+                        Text("No order item sales found for this filter.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         DashboardSparkline(values = filteredItems.map { it.totalPrice.toFloat() })
                     }
@@ -146,8 +147,8 @@ internal fun DashboardScreen(
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                MetricCard("Products", products.size.toString(), AdminRoute.Products.icon, RoyalBlue, Modifier.weight(1f))
-                MetricCard("Customers", users.size.toString(), AdminRoute.Customers.icon, Purple, Modifier.weight(1f))
+                MetricCard("Products", products.size.toString(), AdminRoute.Products.icon, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                MetricCard("Customers", users.size.toString(), AdminRoute.Customers.icon, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
             }
         }
         item { Spacer(Modifier.height(72.dp)) }
@@ -164,7 +165,7 @@ private fun SalesFilters(
 ) {
     PremiumCard {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Sales report filters", color = Ink, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Sales report filters", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(listOf("Today", "Week", "Month", "Year", "All")) { range ->
                     FilterChip(
@@ -197,12 +198,14 @@ private fun SalesFilters(
 
 @Composable
 private fun SectionTitle(title: String) {
-    Text(title, color = Ink, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+    Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 20.sp)
 }
 
 @Composable
 private fun DashboardSparkline(values: List<Float>) {
     val max = values.maxOrNull()?.takeIf { it > 0f } ?: 1f
+    val lineColor = MaterialTheme.colorScheme.primary
+    val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
     Canvas(Modifier.fillMaxWidth().height(130.dp)) {
         val normalized = values.takeLast(12).map { it / max }
         val step = size.width / (normalized.size - 1).coerceAtLeast(1)
@@ -214,9 +217,9 @@ private fun DashboardSparkline(values: List<Float>) {
         }
         repeat(4) {
             val y = size.height * (it + 1) / 5
-            drawLine(Color(0xFFE9EDF5), Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
+            drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
         }
-        drawPath(path, RoyalBlue, style = Stroke(width = 4.dp.toPx()))
+        drawPath(path, lineColor, style = Stroke(width = 4.dp.toPx()))
     }
 }
 

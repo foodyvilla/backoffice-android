@@ -10,9 +10,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.Banner
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.Muted
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.PremiumCard
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.RecordImage
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 
 @Composable
 fun BannerListItem(
@@ -40,12 +38,12 @@ fun BannerListItem(
                 )
                 Text(
                     text = "Order: ${banner.displayOrder}",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp
                 )
                 Text(
                     text = banner.createdAt ?: "-",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 12.sp

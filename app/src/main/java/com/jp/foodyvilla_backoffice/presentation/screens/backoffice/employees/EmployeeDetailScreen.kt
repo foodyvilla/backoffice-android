@@ -46,12 +46,12 @@ fun EmployeeDetailScreen(
                         Button(
                             onClick = onEdit,
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null)
                             Text("Edit Employee", modifier = Modifier.padding(start = 8.dp))
                         }
-                        StatusPill(if (employee.isActive) "Active" else "Inactive", if (employee.isActive) Success else Danger)
+                        StatusPill(if (employee.isActive) "Active" else "Inactive", if (employee.isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
                     }
 
                     DetailLine("Name", employee.name)

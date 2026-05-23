@@ -79,17 +79,17 @@ fun PunchReportScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Icon(AdminRoute.PunchReport.icon, contentDescription = null, tint = RoyalBlue)
+                    Icon(AdminRoute.PunchReport.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Column(Modifier.weight(1f)) {
                         Text(
                             "${records.size} Records",
-                            color = Ink,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp
                         )
                         Text(
                             "Employee attendance history",
-                            color = Muted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -97,7 +97,7 @@ fun PunchReportScreen(
         }
 
         if (state.isLoading) {
-            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = RoyalBlue) }
+            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary) }
         } else if (records.isEmpty()) {
             item {
                 EmptyState(

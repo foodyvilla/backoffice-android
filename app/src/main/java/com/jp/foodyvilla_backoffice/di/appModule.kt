@@ -20,11 +20,8 @@ import com.jp.foodyvilla_backoffice.data.domain.usecase.RejectOrderUseCase
 import com.jp.foodyvilla_backoffice.data.repository.SupabaseOrderWorkflowRepository
 import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.AdminViewModel
-import com.jp.foodyvilla_backoffice.presentation.screens.detail.DetailViewModel
-import com.jp.foodyvilla_backoffice.presentation.screens.home.HomeViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
-import com.jp.foodyvilla_backoffice.presentation.screens.menu.MenuViewModel
-import com.jp.foodyvilla_backoffice.presentation.screens.offers.OffersViewModel
+
 import com.jp.foodyvilla_backoffice.presentation.screens.task_category.TaskCategoryViewModel
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
@@ -87,23 +84,14 @@ val appModule = module{
     single { MoveOrderStatusUseCase(get()) }
     single { RejectOrderUseCase(get()) }
     single{ LocationRepository(androidContext()) }
-    viewModel {
-        HomeViewModel(get(), get(), get(),get(), get())
-    }
+
     viewModel {
         AdminViewModel(get())
     }
-    viewModel{
-        OffersViewModel(get())
-    }
 
-    viewModel{
-        DetailViewModel(get(),get())
-    }
 
-    viewModel{
-        MenuViewModel(get())
-    }
+
+
 
 
 

@@ -10,9 +10,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.Offer
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.Muted
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.PremiumCard
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.RecordImage
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 
 @Composable
 fun OfferListItem(
@@ -42,7 +40,7 @@ fun OfferListItem(
                 )
                 Text(
                     text = offer.description ?: "-",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = 14.sp
@@ -50,7 +48,7 @@ fun OfferListItem(
                 offer.expiresAt?.let {
                     Text(
                         text = "Expires: $it",
-                        color = Muted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 }

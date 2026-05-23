@@ -44,7 +44,7 @@ fun PaymentDetailScreen(
                         )
                         StatusPill(
                             label = payment.paymentStatus.uppercase(),
-                            color = if (payment.paymentStatus.lowercase() == "captured") Success else Warning
+                            color = if (payment.paymentStatus.lowercase() == "captured") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
                         )
                     }
 

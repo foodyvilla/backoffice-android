@@ -88,23 +88,23 @@ fun OrderScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Icon(AdminRoute.Orders.icon, contentDescription = null, tint = RoyalBlue)
+                    Icon(AdminRoute.Orders.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Column(Modifier.weight(1f)) {
                         Text(
                             "${orders.size} Orders",
-                            color = Ink,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp
                         )
                         Text(
                             "Kitchen and delivery queue",
-                            color = Muted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Button(
                         onClick = onCreate,
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text("New")
                     }
@@ -113,7 +113,7 @@ fun OrderScreen(
         }
 
         if (state.isLoading) {
-            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = RoyalBlue) }
+            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary) }
         } else if (orders.isEmpty()) {
             item {
                 EmptyState(

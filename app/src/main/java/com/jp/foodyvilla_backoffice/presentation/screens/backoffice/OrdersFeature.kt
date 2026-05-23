@@ -32,14 +32,14 @@ internal fun OrderRecordCard(
         PremiumCard(onClick = onClick) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = RoyalBlue)
+                    Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Column(Modifier.weight(1f).padding(start = 10.dp)) {
                         Text(order.customerName ?: "No customer name", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("Order #${order.id?.take(8) ?: "N/A"}", color = Muted, fontSize = 11.sp)
+                        Text("Order #${order.id?.take(8) ?: "N/A"}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                     }
                     StatusPill(order.status.normalizeOrderStatus(), statusColor(order.status))
                 }
-                Text(order.createdAt?.formatTimestamp() ?: "-", color = Muted, fontSize = 12.sp)
+                Text(order.createdAt?.formatTimestamp() ?: "-", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             }
         }
         if (onStatusChange != null) {
@@ -62,12 +62,12 @@ internal fun OrderItemRecordCard(item: OrderItem, onClick: () -> Unit) {
             RecordImage(item.image?.firstOrNull(), item.productName ?: "Order item", 76)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(item.productName ?: "Untitled Product", fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(item.orderLabel ?: "Order #${item.orderId?.take(8)}", color = Muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.orderLabel ?: "Order #${item.orderId?.take(8)}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    StatusPill("Qty ${item.qty}", RoyalBlue)
-                    StatusPill("Rs ${item.totalPrice}", Success)
+                    StatusPill("Qty ${item.qty}", MaterialTheme.colorScheme.primary)
+                    StatusPill("Rs ${item.totalPrice}", MaterialTheme.colorScheme.tertiary)
                     Spacer(Modifier.weight(1f))
-                    Text(item.createdAt?.formatTimestamp() ?: "-", color = Muted, fontSize = 10.sp)
+                    Text(item.createdAt?.formatTimestamp() ?: "-", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                 }
             }
         }
@@ -90,13 +90,13 @@ internal fun OrderDetailsSection(
                 text = "Order Breakdown",
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 18.sp,
-                color = Ink
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             if (orderItems.isEmpty()) {
                 Text(
                     text = "No items found for this order.",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium
                 )
             } else {
@@ -115,11 +115,11 @@ internal fun OrderDetailsSection(
                             Text(
                                 text = item.productName ?: "Unknown Product",
                                 fontWeight = FontWeight.Bold,
-                                color = Ink
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "${item.qty} x Rs ${item.pricePerItem}",
-                                color = Muted,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 13.sp
                             )
                         }
@@ -127,12 +127,12 @@ internal fun OrderDetailsSection(
                         Text(
                             text = "Rs ${item.totalPrice}",
                             fontWeight = FontWeight.ExtraBold,
-                            color = RoyalBlue
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
 
-                HorizontalDivider(thickness = 1.dp, color = SoftLine)
+                HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -143,13 +143,13 @@ internal fun OrderDetailsSection(
                         text = "Total Amount",
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp,
-                        color = Ink
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Rs $totalAmount",
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 20.sp,
-                        color = Success
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -164,18 +164,18 @@ private fun OrderStatusDropdown(current: String, onStatusChange: (String) -> Uni
     Surface(
         modifier = modifier.height(50.dp).clickable { expanded = true },
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 3.dp
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(current, modifier = Modifier.weight(1f), color = Ink, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(current, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = "Change status",
-                tint = Muted,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 8.dp)
             )
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

@@ -77,23 +77,23 @@ fun CartScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Icon(AdminRoute.Cart.icon, contentDescription = null, tint = RoyalBlue)
+                    Icon(AdminRoute.Cart.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Column(Modifier.weight(1f)) {
                         Text(
                             "${carts.size} Active Carts",
-                            color = Ink,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp
                         )
                         Text(
                             "Customers with items in cart",
-                            color = Muted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Button(
                         onClick = { showOfferDialog = true },
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Orange)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                     ) {
                         Icon(Icons.Default.Campaign, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
@@ -104,7 +104,7 @@ fun CartScreen(
         }
 
         if (state.isLoading) {
-            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = RoyalBlue) }
+            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary) }
         } else if (carts.isEmpty()) {
             item {
                 EmptyState(

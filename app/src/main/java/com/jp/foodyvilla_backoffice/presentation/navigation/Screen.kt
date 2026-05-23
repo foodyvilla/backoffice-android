@@ -15,8 +15,6 @@ sealed interface Screen {
     @Serializable
     data object Splash : Screen
 
-    @Serializable
-    data object Home : Screen
 
     @Serializable
     data object BackOffice : Screen
@@ -36,36 +34,13 @@ sealed interface Screen {
     data object Menu : Screen
 
 
-    @Serializable
-    data object OnLineMenu : Screen
+
     @Serializable
     data object Offers : Screen
 
-    @Serializable
-    data object Reviews : Screen
 
 
-    @Serializable
-    data object AddReviews : Screen
-
-    @Serializable
-    data object CustomerSupport : Screen
-
-    @Serializable
-    data object Login : Screen
-
-    @Serializable
-    data object Otp : Screen
-
-    @Serializable
-    data object Profile : Screen
 }
 
-// Bottom nav items
-enum class BottomNavItem(val route: Any, val label: String, val icon: ImageVector) {
-    Home(Screen.Home, "Home", Icons.Filled.Home),
-    Menu(Screen.Menu, "Menu", Icons.Filled.RestaurantMenu),
-    Offers(Screen.Offers, "Offers", Icons.Filled.LocalOffer),
-    Reviews(Screen.Reviews, "Reviews", Icons.Filled.StarRate),
-    Profile(Screen.Profile, "Profile", Icons.Filled.Person);
-}
+
+

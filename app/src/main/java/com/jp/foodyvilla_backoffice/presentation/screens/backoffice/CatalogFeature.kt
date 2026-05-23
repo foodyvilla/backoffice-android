@@ -18,9 +18,9 @@ internal fun ProductRecordCard(product: ProductCatalog, onClick: () -> Unit) {
             RecordImage(product.firstImageUrl(), product.name, 84)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(product.name, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(product.category ?: "No category", color = Muted, fontSize = 13.sp)
+                Text(product.category ?: "No category", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (product.isBestseller) StatusPill("Bestseller", Success)
+                    if (product.isBestseller) StatusPill("Bestseller", MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -34,11 +34,11 @@ internal fun OutletMenuRecordCard(item: OutletMenuItem, onClick: () -> Unit) {
             RecordImage(item.image?.firstOrNull(), item.productName ?: "Menu item", 84)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(item.productName ?: "Product", fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(item.productCategory ?: "No category", color = Muted, fontSize = 13.sp)
+                Text(item.productCategory ?: "No category", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusPill("Rs ${item.price}", RoyalBlue)
-                    StatusPill(if (item.isAvailable) "Available" else "Hidden", if (item.isAvailable) Success else Muted)
-                    if (item.isOutOfStock) StatusPill("Out of stock", Danger)
+                    StatusPill("Rs ${item.price}", MaterialTheme.colorScheme.primary)
+                    StatusPill(if (item.isAvailable) "Available" else "Hidden", if (item.isAvailable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (item.isOutOfStock) StatusPill("Out of stock", MaterialTheme.colorScheme.error)
                 }
             }
         }

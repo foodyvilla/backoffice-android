@@ -35,7 +35,7 @@ fun OrderListItem(
                     )
                     Text(
                         text = "Order #${order.id?.takeLast(8)}",
-                        color = Muted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp
                     )
                 }
@@ -52,13 +52,13 @@ fun OrderListItem(
             ) {
                 Text(
                     text = order.orderType ?: "Delivery",
-                    color = Ink,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = order.createdAt?.formatTimestamp() ?: "-",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
                 )
             }

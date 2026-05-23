@@ -50,18 +50,18 @@ fun PaymentScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Icon(AdminRoute.Payments.icon, contentDescription = null, tint = RoyalBlue)
+                    Icon(AdminRoute.Payments.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Column(Modifier.weight(1f)) {
                         Text(
                             "${payments.size} Payments",
-                            color = Ink,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp
                         )
                         val totalAmount = payments.sumOf { it.amount } / 100.0
                         Text(
                             "Total Revenue: Rs $totalAmount",
-                            color = Success,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -70,7 +70,7 @@ fun PaymentScreen(
         }
 
         if (state.isLoading) {
-            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = RoyalBlue) }
+            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary) }
         } else if (payments.isEmpty()) {
             item {
                 EmptyState(

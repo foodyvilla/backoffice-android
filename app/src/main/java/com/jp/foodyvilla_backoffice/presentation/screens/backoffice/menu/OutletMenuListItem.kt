@@ -37,13 +37,13 @@ fun OutletMenuListItem(
                 )
                 Text(
                     text = item.productCategory ?: "No category",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusPill("Rs ${item.price}", RoyalBlue)
-                    StatusPill(if (item.isAvailable) "Available" else "Hidden", if (item.isAvailable) Success else Muted)
-                    if (item.isOutOfStock) StatusPill("Out of stock", Danger)
+                    StatusPill("Rs ${item.price}", MaterialTheme.colorScheme.primary)
+                    StatusPill(if (item.isAvailable) "Available" else "Hidden", if (item.isAvailable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (item.isOutOfStock) StatusPill("Out of stock", MaterialTheme.colorScheme.error)
                 }
             }
         }

@@ -37,12 +37,12 @@ fun OrderItemListItem(
                 )
                 Text(
                     text = "Order #${item.orderId?.takeLast(8)} | Qty: ${item.qty}",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
                 Text(
                     text = "Total: Rs ${item.totalPrice}",
-                    color = RoyalBlue,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )

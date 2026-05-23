@@ -15,13 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,7 +45,7 @@ internal fun BackOfficeFormScreen(
                 if (imageColumns.isNotEmpty()) {
                     PremiumCard {
                         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                            Text("Images", color = Ink, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text("Images", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                             imageColumns.forEach { column ->
                                 ImageUploadField(
                                     column = column,
@@ -68,7 +62,7 @@ internal fun BackOfficeFormScreen(
             item {
                 PremiumCard {
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text("Fields", color = Ink, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("Fields", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         state.selectedTable.editableColumns
                             .filterNot { it.isImageColumn() }
                             .forEach { column ->
@@ -91,7 +85,7 @@ internal fun BackOfficeFormScreen(
 
         Surface(
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
-            color = androidx.compose.ui.graphics.Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 16.dp
         ) {
             Row(
@@ -105,10 +99,10 @@ internal fun BackOfficeFormScreen(
                     onClick = onSave,
                     enabled = !state.isSaving && state.uploadingColumn == null,
                     modifier = Modifier.weight(1f).height(54.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     if (state.isSaving) {
-                        CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), color = androidx.compose.ui.graphics.Color.White)
+                        CircularProgressIndicator(modifier = Modifier.height(18.dp).width(18.dp), color = MaterialTheme.colorScheme.onPrimary)
                     } else {
                         Icon(Icons.Default.Save, contentDescription = null)
                         Spacer(Modifier.width(8.dp))

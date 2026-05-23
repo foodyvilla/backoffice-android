@@ -52,13 +52,13 @@ fun CustomerDetailScreen(
                         Button(
                             onClick = onEdit,
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null)
                             Text("Edit Profile", modifier = Modifier.padding(start = 8.dp))
                         }
                         if (customer.isVerified == true) {
-                            StatusPill("Verified Account", Success)
+                            StatusPill("Verified Account", MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -73,7 +73,7 @@ fun CustomerDetailScreen(
 
         if (customerOrders.isNotEmpty()) {
             item {
-                Text("Recent Orders", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Ink)
+                Text("Recent Orders", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
             }
             items(customerOrders) { order ->
                 OrderRecordCard(order = order, onClick = {})
@@ -82,7 +82,7 @@ fun CustomerDetailScreen(
 
         if (customerCart.isNotEmpty()) {
             item {
-                Text("Items in Cart", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Ink)
+                Text("Items in Cart", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
             }
             items(customerCart) { cartItem ->
                 CartRecordCard(cart = cartItem, onSendNotification = {}, onClick = {})

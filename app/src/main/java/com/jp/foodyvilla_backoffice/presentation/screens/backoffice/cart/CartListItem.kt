@@ -40,12 +40,12 @@ fun CartListItem(
                 )
                 Text(
                     text = "${cart.productName ?: "Product"} x ${cart.qty}",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp
                 )
                 Text(
                     text = cart.outletName ?: "Outlet",
-                    color = RoyalBlue,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -53,7 +53,7 @@ fun CartListItem(
             
             cart.customerFcm?.let { token ->
                 IconButton(onClick = { onSendNotification(token) }) {
-                    Icon(Icons.Default.Notifications, "Notify", tint = Orange)
+                    Icon(Icons.Default.Notifications, "Notify", tint = MaterialTheme.colorScheme.tertiary)
                 }
             }
         }

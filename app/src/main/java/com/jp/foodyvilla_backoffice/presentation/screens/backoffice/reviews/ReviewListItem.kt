@@ -41,11 +41,11 @@ fun ReviewListItem(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    StatusPill("${review.rating} ⭐", Warning)
+                    StatusPill("${review.rating} ⭐", MaterialTheme.colorScheme.tertiary)
                 }
                 Text(
                     text = review.description ?: "-",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis

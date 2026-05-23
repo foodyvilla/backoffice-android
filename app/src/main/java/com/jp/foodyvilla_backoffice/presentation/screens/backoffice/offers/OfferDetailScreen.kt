@@ -46,7 +46,7 @@ fun OfferDetailScreen(
                         Button(
                             onClick = onEdit,
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null)
                             Text("Edit Offer", modifier = Modifier.padding(start = 8.dp))

@@ -9,7 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.RoyalBlue
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 
 @Composable
 internal fun FormActions(
@@ -20,7 +20,7 @@ internal fun FormActions(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 16.dp
     ) {
         Row(
@@ -34,12 +34,12 @@ internal fun FormActions(
                 onClick = onSave,
                 enabled = !isSaving,
                 modifier = Modifier.weight(1f).height(54.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (isSaving) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
                 } else {

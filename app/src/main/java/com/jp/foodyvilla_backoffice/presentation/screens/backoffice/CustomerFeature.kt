@@ -21,8 +21,8 @@ internal fun CustomerRecordCard(user: User, onClick: () -> Unit) {
             RecordImage(user.fcmToken?.extractUrl() ?: user.address?.extractUrl(), user.name ?: "Customer", 64)
             Column(Modifier.weight(1f)) {
                 Text(user.name ?: "No name", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                Text(user.phone ?: "No phone", color = Muted)
-                Text(user.email ?: "No email", color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(user.phone ?: "No phone", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(user.email ?: "No email", color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -40,15 +40,15 @@ internal fun CartRecordCard(
                 RecordImage(cart.productImage?.firstOrNull(), cart.productName ?: "Product", 64)
                 Column(Modifier.weight(1f)) {
                     Text(cart.customerName ?: "Customer", fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                    Text(cart.productName ?: "Product", color = Muted, fontSize = 14.sp)
+                    Text(cart.productName ?: "Product", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        StatusPill("Qty ${cart.qty}", RoyalBlue)
-                        StatusPill("Rs ${cart.productPrice ?: 0.0}", Success)
+                        StatusPill("Qty ${cart.qty}", MaterialTheme.colorScheme.primary)
+                        StatusPill("Rs ${cart.productPrice ?: 0.0}", MaterialTheme.colorScheme.primary)
                     }
                 }
             }
             
-            HorizontalDivider(color = SoftLine)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -56,8 +56,8 @@ internal fun CartRecordCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Added on", color = Muted, fontSize = 11.sp)
-                    Text(cart.createdAt?.formatTimestamp() ?: "-", color = Ink, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Added on", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                    Text(cart.createdAt?.formatTimestamp() ?: "-", color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
                 
                 val fcmToken = cart.customerFcm
@@ -65,7 +65,7 @@ internal fun CartRecordCard(
                     Button(
                         onClick = { onSendNotification(fcmToken) },
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier.height(36.dp)
                     ) {
@@ -86,10 +86,10 @@ internal fun ReviewRecordCard(review: Review, onClick: () -> Unit) {
             RecordImage(null, "Review", 68)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(review.title ?: "Review", fontWeight = FontWeight.Bold)
-                Text(review.description ?: "No description", color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(review.description ?: "No description", color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    StatusPill("${review.rating} stars", Warning)
-                    Text(review.createdAt?.formatTimestamp() ?: "-", color = Muted, fontSize = 11.sp)
+                    StatusPill("${review.rating} stars", MaterialTheme.colorScheme.tertiary)
+                    Text(review.createdAt?.formatTimestamp() ?: "-", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                 }
             }
         }

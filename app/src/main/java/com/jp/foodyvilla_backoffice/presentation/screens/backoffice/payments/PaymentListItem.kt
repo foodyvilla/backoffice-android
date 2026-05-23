@@ -59,7 +59,7 @@ fun PaymentListItem(
 
                 Text(
                     text = "₹${payment.amount}",
-                    color = RoyalBlue, // Keeps your branding color
+                    color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp
@@ -93,9 +93,9 @@ fun PaymentListItem(
                 StatusPill(
                     label = payment.paymentStatus.lowercase().replaceFirstChar { it.uppercase() },
                     color = when (payment.paymentStatus.lowercase()) {
-                        "captured", "paid", "success" -> Success
-                        "failed", "refunded" -> Danger
-                        else -> Warning
+                        "captured", "paid", "success" -> MaterialTheme.colorScheme.primary
+                        "failed", "refunded" -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.secondary
                     }
                 )
             }

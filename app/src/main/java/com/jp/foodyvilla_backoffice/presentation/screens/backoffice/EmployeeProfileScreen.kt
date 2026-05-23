@@ -135,10 +135,10 @@ internal fun EmployeeProfileScreen(
                         DetailLine("Role type", session.role?.dbValue ?: "-")
                         DetailLine("Permissions", session.permissions.size.toString())
                         if (session.permissions.isNotEmpty()) {
-                            HorizontalDivider(color = SoftLine)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 session.permissions.sorted().forEach { permission ->
-                                    StatusPill(permission, RoyalBlue)
+                                    StatusPill(permission, MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -168,7 +168,7 @@ private fun EmployeeProfileHeader(session: UserSession?, employee: Employee?) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Brush.linearGradient(listOf(RoyalBlue, Color(0xFF355CFF))))
+                .background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer)))
                 .padding(18.dp)
         ) {
             Row(
@@ -217,14 +217,14 @@ private fun ProfileSection(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Surface(shape = RoundedCornerShape(12.dp), color = Color(0xFFE8EEFF), modifier = Modifier.size(38.dp)) {
+                Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(38.dp)) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(icon, contentDescription = null, tint = RoyalBlue, modifier = Modifier.size(20.dp))
+                        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     }
                 }
-                Text(title, color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+                Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
             }
-            HorizontalDivider(color = SoftLine)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             content()
         }
     }

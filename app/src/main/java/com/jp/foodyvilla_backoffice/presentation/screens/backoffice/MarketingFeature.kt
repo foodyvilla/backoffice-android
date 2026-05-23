@@ -31,7 +31,7 @@ internal fun MediaRecordCard(table: AdminTable, row: JsonObject, onClick: () -> 
             RecordImage(imageUrl, title ?: table.title, 86)
             Column(Modifier.weight(1f)) {
                 Text(title ?: table.title, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                Text(description ?: "-", color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(description ?: "-", color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }

@@ -12,15 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.ProductCatalog
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.AdminRoute
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.AdminUiState
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.EmptyState
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.Ink
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.Muted
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.PremiumCard
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.RoyalBlue
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.SearchAndFilterBar
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.toModel
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
@@ -59,23 +51,23 @@ fun ProductScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Icon(AdminRoute.Products.icon, contentDescription = null, tint = RoyalBlue)
+                    Icon(AdminRoute.Products.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Column(Modifier.weight(1f)) {
                         Text(
                             "${products.size} Products",
-                            color = Ink,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp
                         )
                         Text(
                             "Master product catalog",
-                            color = Muted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Button(
                         onClick = onCreate,
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text("New")
                     }
@@ -84,7 +76,7 @@ fun ProductScreen(
         }
 
         if (state.isLoading) {
-            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = RoyalBlue) }
+            item { LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary) }
         } else if (products.isEmpty()) {
             item {
                 EmptyState(

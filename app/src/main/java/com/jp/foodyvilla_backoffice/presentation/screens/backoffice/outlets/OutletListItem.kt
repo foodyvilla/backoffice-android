@@ -37,13 +37,13 @@ fun OutletListItem(
                 )
                 Text(
                     text = "${outlet.city} | ${outlet.phone ?: "No phone"}",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
                 if (outlet.isActive == true) {
-                    StatusPill("Active", Success)
+                    StatusPill("Active", MaterialTheme.colorScheme.primary)
                 } else {
-                    StatusPill("Inactive", Muted)
+                    StatusPill("Inactive", MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

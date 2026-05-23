@@ -37,12 +37,12 @@ fun EmployeeListItem(
                 )
                 Text(
                     text = "${employee.role ?: "No Role"} | ${employee.contact ?: "No contact"}",
-                    color = Muted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 13.sp
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (employee.isActive) StatusPill("Active", Success)
-                    else StatusPill("Inactive", Danger)
+                    if (employee.isActive) StatusPill("Active", MaterialTheme.colorScheme.primary)
+                    else StatusPill("Inactive", MaterialTheme.colorScheme.error)
                 }
             }
         }
