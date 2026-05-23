@@ -88,9 +88,12 @@ val adminTables = listOf(
             AdminColumn("customer_name"),
             AdminColumn("status", required = true, helper = "pending, accepted, preparing, ready, completed, rejected"),
             AdminColumn("outlet_id", type = AdminColumnType.LongNumber, reference = AdminReference("outlets", labelColumns = listOf("name", "city"))),
-            AdminColumn("customer_id", type = AdminColumnType.LongNumber, reference = AdminReference("users", labelColumns = listOf("name", "phone"))),
+            AdminColumn("menu_item_id", label = "Product", type = AdminColumnType.LongNumber, reference = AdminReference("outlet_menu_items", labelColumns = listOf("product_name", "price"))),
+            AdminColumn("qty", label = "Quantity", type = AdminColumnType.LongNumber),
             AdminColumn("order_type", helper = "delivery, pickup, dine_in"),
-            AdminColumn("transaction_id")
+            AdminColumn("transaction_id", editable = false),
+            AdminColumn("accepted_by", type = AdminColumnType.LongNumber, editable = false, reference = AdminReference("employee", labelColumns = listOf("name"))),
+            AdminColumn("accepted_at", type = AdminColumnType.Timestamp, editable = false)
         )
     ),
     AdminTable(
@@ -129,8 +132,8 @@ val adminTables = listOf(
             AdminColumn("address", multiline = true),
             AdminColumn("lat", type = AdminColumnType.DecimalNumber),
             AdminColumn("long", type = AdminColumnType.DecimalNumber),
-            AdminColumn("auth_user_id", type = AdminColumnType.Uuid),
-            AdminColumn("updated_at", type = AdminColumnType.Timestamp),
+            AdminColumn("auth_user_id", type = AdminColumnType.Uuid, editable = false),
+            AdminColumn("updated_at", type = AdminColumnType.Timestamp, editable = false),
             AdminColumn("is_verified", type = AdminColumnType.Boolean)
         )
     ),
@@ -145,7 +148,7 @@ val adminTables = listOf(
             AdminColumn("created_at", type = AdminColumnType.Timestamp, editable = false),
             AdminColumn("customer_id", type = AdminColumnType.LongNumber, required = true, reference = AdminReference("users", labelColumns = listOf("name", "phone"))),
             AdminColumn("outlet_id", type = AdminColumnType.LongNumber, required = true, reference = AdminReference("outlets", labelColumns = listOf("name", "city"))),
-            AdminColumn("menu_item_id", type = AdminColumnType.LongNumber, required = true, reference = AdminReference("outlet_menu_items", labelColumns = listOf("product_name", "price"))),
+            AdminColumn("menu_item_id", type = AdminColumnType.LongNumber, reference = AdminReference("outlet_menu_items", labelColumns = listOf("product_name", "price"))),
             AdminColumn("qty", type = AdminColumnType.LongNumber, required = true)
         )
     ),
@@ -219,11 +222,11 @@ val adminTables = listOf(
             AdminColumn("salary", type = AdminColumnType.LongNumber),
             AdminColumn("profile_img", multiline = true),
             AdminColumn("joining_date", type = AdminColumnType.Date),
-            AdminColumn("punch_lat", type = AdminColumnType.DecimalNumber),
-            AdminColumn("punch_lng", type = AdminColumnType.DecimalNumber),
+            AdminColumn("punch_lat", type = AdminColumnType.DecimalNumber, editable = false),
+            AdminColumn("punch_lng", type = AdminColumnType.DecimalNumber, editable = false),
             AdminColumn("outlet_id", type = AdminColumnType.LongNumber, reference = AdminReference("outlets", labelColumns = listOf("name", "city"))),
             AdminColumn("role", helper = "head, owner, chef, employee"),
-            AdminColumn("auth_user_id", type = AdminColumnType.Uuid),
+            AdminColumn("auth_user_id", type = AdminColumnType.Uuid, editable = false),
             AdminColumn("is_active", type = AdminColumnType.Boolean)
         )
     ),
@@ -236,14 +239,14 @@ val adminTables = listOf(
         columns = listOf(
             AdminColumn("id", type = AdminColumnType.LongNumber, editable = false),
             AdminColumn("created_at", type = AdminColumnType.Timestamp, editable = false),
-            AdminColumn("emp_id", type = AdminColumnType.LongNumber, reference = AdminReference("employee", labelColumns = listOf("name", "role", "contact"))),
-            AdminColumn("status"),
-            AdminColumn("in_time", type = AdminColumnType.Timestamp),
-            AdminColumn("out_time", type = AdminColumnType.Timestamp),
-            AdminColumn("in_lat", type = AdminColumnType.DecimalNumber),
-            AdminColumn("in_lng", type = AdminColumnType.DecimalNumber),
-            AdminColumn("out_lat", type = AdminColumnType.DecimalNumber),
-            AdminColumn("out_lng", type = AdminColumnType.DecimalNumber)
+            AdminColumn("emp_id", type = AdminColumnType.LongNumber, editable = false, reference = AdminReference("employee", labelColumns = listOf("name", "role", "contact"))),
+            AdminColumn("status", editable = false),
+            AdminColumn("in_time", type = AdminColumnType.Timestamp, editable = false),
+            AdminColumn("out_time", type = AdminColumnType.Timestamp, editable = false),
+            AdminColumn("in_lat", type = AdminColumnType.DecimalNumber, editable = false),
+            AdminColumn("in_lng", type = AdminColumnType.DecimalNumber, editable = false),
+            AdminColumn("out_lat", type = AdminColumnType.DecimalNumber, editable = false),
+            AdminColumn("out_lng", type = AdminColumnType.DecimalNumber, editable = false)
         )
     ),
     AdminTable(
@@ -255,12 +258,12 @@ val adminTables = listOf(
         columns = listOf(
             AdminColumn("id", type = AdminColumnType.LongNumber, editable = false),
             AdminColumn("created_at", type = AdminColumnType.Timestamp, editable = false),
-            AdminColumn("order_id", type = AdminColumnType.Uuid, required = true, reference = AdminReference("orders", labelColumns = listOf("customer_name", "phone", "status"))),
-            AdminColumn("menu_item_id", type = AdminColumnType.LongNumber, required = true, reference = AdminReference("outlet_menu_items", labelColumns = listOf("product_name", "price"))),
+            AdminColumn("order_id", type = AdminColumnType.Uuid, editable = false, required = true, reference = AdminReference("orders", labelColumns = listOf("customer_name", "phone", "status"))),
+            AdminColumn("menu_item_id", type = AdminColumnType.LongNumber, editable = false, required = true, reference = AdminReference("outlet_menu_items", labelColumns = listOf("product_name", "price"))),
             AdminColumn("qty", type = AdminColumnType.LongNumber, required = true),
-            AdminColumn("price_per_item", type = AdminColumnType.DecimalNumber, required = true),
-            AdminColumn("total_price", type = AdminColumnType.DecimalNumber, required = true),
-            AdminColumn("total_discount", type = AdminColumnType.DecimalNumber)
+            AdminColumn("price_per_item", type = AdminColumnType.DecimalNumber, required = true, editable = false),
+            AdminColumn("total_price", type = AdminColumnType.DecimalNumber, required = true, editable = false),
+            AdminColumn("total_discount", type = AdminColumnType.DecimalNumber, editable = false)
         )
     ),
     AdminTable(
@@ -293,24 +296,24 @@ val adminTables = listOf(
         columns = listOf(
             AdminColumn("id", type = AdminColumnType.LongNumber, editable = false),
             AdminColumn("created_at", type = AdminColumnType.Timestamp, editable = false),
-            AdminColumn("updated_at", type = AdminColumnType.Timestamp),
+            AdminColumn("updated_at", type = AdminColumnType.Timestamp, editable = false),
             AdminColumn("order_id", type = AdminColumnType.Uuid, reference = AdminReference("orders", labelColumns = listOf("customer_name", "status"))),
             AdminColumn("customer_id", type = AdminColumnType.LongNumber, reference = AdminReference("users", labelColumns = listOf("name", "phone"))),
-            AdminColumn("razorpay_order_id"),
-            AdminColumn("razorpay_payment_id"),
-            AdminColumn("razorpay_signature", multiline = true),
-            AdminColumn("amount", type = AdminColumnType.DecimalNumber),
-            AdminColumn("amount_due", type = AdminColumnType.DecimalNumber),
-            AdminColumn("amount_refunded", type = AdminColumnType.DecimalNumber),
-            AdminColumn("currency"),
-            AdminColumn("payment_status"),
-            AdminColumn("payment_method"),
-            AdminColumn("razorpay_response", type = AdminColumnType.Json, multiline = true),
-            AdminColumn("refund_id"),
-            AdminColumn("refund_reason", multiline = true),
-            AdminColumn("refunded_at", type = AdminColumnType.Timestamp),
-            AdminColumn("error_code"),
-            AdminColumn("error_description", multiline = true)
+            AdminColumn("razorpay_order_id", editable = false),
+            AdminColumn("razorpay_payment_id", editable = false),
+            AdminColumn("razorpay_signature", multiline = true, editable = false),
+            AdminColumn("amount", type = AdminColumnType.DecimalNumber, editable = false),
+            AdminColumn("amount_due", type = AdminColumnType.DecimalNumber, editable = false),
+            AdminColumn("amount_refunded", type = AdminColumnType.DecimalNumber, editable = false),
+            AdminColumn("currency", editable = false),
+            AdminColumn("payment_status", editable = false),
+            AdminColumn("payment_method", editable = false),
+            AdminColumn("razorpay_response", type = AdminColumnType.Json, multiline = true, editable = false),
+            AdminColumn("refund_id", editable = false),
+            AdminColumn("refund_reason", multiline = true, editable = false),
+            AdminColumn("refunded_at", type = AdminColumnType.Timestamp, editable = false),
+            AdminColumn("error_code", editable = false),
+            AdminColumn("error_description", multiline = true, editable = false)
         )
     ),
     AdminTable(

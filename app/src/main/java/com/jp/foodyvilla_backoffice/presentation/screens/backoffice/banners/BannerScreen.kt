@@ -11,19 +11,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jp.foodyvilla_backoffice.data.model.backoffice.Banner
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun BannerScreen(
+    session: UserSession?,
     state: AdminUiState,
     onSearch: (String) -> Unit,
     onCreate: () -> Unit,
     onOpenDetails: (JsonObject) -> Unit
 ) {
-    val banners = remember(state.rows, state.searchQuery) {
-        state.rows.map { it.toModel<Banner>() }.filter {
+    val banners = remember(state.banners, state.searchQuery) {
+        state.banners.filter {
             it.title?.contains(state.searchQuery, ignoreCase = true) == true ||
                     state.searchQuery.isBlank()
         }
@@ -63,12 +65,14 @@ fun BannerScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Button(
-                        onClick = onCreate,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("New")
+                    if (session?.canCreate("banners") == true) {
+                        Button(
+                            onClick = onCreate,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("New")
+                        }
                     }
                 }
             }
@@ -86,11 +90,14 @@ fun BannerScreen(
                 )
             }
         } else {
-            items(state.rows) { row ->
-                val banner = row.toModel<Banner>()
+            items(banners, key = { it.id ?: it.hashCode() }) { banner ->
                 BannerListItem(
                     banner = banner,
-                    onClick = { onOpenDetails(row) }
+                    onClick = { 
+                        state.rows.firstOrNull { it["id"].toDisplayText() == banner.id.toString() }?.let {
+                            onOpenDetails(it)
+                        }
+                    }
                 )
             }
         }

@@ -246,6 +246,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.Banners -> BannerScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onCreate = {
@@ -263,6 +264,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.Offers -> OfferScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onCreate = {
@@ -280,6 +282,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.Products -> ProductScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onCreate = {
@@ -297,6 +300,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.Orders -> OrderScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onOrderDateChange = viewModel::updateOrderDateFilter,
@@ -317,6 +321,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.Customers -> CustomerScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onCreate = {
@@ -335,6 +340,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.Reviews -> ReviewScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onCreate = {
@@ -352,6 +358,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.Employees -> EmployeeScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onCreate = {
@@ -369,6 +376,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.Outlets -> OutletScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onCreate = {
@@ -386,6 +394,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.Payments -> PaymentScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onOpenDetails = { row ->
@@ -396,6 +405,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.Cart -> CartScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onSendOfferToAll = viewModel::sendOfferToCart,
@@ -408,6 +418,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.OutletMenu -> OutletMenuScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onCreate = {
@@ -425,6 +436,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.OrderItems -> OrderItemScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateSearch,
                             onOpenDetails = { row ->
@@ -435,6 +447,7 @@ fun MainBackOfficeScreen(
                         )
 
                         currentRoute == AdminRoute.PunchReport -> PunchReportScreen(
+                            session = session,
                             state = state,
                             onSearch = viewModel::updateAttendanceSearch,
                             onDateChange = viewModel::updateAttendanceDateFilter,
@@ -483,6 +496,7 @@ fun MainBackOfficeScreen(
                         currentRoute == AdminRoute.Details -> {
                             when (previousListRoute) {
                                 AdminRoute.Banners -> BannerDetailScreen(
+                                    session = session,
                                     row = selectedRow,
                                     onEdit = {
                                         selectedRow?.let(viewModel::startEdit)
@@ -491,6 +505,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 AdminRoute.Offers -> OfferDetailScreen(
+                                    session = session,
                                     row = selectedRow,
                                     onEdit = {
                                         selectedRow?.let(viewModel::startEdit)
@@ -499,6 +514,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 AdminRoute.Products -> ProductDetailScreen(
+                                    session = session,
                                     row = selectedRow,
                                     onEdit = {
                                         selectedRow?.let(viewModel::startEdit)
@@ -507,6 +523,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 AdminRoute.Orders -> OrderDetailScreen(
+                                    session = session,
                                     row = selectedRow,
                                     orderItems = state.orderItemsByOrderId[selectedRow?.get("id").toDisplayText()].orEmpty(),
                                     productsById = state.productsById,
@@ -517,6 +534,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 AdminRoute.Customers -> CustomerDetailScreen(
+                                    session = session,
                                     row = selectedRow,
                                     customerOrders = state.customerOrders,
                                     customerCart = state.customerCart,
@@ -527,6 +545,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 AdminRoute.Reviews -> ReviewDetailScreen(
+                                    session = session,
                                     row = selectedRow,
                                     onEdit = {
                                         selectedRow?.let(viewModel::startEdit)
@@ -535,6 +554,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 AdminRoute.Employees -> EmployeeDetailScreen(
+                                    session = session,
                                     row = selectedRow,
                                     onEdit = {
                                         selectedRow?.let(viewModel::startEdit)
@@ -543,6 +563,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 AdminRoute.Outlets -> OutletDetailScreen(
+                                    session = session,
                                     row = selectedRow,
                                     onEdit = {
                                         selectedRow?.let(viewModel::startEdit)
@@ -560,6 +581,7 @@ fun MainBackOfficeScreen(
                                     row = selectedRow
                                 )
                                 AdminRoute.PunchReport -> BackOfficeDetailScreen(
+                                    session = session,
                                     table = state.selectedTable,
                                     row = selectedRow,
                                     orderItems = emptyList(),
@@ -572,6 +594,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 AdminRoute.OutletMenu -> OutletMenuDetailScreen(
+                                    session = session,
                                     row = selectedRow,
                                     onEdit = {
                                         selectedRow?.let(viewModel::startEdit)
@@ -580,6 +603,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 AdminRoute.Categories -> BackOfficeDetailScreen(
+                                    session = session,
                                     table = state.selectedTable,
                                     row = selectedRow,
                                     orderItems = emptyList(),
@@ -592,6 +616,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 else -> BackOfficeDetailScreen(
+                                    session = session,
                                     table = state.selectedTable,
                                     row = selectedRow,
                                     orderItems = state.orderItemsByOrderId[selectedRow?.get("id").toDisplayText()].orEmpty(),
@@ -611,9 +636,12 @@ fun MainBackOfficeScreen(
                         currentRoute == AdminRoute.Form -> {
                             when (previousListRoute) {
                                 AdminRoute.Orders -> OrderForm(
+                                    session = session,
                                     state = state,
                                     onBack = { currentRoute = previousListRoute },
                                     onFormChange = viewModel::updateFormValue,
+                                    onAddDraftItem = viewModel::addDraftOrderItem,
+                                    onRemoveDraftItem = viewModel::removeDraftOrderItem,
                                     onSave = {
                                         viewModel.save()
                                         currentRoute = previousListRoute
@@ -639,6 +667,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 AdminRoute.Banners -> BannerForm(
+                                    session = session,
                                     state = state,
                                     onBack = { currentRoute = previousListRoute },
                                     onFormChange = viewModel::updateFormValue,
@@ -659,6 +688,7 @@ fun MainBackOfficeScreen(
                                     }
                                 )
                                 else -> BackOfficeFormScreen(
+                                    session = session,
                                     state = state,
                                     mode = formMode,
                                     onBack = { currentRoute = previousListRoute },
@@ -683,6 +713,7 @@ fun MainBackOfficeScreen(
                         }
 
                         currentRoute == AdminRoute.Attendance -> AttendanceCalendarScreen(
+                            session = session,
                             state = state,
                             onPunchIn = viewModel::punchIn,
                             onPunchOut = viewModel::punchOut
@@ -814,21 +845,36 @@ fun UserSession?.isRouteAllowed(route: AdminRoute, previousListRoute: AdminRoute
 
     val allowedRoutes = when (role) {
         OutletRole.OWNER -> AdminRoute.entries.toSet()
-        OutletRole.HEAD -> AdminRoute.entries.toSet() - AdminRoute.Payments
+        OutletRole.HEAD, OutletRole.MANAGER -> {
+            AdminRoute.entries.toSet() - AdminRoute.Outlets
+        }
         else -> setOf(
             AdminRoute.Dashboard,
             AdminRoute.Orders,
             AdminRoute.OrderItems,
             AdminRoute.Products,
             AdminRoute.OutletMenu,
+            AdminRoute.Categories,
             AdminRoute.Offers,
             AdminRoute.Banners,
             AdminRoute.Attendance,
-            AdminRoute.Profile
+            AdminRoute.Profile,
+            AdminRoute.Customers,
+            AdminRoute.Reviews,
+            AdminRoute.Payments,
+            AdminRoute.Cart
         )
     }
 
-    if (effectiveRoute == AdminRoute.PunchReport && role !in listOf(OutletRole.OWNER, OutletRole.HEAD)) {
+    if (effectiveRoute == AdminRoute.PunchReport && role !in listOf(OutletRole.OWNER, OutletRole.HEAD, OutletRole.MANAGER)) {
+        return false
+    }
+    
+    if (effectiveRoute == AdminRoute.Employees && role !in listOf(OutletRole.OWNER, OutletRole.HEAD, OutletRole.MANAGER)) {
+        return false
+    }
+
+    if (effectiveRoute == AdminRoute.Analytics && role !in listOf(OutletRole.OWNER, OutletRole.HEAD, OutletRole.MANAGER)) {
         return false
     }
 

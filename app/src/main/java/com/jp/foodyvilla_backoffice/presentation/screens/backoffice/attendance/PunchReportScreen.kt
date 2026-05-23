@@ -11,20 +11,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jp.foodyvilla_backoffice.data.model.backoffice.Attendance
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun PunchReportScreen(
+    session: UserSession?,
     state: AdminUiState,
     onSearch: (String) -> Unit,
     onDateChange: (String?) -> Unit,
     onOutletChange: (String?) -> Unit,
     onOpenDetails: (JsonObject) -> Unit
 ) {
-    val records = remember(state.rows, state.attendanceSearchQuery, state.attendanceDateFilter, state.attendanceOutletFilter) {
-        state.rows.map { it to it.toModel<Attendance>() }.filter { (row, model) ->
+    val records = remember(state.attendance, state.attendanceSearchQuery, state.attendanceDateFilter, state.attendanceOutletFilter) {
+        state.attendance.filter { model ->
             val matchesSearch = state.attendanceSearchQuery.isBlank() || 
                     model.employee?.name?.contains(state.attendanceSearchQuery, true) == true ||
                     model.employee?.contact?.contains(state.attendanceSearchQuery) == true
@@ -59,14 +61,16 @@ fun PunchReportScreen(
                     onValueChange = onDateChange,
                     modifier = Modifier.weight(1f)
                 )
-                OutlinedTextField(
-                    value = state.attendanceOutletFilter ?: "",
-                    onValueChange = { onOutletChange(it.ifBlank { null }) },
-                    modifier = Modifier.weight(1f),
-                    label = { Text("Outlet ID") },
-                    singleLine = true,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
-                )
+                if (session?.isOwner() == true) {
+                    OutlinedTextField(
+                        value = state.attendanceOutletFilter ?: "",
+                        onValueChange = { onOutletChange(it.ifBlank { null }) },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Outlet ID") },
+                        singleLine = true,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)
+                    )
+                }
             }
         }
 
@@ -106,10 +110,14 @@ fun PunchReportScreen(
                 )
             }
         } else {
-            items(records) { (row, attendance) ->
+            items(records, key = { it.id ?: it.hashCode() }) { attendance ->
                 PunchReportListItem(
                     attendance = attendance,
-                    onClick = { onOpenDetails(row) }
+                    onClick = { 
+                        state.rows.firstOrNull { it["id"].toDisplayText() == attendance.id.toString() }?.let {
+                            onOpenDetails(it)
+                        }
+                    }
                 )
             }
         }

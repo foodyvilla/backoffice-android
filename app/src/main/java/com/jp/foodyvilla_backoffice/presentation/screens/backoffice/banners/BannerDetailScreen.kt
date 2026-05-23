@@ -11,11 +11,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.Banner
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun BannerDetailScreen(
+    session: UserSession?,
     row: JsonObject?,
     onEdit: () -> Unit
 ) {
@@ -42,13 +44,15 @@ fun BannerDetailScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Button(
-                            onClick = onEdit,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null)
-                            Text("Edit Banner", modifier = Modifier.padding(start = 8.dp))
+                        if (session?.canEdit("banners") == true) {
+                            Button(
+                                onClick = onEdit,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = null)
+                                Text("Edit Banner", modifier = Modifier.padding(start = 8.dp))
+                            }
                         }
                     }
 

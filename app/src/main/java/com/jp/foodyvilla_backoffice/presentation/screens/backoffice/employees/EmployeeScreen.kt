@@ -11,19 +11,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jp.foodyvilla_backoffice.data.model.backoffice.Employee
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun EmployeeScreen(
+    session: UserSession?,
     state: AdminUiState,
     onSearch: (String) -> Unit,
     onCreate: () -> Unit,
     onOpenDetails: (JsonObject) -> Unit
 ) {
-    val employees = remember(state.rows, state.searchQuery) {
-        state.rows.map { it.toModel<Employee>() }.filter {
+    val employees = remember(state.employees, state.searchQuery) {
+        state.employees.filter {
             it.name.contains(state.searchQuery, ignoreCase = true) ||
                     it.contact?.contains(state.searchQuery) == true ||
                     it.role?.contains(state.searchQuery, ignoreCase = true) == true ||
@@ -65,12 +67,14 @@ fun EmployeeScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Button(
-                        onClick = onCreate,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("New")
+                    if (session?.canCreate("employee") == true) {
+                        Button(
+                            onClick = onCreate,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("New")
+                        }
                     }
                 }
             }
@@ -83,16 +87,19 @@ fun EmployeeScreen(
                 EmptyState(
                     title = "No employees found",
                     message = "Add your team members here.",
-                    actionLabel = "Add Employee",
-                    onAction = onCreate
+                    actionLabel = if (session?.canCreate("employee") == true) "Add Employee" else null,
+                    onAction = if (session?.canCreate("employee") == true) onCreate else null
                 )
             }
         } else {
-            items(state.rows) { row ->
-                val employee = row.toModel<Employee>()
+            items(employees, key = { it.id ?: it.hashCode() }) { employee ->
                 EmployeeListItem(
                     employee = employee,
-                    onClick = { onOpenDetails(row) }
+                    onClick = { 
+                        state.rows.firstOrNull { it["id"].toDisplayText() == employee.id.toString() }?.let {
+                            onOpenDetails(it)
+                        }
+                    }
                 )
             }
         }

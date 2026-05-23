@@ -11,19 +11,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jp.foodyvilla_backoffice.data.model.backoffice.OutletMenuItem
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun OutletMenuScreen(
+    session: UserSession?,
     state: AdminUiState,
     onSearch: (String) -> Unit,
     onCreate: () -> Unit,
     onOpenDetails: (JsonObject) -> Unit
 ) {
-    val menuItems = remember(state.rows, state.searchQuery) {
-        state.rows.map { it.toModel<OutletMenuItem>() }.filter {
+    val menuItems = remember(state.outletMenuItems, state.searchQuery) {
+        state.outletMenuItems.filter {
             it.productName?.contains(state.searchQuery, ignoreCase = true) == true ||
                     it.productCategory?.contains(state.searchQuery, ignoreCase = true) == true ||
                     state.searchQuery.isBlank()
@@ -64,12 +66,14 @@ fun OutletMenuScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Button(
-                        onClick = onCreate,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("New")
+                    if (session?.canCreate("outlet_menu_items") == true) {
+                        Button(
+                            onClick = onCreate,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("New")
+                        }
                     }
                 }
             }
@@ -87,11 +91,14 @@ fun OutletMenuScreen(
                 )
             }
         } else {
-            items(state.rows) { row ->
-                val item = row.toModel<OutletMenuItem>()
+            items(menuItems, key = { it.id ?: it.hashCode() }) { item ->
                 OutletMenuListItem(
                     item = item,
-                    onClick = { onOpenDetails(row) }
+                    onClick = { 
+                        state.rows.firstOrNull { it["id"].toDisplayText() == item.id.toString() }?.let {
+                            onOpenDetails(it)
+                        }
+                    }
                 )
             }
         }

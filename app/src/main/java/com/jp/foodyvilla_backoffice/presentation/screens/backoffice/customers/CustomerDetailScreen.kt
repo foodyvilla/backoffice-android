@@ -16,11 +16,13 @@ import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.Cart
 import com.jp.foodyvilla_backoffice.data.model.backoffice.Order
 import com.jp.foodyvilla_backoffice.data.model.backoffice.User
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun CustomerDetailScreen(
+    session: UserSession?,
     row: JsonObject?,
     customerOrders: List<Order>,
     customerCart: List<Cart>,
@@ -49,13 +51,15 @@ fun CustomerDetailScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Button(
-                            onClick = onEdit,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null)
-                            Text("Edit Profile", modifier = Modifier.padding(start = 8.dp))
+                        if (session?.canEdit("users") == true) {
+                            Button(
+                                onClick = onEdit,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = null)
+                                Text("Edit Profile", modifier = Modifier.padding(start = 8.dp))
+                            }
                         }
                         if (customer.isVerified == true) {
                             StatusPill("Verified Account", MaterialTheme.colorScheme.primary)

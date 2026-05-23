@@ -11,11 +11,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.OutletMenuItem
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun OutletMenuDetailScreen(
+    session: UserSession?,
     row: JsonObject?,
     onEdit: () -> Unit
 ) {
@@ -43,13 +45,15 @@ fun OutletMenuDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Button(
-                            onClick = onEdit,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null)
-                            Text("Edit Menu Item", modifier = Modifier.padding(start = 8.dp))
+                        if (session?.canEdit("outlet_menu_items") == true) {
+                            Button(
+                                onClick = onEdit,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = null)
+                                Text("Edit Menu Item", modifier = Modifier.padding(start = 8.dp))
+                            }
                         }
                         StatusPill(if (item.isAvailable) "Available" else "Hidden", if (item.isAvailable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                     }

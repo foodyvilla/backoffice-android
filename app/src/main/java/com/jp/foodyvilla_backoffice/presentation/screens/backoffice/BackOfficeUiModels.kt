@@ -87,6 +87,13 @@ val drawerGroups = listOf(
     "Control" to listOf(AdminRoute.Outlets, AdminRoute.Settings, AdminRoute.Profile)
 )
 
+internal val StatusGreen = Color(0xFF16A34A)
+internal val StatusOrange = Color(0xFFF97316)
+internal val StatusYellow = Color(0xFFF59E0B)
+internal val StatusBlue = Color(0xFF2563EB)
+internal val StatusPurple = Color(0xFF7C3AED)
+internal val StatusRed = Color(0xFFDC2626)
+
 internal fun routeForTable(tableName: String): AdminRoute = when (tableName) {
     "orders" -> AdminRoute.Orders
     "order_items" -> AdminRoute.OrderItems
@@ -107,26 +114,27 @@ internal fun routeForTable(tableName: String): AdminRoute = when (tableName) {
 
 @Composable
 internal fun statusColor(status: String): Color {
-    val colorScheme = MaterialTheme.colorScheme
     return when (status.normalizeOrderStatus().lowercase()) {
-        "placed", "pending" -> colorScheme.secondary
-        "accepted" -> colorScheme.primary
-        "preparing" -> colorScheme.tertiary
-        "ready" -> colorScheme.secondary
-        "picked" -> colorScheme.primaryContainer
-        "delivered", "completed" -> colorScheme.primary
-        "rejected", "cancelled" -> colorScheme.error
-        else -> colorScheme.onSurfaceVariant
+        "placed", "pending" -> StatusYellow
+        "accepted" -> StatusBlue
+        "preparing" -> StatusOrange
+        "ready" -> StatusPurple
+        "picked" -> StatusBlue
+        "delivered", "completed" -> StatusGreen
+        "rejected", "cancelled" -> StatusRed
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 }
 
 internal fun String.normalizeOrderStatus(): String = when {
-    contains("PLACED", true) || contains("PEND", true) || this == "-" -> "Placed"
+    contains("PLACED", true)   -> "Placed"
     contains("ACCEPT", true) -> "Accepted"
+    contains("PEND", true) || this == "-" -> "Pending"
     contains("PREPAR", true) -> "Preparing"
     contains("READY", true) -> "Ready"
     contains("PICK", true) -> "Picked"
-    contains("DELIVER", true) || contains("COMPLETE", true) -> "Delivered"
+    contains("DELIVER", true)  -> "Delivered"
+    contains("COMPLETE", true) -> "Completed"
     contains("REJECT", true) -> "Rejected"
     contains("CANCEL", true) -> "Cancelled"
     else -> replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }

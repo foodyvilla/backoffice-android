@@ -6,7 +6,6 @@ import com.jp.foodyvilla_backoffice.data.repo.AdminRepository
 import com.jp.foodyvilla_backoffice.data.repo.CartRepository
 import com.jp.foodyvilla_backoffice.data.repo.LocationRepository
 import com.jp.foodyvilla_backoffice.data.repo.OfferRepo
-import com.jp.foodyvilla_backoffice.data.repo.OrderRepository
 import com.jp.foodyvilla_backoffice.data.repo.ProductRepo
 import com.jp.foodyvilla_backoffice.data.repo.ReviewRepository
 import com.jp.foodyvilla_backoffice.data.repo.TaskCategoryRepository
@@ -76,7 +75,6 @@ val appModule = module{
     single<AuthRepository> { SupabaseAuthRepository(get(), androidContext(), supabaseUrl, supabaseKey) }
     single { UserRepository(get()) }
     single{ CartRepository(get()) }
-    single{ OrderRepository(get()) }
     single { TaskCategoryRepository(get()) }
     single<OrderWorkflowRepository> { SupabaseOrderWorkflowRepository(get()) }
     single { ObserveIncomingOrdersUseCase(get()) }

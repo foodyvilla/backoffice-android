@@ -7,6 +7,8 @@ import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 import com.jp.foodyvilla_backoffice.domain.security.OutletRole
 import com.jp.foodyvilla_backoffice.domain.security.UserSession
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.asNumber
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.toDisplayText
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.from
@@ -291,6 +293,14 @@ class AdminRepository(
     }
 
     suspend fun updateOrderStatus(order: JsonObject, status: String) {
+        val session = authRepository.currentSession.value ?: throw IllegalStateException("Not logged in")
+        if (!session.isOwner()) {
+            val rowOutletId = order["outlet_id"].toDisplayText()
+            if (rowOutletId != "-" && rowOutletId != session.outletId.toString()) {
+                throw IllegalStateException("You cannot update orders from another outlet")
+            }
+        }
+
         val id = order["id"]?.asFilterValue(AdminColumnType.Uuid)
             ?: throw IllegalArgumentException("Missing order id")
         val dbStatus = status.toOrderDbStatus()
@@ -384,81 +394,253 @@ class AdminRepository(
         return r * c
     }
 
+    private fun checkPermission(table: AdminTable, action: String) {
+        val session = authRepository.currentSession.value ?: throw IllegalStateException("Not logged in")
+        if (session.isOwner()) return
+
+        val role = when (session) {
+            is UserSession.OutletSession -> session.role
+            is UserSession.EmployeeSession -> session.role
+        } ?: throw IllegalStateException("Role not assigned")
+
+        val canWrite = when (role) {
+            OutletRole.OWNER -> true
+            OutletRole.HEAD, OutletRole.MANAGER -> {
+                // Heads have CRUD for own outlet tables except categories and employee
+                table.name != "categories" && table.name != "employee"
+            }
+            OutletRole.CHEF, OutletRole.EMPLOYEE, OutletRole.KITCHEN, OutletRole.WAITER, OutletRole.CASHIER -> {
+                // Employees only have CRU for orders and order items
+                if (action == "delete") false
+                else table.name == "orders" || table.name == "order_items" || table.name == "attendance"
+            }
+        }
+
+        if (!canWrite && action != "read") {
+            throw IllegalStateException("You do not have permission to $action in ${table.title}")
+        }
+    }
+
     suspend fun createRow(table: AdminTable, values: Map<String, String>) {
+        checkPermission(table, "create")
         insertRow(table, values)
     }
 
     private suspend fun insertRow(table: AdminTable, values: Map<String, String>) {
-        val payload = buildPayload(table, values, includeEmptyRequired = false)
+        val payload = buildPayload(table, values, includeEmptyRequired = false, isUpdate = false)
         supabase.from(table.name).insert(payload)
     }
 
-    suspend fun createOutlet(values: Map<String, String>) = insertRow(adminTables.first { it.name == "outlets" }, values)
-    suspend fun createOrder(values: Map<String, String>) = insertRow(adminTables.first { it.name == "orders" }, values)
-    suspend fun createProduct(values: Map<String, String>) = insertRow(adminTables.first { it.name == "product_catalog" }, values)
-    suspend fun createUser(values: Map<String, String>) = insertRow(adminTables.first { it.name == "users" }, values)
-    suspend fun createCart(values: Map<String, String>) = insertRow(adminTables.first { it.name == "cart" }, values)
-    suspend fun createBanner(values: Map<String, String>) = insertRow(adminTables.first { it.name == "banners" }, values)
-    suspend fun createOffer(values: Map<String, String>) = insertRow(adminTables.first { it.name == "offers" }, values)
-    suspend fun createReview(values: Map<String, String>) = insertRow(adminTables.first { it.name == "reviews" }, values)
-    suspend fun createEmployee(values: Map<String, String>) = insertRow(adminTables.first { it.name == "employee" }, values)
-    suspend fun createAttendance(values: Map<String, String>) = insertRow(adminTables.first { it.name == "attendance" }, values)
-    suspend fun createOrderItem(values: Map<String, String>) = insertRow(adminTables.first { it.name == "order_items" }, values)
-    suspend fun createOutletMenuItem(values: Map<String, String>) = insertRow(adminTables.first { it.name == "outlet_menu_items" }, values)
-    suspend fun createPayment(values: Map<String, String>) = insertRow(adminTables.first { it.name == "payments" }, values)
+    suspend fun createOutlet(values: Map<String, String>) {
+        val session = authRepository.currentSession.value ?: throw IllegalStateException("Not logged in")
+        if (!session.isOwner()) throw IllegalStateException("Only owners can create outlets")
+        insertRow(adminTables.first { it.name == "outlets" }, values)
+    }
+
+    suspend fun createOrder(values: Map<String, String>, items: List<Pair<JsonObject, Int>> = emptyList()) {
+        val session = authRepository.currentSession.value ?: throw IllegalStateException("Not logged in")
+        val phone = values["phone"] ?: throw IllegalArgumentException("Phone number is required")
+        val customerName = values["customer_name"] ?: "Unknown Customer"
+        val orderType = values["order_type"] ?: "pickup"
+        val address = values["address"] ?: ""
+        val outletId = values["outlet_id"]?.toLongOrNull() ?: session.outletId
+        val status = (values["status"] ?: "placed").toOrderDbStatus()
+
+        // 1. Find or create user
+        var user = supabase.from("users")
+            .select { filter { eq("phone", phone) } }
+            .decodeSingleOrNull<JsonObject>()
+
+        if (user == null) {
+            supabase.from("users").insert(
+                buildJsonObject {
+                    put("name", customerName)
+                    put("phone", phone)
+                    put("address", address)
+                }
+            )
+            user = supabase.from("users")
+                .select { filter { eq("phone", phone) } }
+                .decodeSingle<JsonObject>()
+        }
+
+        val userId = user["id"]?.toDisplayText()?.toLongOrNull() ?: throw IllegalStateException("Failed to get user ID")
+
+        // 2. Create Order
+        val tempTransactionId = "CASH_${UUID.randomUUID().toString().take(8)}"
+        val employeeId = (session as? UserSession.EmployeeSession)?.empId?.toLongOrNull()
+
+        supabase.from("orders").insert(
+            buildJsonObject {
+                put("outlet_id", outletId)
+                put("customer_id", userId)
+                put("customer_name", customerName)
+                put("phone", phone)
+                put("status", status)
+                put("order_type", orderType)
+                put("address", address)
+                put("transaction_id", tempTransactionId)
+                put("accepted_by", employeeId)
+            }
+        )
+
+        val order = supabase.from("orders")
+            .select { filter { eq("transaction_id", tempTransactionId) } }
+            .decodeSingle<JsonObject>()
+
+        val orderId = order["id"]?.toDisplayText() ?: throw IllegalStateException("Failed to get order ID")
+
+        var totalOrderPrice = 0.0
+
+        // 3. Create Order Items
+        items.forEach { (menuItem, qty) ->
+            val itemId = menuItem["id"]?.toDisplayText()?.toLongOrNull() ?: return@forEach
+            val price = menuItem["price"]?.asNumber() ?: 0.0
+            val discount = menuItem["discount"]?.asNumber() ?: 0.0
+            val handling = menuItem["handling_charges"]?.asNumber() ?: 0.0
+            
+            val netPrice = (price - discount).coerceAtLeast(0.0)
+            val lineTotal = (netPrice + handling) * qty
+            totalOrderPrice += lineTotal
+
+            supabase.from("order_items").insert(
+                buildJsonObject {
+                    put("order_id", orderId)
+                    put("menu_item_id", itemId)
+                    put("qty", qty)
+                    put("price_per_item", netPrice)
+                    put("total_price", lineTotal)
+                }
+            )
+        }
+
+        // Add delivery charges if applicable
+        val deliveryCharges = if (orderType == "delivery") {
+            items.maxOfOrNull { (it, _) -> it["delivery_charges"]?.asNumber() ?: 0.0 } ?: 0.0
+        } else 0.0
+        totalOrderPrice += deliveryCharges
+
+        // 4. Create Payment
+        supabase.from("payments").insert(
+            buildJsonObject {
+                put("order_id", orderId)
+                put("customer_id", userId)
+                put("amount", (totalOrderPrice * 100).toLong()) // Paise
+                put("payment_status", "captured")
+                put("payment_method", "cash")
+                put("currency", "INR")
+            }
+        )
+    }
+
+    suspend fun createProduct(values: Map<String, String>) = createRow(adminTables.first { it.name == "product_catalog" }, values)
+    suspend fun createUser(values: Map<String, String>) = createRow(adminTables.first { it.name == "users" }, values)
+    suspend fun createCart(values: Map<String, String>) = createRow(adminTables.first { it.name == "cart" }, values)
+    suspend fun createBanner(values: Map<String, String>) = createRow(adminTables.first { it.name == "banners" }, values)
+    suspend fun createOffer(values: Map<String, String>) = createRow(adminTables.first { it.name == "offers" }, values)
+    suspend fun createReview(values: Map<String, String>) = createRow(adminTables.first { it.name == "reviews" }, values)
+    
+    suspend fun createEmployee(values: Map<String, String>) {
+        val session = authRepository.currentSession.value ?: throw IllegalStateException("Not logged in")
+        if (!session.isOwner()) throw IllegalStateException("Only owners can create employees")
+        
+        insertRow(adminTables.first { it.name == "employee" }, values)
+    }
+
+    suspend fun createAttendance(values: Map<String, String>) = createRow(adminTables.first { it.name == "attendance" }, values)
+    suspend fun createOrderItem(values: Map<String, String>) = createRow(adminTables.first { it.name == "order_items" }, values)
+    suspend fun createOutletMenuItem(values: Map<String, String>) = createRow(adminTables.first { it.name == "outlet_menu_items" }, values)
+    suspend fun createPayment(values: Map<String, String>) = createRow(adminTables.first { it.name == "payments" }, values)
 
     suspend fun updateRow(table: AdminTable, row: JsonObject, values: Map<String, String>) {
+        checkPermission(table, "update")
         performUpdate(table, row, values)
     }
 
     private suspend fun performUpdate(table: AdminTable, row: JsonObject, values: Map<String, String>) {
         val id = row[table.primaryKey]?.asFilterValue(table.primaryKeyType)
             ?: throw IllegalArgumentException("Missing ${table.primaryKey}")
-        val payload = buildPayload(table, values, includeEmptyRequired = true)
+        
+        val convertedValues = values.toMutableMap()
+        if (table.name == "orders" && values.containsKey("status")) {
+            convertedValues["status"] = values["status"]!!.toOrderDbStatus()
+        }
+
+        val payload = buildPayload(table, convertedValues, includeEmptyRequired = true, isUpdate = true)
         supabase.from(table.name).update(payload) {
             filter { eq(table.primaryKey, id) }
         }
     }
 
-    suspend fun updateOutlet(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "outlets" }, row, values)
-    suspend fun updateOrder(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "orders" }, row, values)
-    suspend fun updateProduct(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "product_catalog" }, row, values)
-    suspend fun updateUser(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "users" }, row, values)
-    suspend fun updateCart(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "cart" }, row, values)
-    suspend fun updateBanner(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "banners" }, row, values)
-    suspend fun updateOffer(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "offers" }, row, values)
-    suspend fun updateReview(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "reviews" }, row, values)
-    suspend fun updateEmployee(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "employee" }, row, values)
-    suspend fun updateAttendance(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "attendance" }, row, values)
-    suspend fun updateOrderItem(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "order_items" }, row, values)
-    suspend fun updateOutletMenuItem(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "outlet_menu_items" }, row, values)
-    suspend fun updatePayment(row: JsonObject, values: Map<String, String>) = performUpdate(adminTables.first { it.name == "payments" }, row, values)
+    suspend fun updateOutlet(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "outlets" }, row, values)
+    suspend fun updateOrder(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "orders" }, row, values)
+    suspend fun updateProduct(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "product_catalog" }, row, values)
+    suspend fun updateUser(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "users" }, row, values)
+    suspend fun updateCart(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "cart" }, row, values)
+    suspend fun updateBanner(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "banners" }, row, values)
+    suspend fun updateOffer(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "offers" }, row, values)
+    suspend fun updateReview(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "reviews" }, row, values)
+    
+    suspend fun updateEmployee(row: JsonObject, values: Map<String, String>) {
+        val session = authRepository.currentSession.value ?: throw IllegalStateException("Not logged in")
+        if (!session.isOwner()) throw IllegalStateException("Only owners can update employees")
+        
+        performUpdate(adminTables.first { it.name == "employee" }, row, values)
+    }
+
+    suspend fun updateAttendance(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "attendance" }, row, values)
+    suspend fun updateOrderItem(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "order_items" }, row, values)
+    suspend fun updateOutletMenuItem(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "outlet_menu_items" }, row, values)
+    suspend fun updatePayment(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "payments" }, row, values)
 
     suspend fun deleteRow(table: AdminTable, row: JsonObject) {
+        checkPermission(table, "delete")
         performDelete(table, row)
     }
 
     private suspend fun performDelete(table: AdminTable, row: JsonObject) {
         val id = row[table.primaryKey]?.asFilterValue(table.primaryKeyType)
             ?: throw IllegalArgumentException("Missing ${table.primaryKey}")
+        
+        // Scope check for delete
+        val session = authRepository.currentSession.value ?: throw IllegalStateException("Not logged in")
+        if (!session.isOwner()) {
+            val rowOutletId = row["outlet_id"].toDisplayText()
+            if (rowOutletId != "-" && rowOutletId != session.outletId.toString()) {
+                throw IllegalStateException("You cannot delete records from another outlet")
+            }
+        }
+
         supabase.from(table.name).delete {
             filter { eq(table.primaryKey, id) }
         }
     }
 
-    suspend fun deleteOutlet(row: JsonObject) = performDelete(adminTables.first { it.name == "outlets" }, row)
-    suspend fun deleteOrder(row: JsonObject) = performDelete(adminTables.first { it.name == "orders" }, row)
-    suspend fun deleteProduct(row: JsonObject) = performDelete(adminTables.first { it.name == "product_catalog" }, row)
-    suspend fun deleteUser(row: JsonObject) = performDelete(adminTables.first { it.name == "users" }, row)
-    suspend fun deleteCart(row: JsonObject) = performDelete(adminTables.first { it.name == "cart" }, row)
-    suspend fun deleteBanner(row: JsonObject) = performDelete(adminTables.first { it.name == "banners" }, row)
-    suspend fun deleteOffer(row: JsonObject) = performDelete(adminTables.first { it.name == "offers" }, row)
-    suspend fun deleteReview(row: JsonObject) = performDelete(adminTables.first { it.name == "reviews" }, row)
-    suspend fun deleteEmployee(row: JsonObject) = performDelete(adminTables.first { it.name == "employee" }, row)
-    suspend fun deleteAttendance(row: JsonObject) = performDelete(adminTables.first { it.name == "attendance" }, row)
-    suspend fun deleteOrderItem(row: JsonObject) = performDelete(adminTables.first { it.name == "order_items" }, row)
-    suspend fun deleteOutletMenuItem(row: JsonObject) = performDelete(adminTables.first { it.name == "outlet_menu_items" }, row)
-    suspend fun deletePayment(row: JsonObject) = performDelete(adminTables.first { it.name == "payments" }, row)
+    suspend fun deleteOutlet(row: JsonObject) {
+        val session = authRepository.currentSession.value ?: throw IllegalStateException("Not logged in")
+        if (!session.isOwner()) throw IllegalStateException("Only owners can delete outlets")
+        performDelete(adminTables.first { it.name == "outlets" }, row)
+    }
+
+    suspend fun deleteOrder(row: JsonObject) = deleteRow(adminTables.first { it.name == "orders" }, row)
+    suspend fun deleteProduct(row: JsonObject) = deleteRow(adminTables.first { it.name == "product_catalog" }, row)
+    suspend fun deleteUser(row: JsonObject) = deleteRow(adminTables.first { it.name == "users" }, row)
+    suspend fun deleteCart(row: JsonObject) = deleteRow(adminTables.first { it.name == "cart" }, row)
+    suspend fun deleteBanner(row: JsonObject) = deleteRow(adminTables.first { it.name == "banners" }, row)
+    suspend fun deleteOffer(row: JsonObject) = deleteRow(adminTables.first { it.name == "offers" }, row)
+    suspend fun deleteReview(row: JsonObject) = deleteRow(adminTables.first { it.name == "reviews" }, row)
+    
+    suspend fun deleteEmployee(row: JsonObject) {
+        val session = authRepository.currentSession.value ?: throw IllegalStateException("Not logged in")
+        if (!session.isOwner()) throw IllegalStateException("Only owners can delete employees")
+        
+        performDelete(adminTables.first { it.name == "employee" }, row)
+    }
+
+    suspend fun deleteAttendance(row: JsonObject) = deleteRow(adminTables.first { it.name == "attendance" }, row)
+    suspend fun deleteOrderItem(row: JsonObject) = deleteRow(adminTables.first { it.name == "order_items" }, row)
+    suspend fun deleteOutletMenuItem(row: JsonObject) = deleteRow(adminTables.first { it.name == "outlet_menu_items" }, row)
+    suspend fun deletePayment(row: JsonObject) = deleteRow(adminTables.first { it.name == "payments" }, row)
 
     fun observeOutlets() = observeTableRows(adminTables.first { it.name == "outlets" })
     fun observeOrders() = observeTableRows(adminTables.first { it.name == "orders" })
@@ -506,20 +688,75 @@ class AdminRepository(
     private fun buildPayload(
         table: AdminTable,
         values: Map<String, String>,
-        includeEmptyRequired: Boolean
+        includeEmptyRequired: Boolean,
+        isUpdate: Boolean
     ): JsonObject = buildJsonObject {
-        table.editableColumns.forEach { column ->
-            val raw = values[column.name].orEmpty().trim()
-                .ifBlank { defaultValueFor(table.name, column.name).orEmpty() }
-            if (raw.isBlank() && !column.required && !includeEmptyRequired) return@forEach
-            put(column.name, column.toJsonElement(raw))
+        val session = authRepository.currentSession.value
+        val isOwner = session?.isOwner() == true
+
+        table.columns.forEach { column ->
+            if (column.name == "id" || column.name == "created_at" || column.name == "updated_at") return@forEach
+
+            // Force outlet_id from session for non-owners
+            if (column.name == "outlet_id") {
+                if (isUpdate) return@forEach // Prevent changing outlet of existing record
+                
+                val value = if (isOwner) {
+                    // Owners can specify outlet_id (from dropdown in UI if we enable it)
+                    values[column.name].takeIf { !it.isNullOrBlank() } ?: session.outletId.toString()
+                } else {
+                    // Others are forced to their own outlet
+                    session?.outletId?.toString()
+                }
+                if (value != null) put(column.name, column.toJsonElement(value))
+                return@forEach
+            }
+
+            // Force emp_id for attendance
+            if (column.name == "emp_id" && table.name == "attendance") {
+                val empId = (session as? UserSession.EmployeeSession)?.empId
+                if (empId != null) put(column.name, column.toJsonElement(empId))
+                return@forEach
+            }
+
+            // Banner Display Order logic: automatically set if not provided or hidden
+            if (column.name == "display_order" && table.name == "banners" && !isUpdate) {
+                // If it's a new banner, we can default to 0 or something unique.
+                // The user said "automatically fetched by the user id", but it's a long number.
+                // We'll set a default of 0 and let them re-order later if needed, 
+                // or use a timestamp for sequence.
+                val autoOrder = values[column.name]?.toLongOrNull() ?: 0L
+                put(column.name, column.toJsonElement(autoOrder.toString()))
+                return@forEach
+            }
+
+            // Protect other ID fields if they are not editable
+            if (!column.editable && column.name.endsWith("_id")) {
+                // If it's a reference and not editable, it might be auto-filled from context
+                // (e.g. order_id when creating order_items)
+                val contextValue = values[column.name]
+                if (!contextValue.isNullOrBlank()) {
+                    put(column.name, column.toJsonElement(contextValue))
+                }
+                return@forEach
+            }
+
+            if (column.editable) {
+                // Skip virtual columns for standard DB operations
+                if (table.name == "orders" && (column.name == "menu_item_id" || column.name == "qty")) return@forEach
+
+                val raw = values[column.name].orEmpty().trim()
+                    .ifBlank { defaultValueFor(table.name, column.name).orEmpty() }
+                if (raw.isBlank() && !column.required && !includeEmptyRequired) return@forEach
+                put(column.name, column.toJsonElement(raw))
+            }
         }
     }
 
     private fun defaultValueFor(tableName: String, columnName: String): String? {
         if (columnName != "outlet_id") return null
         val session = authRepository.currentSession.value ?: return null
-        if (session.roleOrNull() == OutletRole.OWNER) return null
+        if (session.isOwner()) return null
         return when (tableName) {
             "orders", "outlet_menu_items", "banners", "offers", "employee", "reviews" -> session.outletId.toString()
             else -> null
@@ -619,7 +856,7 @@ private fun AdminTable.selectColumns(): Columns {
         "outlet_menu_items" -> Columns.raw("*, product_catalog(*)")
         "order_items" -> Columns.raw("*, orders(customer_name, phone, status, outlet_id), outlet_menu_items(id, image, price, product_catalog(name, category, description))")
         "attendance" -> Columns.raw("*, employee(name, role, contact, outlet_id)")
-        "orders" -> Columns.raw("*, outlets(name, city), users(name, phone)")
+        "orders" -> Columns.raw("*, outlets(name, city), users(name, phone), payments(amount)")
         "payments" -> Columns.raw("*, orders(customer_name, phone, status, outlet_id), users(name, phone)")
         "reviews" -> Columns.raw("*, users(name, phone), outlet_menu_items(id, price, product_catalog(name, category)), outlets(name, city)")
         "cart" -> Columns.raw("*, users(name, phone), outlet_menu_items(id, price, product_catalog(name, category)), outlets(name, city)")
@@ -661,6 +898,11 @@ private fun JsonObject.withDisplayJoins(tableName: String): JsonObject {
                 employee?.get("name")?.let { put("employee_name", it) }
                 employee?.get("role")?.let { put("employee_role", it) }
                 employee?.get("contact")?.let { put("employee_contact", it) }
+            }
+            "orders" -> {
+                val payments = this@withDisplayJoins["payments"] as? JsonArray
+                val firstPayment = payments?.firstOrNull() as? JsonObject
+                firstPayment?.get("amount")?.let { put("grand_total", it) }
             }
             "payments" -> {
                 val order = this@withDisplayJoins["orders"] as? JsonObject

@@ -25,7 +25,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import kotlinx.serialization.json.JsonObject
 import java.time.LocalDate
 import java.time.YearMonth
@@ -34,6 +36,7 @@ import java.util.*
 
 @Composable
 internal fun AttendanceCalendarScreen(
+    session: UserSession?,
     state: AdminUiState,
     onPunchIn: () -> Unit,
     onPunchOut: () -> Unit
@@ -42,10 +45,18 @@ internal fun AttendanceCalendarScreen(
     var selectedDateRecord by remember { mutableStateOf<JsonObject?>(null) }
     val scrollState = rememberScrollState()
 
-    val recordsForMonth = remember(state.rows, currentMonth) {
-        state.rows.filter {
+    val personalRows = remember(state.attendance, session) {
+        if (session is UserSession.EmployeeSession) {
+            state.attendance.filter { it.empId.toString() == session.empId }
+        } else {
+            state.attendance
+        }
+    }
+
+    val recordsForMonth = remember(personalRows, currentMonth) {
+        personalRows.filter {
             runCatching {
-                val date = LocalDate.parse(it["created_at"].toDisplayText().substringBefore("T"))
+                val date = LocalDate.parse(it.createdAt?.substringBefore("T"))
                 YearMonth.from(date) == currentMonth
             }.getOrDefault(false)
         }
@@ -53,12 +64,12 @@ internal fun AttendanceCalendarScreen(
 
     val stats = remember(recordsForMonth) {
         AttendanceStats(
-            present = recordsForMonth.count { it["status"].toDisplayText() == "present" || it["status"].toDisplayText() == "completed" },
-            absent = 0, // Placeholder
-            late = 0,    // Placeholder
-            halfDay = 0, // Placeholder
-            leave = 0,   // Placeholder
-            holiday = 0  // Placeholder
+            present = recordsForMonth.count { it.status?.lowercase() == "present" || it.status?.lowercase() == "completed" },
+            absent = 0,
+            late = recordsForMonth.count { it.status?.lowercase() == "late" },
+            halfDay = recordsForMonth.count { it.status?.lowercase() == "half day" },
+            leave = recordsForMonth.count { it.status?.lowercase() == "leave" },
+            holiday = recordsForMonth.count { it.status?.lowercase() == "holiday" }
         )
     }
 
@@ -71,7 +82,7 @@ internal fun AttendanceCalendarScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Daily Punch Action
-        PunchCard(state, onPunchIn, onPunchOut)
+        PunchCard(session, state, onPunchIn, onPunchOut)
 
         // Summary Card
         AttendanceSummaryCard(stats)
@@ -85,6 +96,7 @@ internal fun AttendanceCalendarScreen(
                 )
 
                 AttendanceGrid(
+                    state = state,
                     month = currentMonth,
                     records = recordsForMonth,
                     onDateClick = { selectedDateRecord = it }
@@ -126,12 +138,12 @@ private fun AttendanceSummaryCard(stats: AttendanceStats) {
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            SummaryItem("${stats.present}", "Present", MaterialTheme.colorScheme.primary)
-            SummaryItem("${stats.absent}", "Absent", MaterialTheme.colorScheme.error)
-            SummaryItem("${stats.late}", "Late", MaterialTheme.colorScheme.tertiary)
-            SummaryItem("${stats.halfDay}", "Half", MaterialTheme.colorScheme.secondary)
-            SummaryItem("${stats.leave}", "Leave", MaterialTheme.colorScheme.primary)
-            SummaryItem("${stats.holiday}", "Holiday", MaterialTheme.colorScheme.secondary)
+            SummaryItem("${stats.present}", "Present", StatusGreen)
+            SummaryItem("${stats.absent}", "Absent", StatusRed)
+            SummaryItem("${stats.late}", "Late", StatusOrange)
+            SummaryItem("${stats.halfDay}", "Half", StatusYellow)
+            SummaryItem("${stats.leave}", "Leave", StatusBlue)
+            SummaryItem("${stats.holiday}", "Holiday", StatusPurple)
         }
     }
 }
@@ -145,14 +157,21 @@ private fun SummaryItem(value: String, label: String, color: Color) {
 }
 
 @Composable
-private fun PunchCard(state: AdminUiState, onPunchIn: () -> Unit, onPunchOut: () -> Unit) {
+private fun PunchCard(session: UserSession?, state: AdminUiState, onPunchIn: () -> Unit, onPunchOut: () -> Unit) {
     val today = LocalDate.now()
-    val todayRecord = state.rows.firstOrNull { 
-        it["created_at"].toDisplayText().startsWith(today.toString())
+    val personalRows = remember(state.attendance, session) {
+        if (session is UserSession.EmployeeSession) {
+            state.attendance.filter { it.empId.toString() == session.empId }
+        } else {
+            state.attendance
+        }
+    }
+    val todayRecord = personalRows.firstOrNull {
+        it.createdAt?.startsWith(today.toString()) == true
     }
     
-    val isPunchedIn = todayRecord != null && todayRecord["out_time"].toDisplayText() == "-"
-    val isCompleted = todayRecord != null && todayRecord["out_time"].toDisplayText() != "-"
+    val isPunchedIn = todayRecord != null && todayRecord.outTime == null
+    val isCompleted = todayRecord != null && todayRecord.outTime != null
 
     PremiumCard {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -167,7 +186,7 @@ private fun PunchCard(state: AdminUiState, onPunchIn: () -> Unit, onPunchOut: ()
                     onClick = onPunchIn,
                     enabled = todayRecord == null && !state.isSaving,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.buttonColors(containerColor = StatusGreen),
                     shape = RoundedCornerShape(14.dp),
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
@@ -180,7 +199,7 @@ private fun PunchCard(state: AdminUiState, onPunchIn: () -> Unit, onPunchOut: ()
                     onClick = onPunchOut,
                     enabled = isPunchedIn && !state.isSaving,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                    colors = ButtonDefaults.buttonColors(containerColor = StatusOrange),
                     shape = RoundedCornerShape(14.dp),
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
@@ -191,7 +210,7 @@ private fun PunchCard(state: AdminUiState, onPunchIn: () -> Unit, onPunchOut: ()
             }
             
             if (isCompleted) {
-                Text("Today's shift completed successfully.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                Text("Today's shift completed successfully.", color = StatusGreen, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             }
         }
     }
@@ -220,7 +239,12 @@ private fun CalendarHeader(currentMonth: YearMonth, onMonthChange: (YearMonth) -
 }
 
 @Composable
-private fun AttendanceGrid(month: YearMonth, records: List<JsonObject>, onDateClick: (JsonObject?) -> Unit) {
+private fun AttendanceGrid(
+    state: AdminUiState,
+    month: YearMonth, 
+    records: List<Attendance>, 
+    onDateClick: (JsonObject?) -> Unit
+) {
     val daysInMonth = month.lengthOfMonth()
     val firstDayOfWeek = month.atDay(1).dayOfWeek.value % 7 
     
@@ -249,17 +273,36 @@ private fun AttendanceGrid(month: YearMonth, records: List<JsonObject>, onDateCl
                     Spacer(Modifier.aspectRatio(1f))
                 } else {
                     val date = month.atDay(day)
-                    val record = records.firstOrNull { it["created_at"].toDisplayText().startsWith(date.toString()) }
+                    val record = records.firstOrNull { it.createdAt?.startsWith(date.toString()) == true }
                     
+                    val status = record?.status?.lowercase() ?: ""
+                    val isPunchedOut = record != null && record.outTime != null
+
                     val color = when {
-                        record == null -> Color.Transparent
-                        record["out_time"].toDisplayText() == "-" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
-                        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        record == null -> {
+                            if (date.isBefore(LocalDate.now())) {
+                                StatusRed.copy(alpha = 0.15f)
+                            } else {
+                                Color.Transparent
+                            }
+                        }
+                        status == "present" -> StatusGreen.copy(alpha = 0.15f)
+                        status == "late" -> StatusOrange.copy(alpha = 0.15f)
+                        status == "half day" -> StatusYellow.copy(alpha = 0.15f)
+                        !isPunchedOut && record != null -> StatusOrange.copy(alpha = 0.15f)
+                        else -> StatusGreen.copy(alpha = 0.15f)
                     }
                     val textColor = when {
-                        record == null -> if (date == LocalDate.now()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        record["out_time"].toDisplayText() == "-" -> MaterialTheme.colorScheme.tertiary
-                        else -> MaterialTheme.colorScheme.primary
+                        record == null -> {
+                            if (date.isBefore(LocalDate.now())) StatusRed
+                            else if (date == LocalDate.now()) MaterialTheme.colorScheme.primary 
+                            else MaterialTheme.colorScheme.onSurface
+                        }
+                        status == "present" -> StatusGreen
+                        status == "late" -> StatusOrange
+                        status == "half day" -> StatusYellow
+                        !isPunchedOut && record != null -> StatusOrange
+                        else -> StatusGreen
                     }
                     
                     Box(
@@ -267,7 +310,12 @@ private fun AttendanceGrid(month: YearMonth, records: List<JsonObject>, onDateCl
                             .aspectRatio(1f)
                             .clip(RoundedCornerShape(12.dp))
                             .background(color)
-                            .clickable { onDateClick(record) },
+                            .clickable { 
+                                // Map back to JsonObject for the dialog
+                                state.rows.firstOrNull { it["id"].toDisplayText() == record?.id?.toString() }?.let {
+                                    onDateClick(it)
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -294,10 +342,10 @@ private fun AttendanceLegend() {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        LegendItem("Present", MaterialTheme.colorScheme.primary)
-        LegendItem("Absent", MaterialTheme.colorScheme.error)
-        LegendItem("Late", MaterialTheme.colorScheme.tertiary)
-        LegendItem("Half day", MaterialTheme.colorScheme.secondary)
+        LegendItem("Present", StatusGreen)
+        LegendItem("Absent", StatusRed)
+        LegendItem("Late", StatusOrange)
+        LegendItem("Half day", StatusYellow)
     }
 }
 
@@ -384,18 +432,25 @@ private fun AttendanceDetailDialog(record: JsonObject, onDismiss: () -> Unit) {
             }
         },
         text = {
+            val status = record["status"].toDisplayText().lowercase()
+            val statusColor = when (status) {
+                "present" -> StatusGreen
+                "late" -> StatusOrange
+                "half day" -> StatusYellow
+                else -> if (record["out_time"].toDisplayText() == "-") StatusOrange else StatusGreen
+            }
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatusPill(
-                    label = record["status"].toDisplayText().uppercase(),
-                    color = if (record["out_time"].toDisplayText() == "-") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                    label = status.uppercase(),
+                    color = statusColor
                 )
                 
-                DetailBox("Punch In", record["in_time"].toDisplayText().substringAfter("T").take(5), Icons.Default.Login, MaterialTheme.colorScheme.primary)
-                DetailBox("Punch Out", record["out_time"].toDisplayText().let { if (it == "-") "Active" else it.substringAfter("T").take(5) }, Icons.Default.Logout, MaterialTheme.colorScheme.tertiary)
+                DetailBox("Punch In", record["in_time"].toDisplayText().substringAfter("T").take(5), Icons.Default.Login, StatusGreen)
+                DetailBox("Punch Out", record["out_time"].toDisplayText().let { if (it == "-") "Active" else it.substringAfter("T").take(5) }, Icons.Default.Logout, StatusOrange)
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MiniInfoBox(Modifier.weight(1f), "Total Work", "0h 00m", Icons.Default.Schedule, MaterialTheme.colorScheme.tertiary)
-                    MiniInfoBox(Modifier.weight(1f), "Total Break", "0h 00m", Icons.Default.Coffee, MaterialTheme.colorScheme.primary)
+                    MiniInfoBox(Modifier.weight(1f), "Total Work", "0h 00m", Icons.Default.Schedule, StatusOrange)
+                    MiniInfoBox(Modifier.weight(1f), "Total Break", "0h 00m", Icons.Default.Coffee, StatusBlue)
                 }
             }
         },
@@ -404,7 +459,7 @@ private fun AttendanceDetailDialog(record: JsonObject, onDismiss: () -> Unit) {
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                    colors = ButtonDefaults.buttonColors(containerColor = StatusOrange),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Behaviour")
@@ -413,7 +468,7 @@ private fun AttendanceDetailDialog(record: JsonObject, onDismiss: () -> Unit) {
                     OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
                         Text("Dismiss")
                     }
-                    Button(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)) {
+                    Button(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = StatusOrange)) {
                         Text("See More")
                     }
                 }

@@ -90,7 +90,7 @@ fun GlobalOrderNotification(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
-                
+
                 if (itemCount.isNotBlank() && itemCount != "0") {
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
@@ -120,15 +120,25 @@ fun GlobalOrderNotification(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text("Dismiss", color = MaterialTheme.colorScheme.error) // Red accent for destructive action
+                    Text(
+                        "Dismiss",
+                        color = MaterialTheme.colorScheme.error
+                    ) // Red accent for destructive action
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                OutlinedButton(onClick = onView) {
+                OutlinedButton(onClick = {
+                    onView()
+                    onDismiss()
+                }) {
                     Text("View Detail")
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = onAccept,
+                    onClick = {
+                        onAccept()
+                        onDismiss()
+                    },
+
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("Accept")

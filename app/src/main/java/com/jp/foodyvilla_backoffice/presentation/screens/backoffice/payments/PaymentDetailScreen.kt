@@ -49,7 +49,7 @@ fun PaymentDetailScreen(
                     }
 
                     DetailLine("Customer", payment.orderCustomer ?: "-")
-                    DetailLine("Amount", "Rs ${payment.amount / 100.0}")
+                    DetailLine("Amount", "Rs ${payment.amount}")
                     DetailLine("Currency", payment.currency)
                     DetailLine("Method", payment.paymentMethod ?: "-")
                     DetailLine("Razorpay Payment ID", payment.razorpayPaymentId ?: "-")

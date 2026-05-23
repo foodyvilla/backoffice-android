@@ -64,8 +64,8 @@ internal fun OrderItemRecordCard(item: OrderItem, onClick: () -> Unit) {
                 Text(item.productName ?: "Untitled Product", fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(item.orderLabel ?: "Order #${item.orderId?.take(8)}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    StatusPill("Qty ${item.qty}", MaterialTheme.colorScheme.primary)
-                    StatusPill("Rs ${item.totalPrice}", MaterialTheme.colorScheme.tertiary)
+                    StatusPill("Qty ${item.qty}", StatusBlue)
+                    StatusPill("Rs ${item.totalPrice}", StatusGreen)
                     Spacer(Modifier.weight(1f))
                     Text(item.createdAt?.formatTimestamp() ?: "-", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                 }
@@ -77,7 +77,7 @@ internal fun OrderItemRecordCard(item: OrderItem, onClick: () -> Unit) {
 @Composable
 internal fun OrderDetailsSection(
     orderItems: List<OrderItem>,
-    productsById: Map<String, JsonObject>
+    productsById: Map<String, ProductCatalog>
 ) {
     val totalAmount = orderItems.sumOf { it.totalPrice }
 
@@ -127,7 +127,7 @@ internal fun OrderDetailsSection(
                         Text(
                             text = "Rs ${item.totalPrice}",
                             fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = StatusBlue
                         )
                     }
                 }
@@ -149,7 +149,7 @@ internal fun OrderDetailsSection(
                         text = "Rs $totalAmount",
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.primary
+                        color = StatusGreen
                     )
                 }
             }

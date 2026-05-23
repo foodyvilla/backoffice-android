@@ -31,9 +31,10 @@ data class AdminUiState(
     val formValues: Map<String, String> = emptyMap(),
     val searchQuery: String = "",
     val orderItemsByOrderId: Map<String, List<OrderItem>> = emptyMap(),
-    val productsById: Map<String, JsonObject> = emptyMap(),
+    val productsById: Map<String, ProductCatalog> = emptyMap(),
     val customerOrders: List<Order> = emptyList(),
     val customerCart: List<Cart> = emptyList(),
+    val dashboardData: DashboardData = DashboardData(),
     val dashboardRows: Map<String, List<JsonObject>> = emptyMap(),
     val lookupRows: Map<String, List<JsonObject>> = emptyMap(),
     val uploadingColumn: String? = null,
@@ -44,7 +45,23 @@ data class AdminUiState(
     val orderStatusFilter: String? = null,
     val attendanceDateFilter: String? = null,
     val attendanceOutletFilter: String? = null,
-    val attendanceSearchQuery: String = ""
+    val attendanceSearchQuery: String = "",
+    val punchResult: Pair<String, String>? = null, // status to message
+    val currentOutlet: Outlet? = null,
+    val draftOrderItems: List<Pair<JsonObject, Int>> = emptyList(), // MenuItem to Qty
+
+    // Typed data lists
+    val orders: List<Order> = emptyList(),
+    val orderItems: List<OrderItem> = emptyList(),
+    val products: List<ProductCatalog> = emptyList(),
+    val customers: List<User> = emptyList(),
+    val employees: List<Employee> = emptyList(),
+    val attendance: List<Attendance> = emptyList(),
+    val offers: List<Offer> = emptyList(),
+    val banners: List<Banner> = emptyList(),
+    val categories: List<Category> = emptyList(),
+    val payments: List<Payment> = emptyList(),
+    val outletMenuItems: List<OutletMenuItem> = emptyList()
 )
 
 class AdminViewModel(
@@ -66,8 +83,8 @@ class AdminViewModel(
         globalOrdersJob = viewModelScope.launch {
             repository.observeOrders().collect { result ->
                 result.onSuccess { allOrders ->
-                    val pending = allOrders.map { it.toModel<Order>() }.filter { 
-                        it.status.lowercase() == "pending" 
+                    val pending = allOrders.mapNotNull { runCatching { it.toModel<Order>() }.getOrNull() }.filter {
+                        (it.status.lowercase() == "pending" || it.status.lowercase() == "placed") && it.acceptedBy == null
                     }
                     _uiState.update { it.copy(pendingOrders = pending) }
                     
@@ -124,7 +141,22 @@ class AdminViewModel(
                 result.fold(
                     onSuccess = { rows ->
                         _uiState.update {
-                            it.copy(rows = rows, isLoading = false, error = null)
+                            it.copy(
+                                rows = rows,
+                                isLoading = false,
+                                error = null,
+                                orders = if (table.name == "orders") rows.mapNotNull { r -> runCatching { r.toModel<Order>() }.getOrNull() } else it.orders,
+                                orderItems = if (table.name == "order_items") rows.mapNotNull { r -> runCatching { r.toModel<OrderItem>() }.getOrNull() } else it.orderItems,
+                                products = if (table.name == "product_catalog") rows.mapNotNull { r -> runCatching { r.toModel<ProductCatalog>() }.getOrNull() } else it.products,
+                                customers = if (table.name == "users") rows.mapNotNull { r -> runCatching { r.toModel<User>() }.getOrNull() } else it.customers,
+                                employees = if (table.name == "employee") rows.mapNotNull { r -> runCatching { r.toModel<Employee>() }.getOrNull() } else it.employees,
+                                attendance = if (table.name == "attendance") rows.mapNotNull { r -> runCatching { r.toModel<Attendance>() }.getOrNull() } else it.attendance,
+                                offers = if (table.name == "offers") rows.mapNotNull { r -> runCatching { r.toModel<Offer>() }.getOrNull() } else it.offers,
+                                banners = if (table.name == "banners") rows.mapNotNull { r -> runCatching { r.toModel<Banner>() }.getOrNull() } else it.banners,
+                                categories = if (table.name == "categories") rows.mapNotNull { r -> runCatching { r.toModel<Category>() }.getOrNull() } else it.categories,
+                                payments = if (table.name == "payments") rows.mapNotNull { r -> runCatching { r.toModel<Payment>() }.getOrNull() } else it.payments,
+                                outletMenuItems = if (table.name == "outlet_menu_items") rows.mapNotNull { r -> runCatching { r.toModel<OutletMenuItem>() }.getOrNull() } else it.outletMenuItems
+                            )
                         }
                         if (table.name == "orders") {
                             loadOrderItemsFor(rows)
@@ -167,7 +199,23 @@ class AdminViewModel(
                 }
             }
                 .onSuccess { rows ->
-                    _uiState.update { it.copy(rows = rows, isLoading = false) }
+                    _uiState.update {
+                        it.copy(
+                            rows = rows,
+                            isLoading = false,
+                            orders = if (table.name == "orders") rows.mapNotNull { r -> runCatching { r.toModel<Order>() }.getOrNull() } else it.orders,
+                            orderItems = if (table.name == "order_items") rows.mapNotNull { r -> runCatching { r.toModel<OrderItem>() }.getOrNull() } else it.orderItems,
+                            products = if (table.name == "product_catalog") rows.mapNotNull { r -> runCatching { r.toModel<ProductCatalog>() }.getOrNull() } else it.products,
+                            customers = if (table.name == "users") rows.mapNotNull { r -> runCatching { r.toModel<User>() }.getOrNull() } else it.customers,
+                            employees = if (table.name == "employee") rows.mapNotNull { r -> runCatching { r.toModel<Employee>() }.getOrNull() } else it.employees,
+                            attendance = if (table.name == "attendance") rows.mapNotNull { r -> runCatching { r.toModel<Attendance>() }.getOrNull() } else it.attendance,
+                            offers = if (table.name == "offers") rows.mapNotNull { r -> runCatching { r.toModel<Offer>() }.getOrNull() } else it.offers,
+                            banners = if (table.name == "banners") rows.mapNotNull { r -> runCatching { r.toModel<Banner>() }.getOrNull() } else it.banners,
+                            categories = if (table.name == "categories") rows.mapNotNull { r -> runCatching { r.toModel<Category>() }.getOrNull() } else it.categories,
+                            payments = if (table.name == "payments") rows.mapNotNull { r -> runCatching { r.toModel<Payment>() }.getOrNull() } else it.payments,
+                            outletMenuItems = if (table.name == "outlet_menu_items") rows.mapNotNull { r -> runCatching { r.toModel<OutletMenuItem>() }.getOrNull() } else it.outletMenuItems
+                        )
+                    }
                     if (table.name == "orders") {
                         loadOrderItemsFor(rows)
                     }
@@ -189,7 +237,8 @@ class AdminViewModel(
                     .map { it.toModel<OrderItem>() }
                     .groupBy { it.orderId ?: "" }
                 val productsById = repository.loadProducts()
-                    .associateBy { it["id"].toDisplayText() }
+                    .mapNotNull { runCatching { it.toModel<ProductCatalog>() }.getOrNull() }
+                    .associateBy { it.id.toString() }
                 itemsByOrder to productsById
             }.onSuccess { (itemsByOrder, productsById) ->
                 _uiState.update {
@@ -241,13 +290,35 @@ class AdminViewModel(
 
     fun startCreate() {
         val table = _uiState.value.selectedTable
+        val session = repository.authSession.value
+        
+        var initialValues = repository.toEditableValues(table, null)
+        if (table.name == "orders" && session != null) {
+            initialValues = initialValues + ("outlet_id" to session.outletId.toString())
+        }
+
         _uiState.update {
             it.copy(
                 editingRow = null,
-                formValues = repository.toEditableValues(table, null),
+                formValues = initialValues,
                 error = null,
-                successMessage = null
+                successMessage = null,
+                draftOrderItems = emptyList()
             )
+        }
+    }
+
+    fun addDraftOrderItem(menuItem: JsonObject, qty: Int) {
+        _uiState.update { 
+            it.copy(draftOrderItems = it.draftOrderItems + (menuItem to qty))
+        }
+    }
+
+    fun removeDraftOrderItem(index: Int) {
+        _uiState.update {
+            val newList = it.draftOrderItems.toMutableList()
+            if (index in newList.indices) newList.removeAt(index)
+            it.copy(draftOrderItems = newList)
         }
     }
 
@@ -338,7 +409,7 @@ class AdminViewModel(
                 if (state.editingRow == null) {
                     when (state.selectedTable.name) {
                         "outlets" -> repository.createOutlet(state.formValues)
-                        "orders" -> repository.createOrder(state.formValues)
+                        "orders" -> repository.createOrder(state.formValues, state.draftOrderItems)
                         "product_catalog" -> repository.createProduct(state.formValues)
                         "users" -> repository.createUser(state.formValues)
                         "cart" -> repository.createCart(state.formValues)
@@ -520,27 +591,27 @@ class AdminViewModel(
 
     private fun loadDashboardRows() {
         viewModelScope.launch {
-            val tables = _uiState.value.tables.filter { it.name in dashboardTableNames }
-            val rowsByTable = tables.associate { table ->
-                table.name to runCatching {
-                    when (table.name) {
-                        "outlets" -> repository.loadOutlets()
-                        "orders" -> repository.loadOrders()
-                        "product_catalog" -> repository.loadProductCatalog()
-                        "users" -> repository.loadUsers()
-                        "cart" -> repository.loadCart()
-                        "banners" -> repository.loadBanners()
-                        "offers" -> repository.loadOffers()
-                        "reviews" -> repository.loadReviews()
-                        "employee" -> repository.loadEmployees()
-                        "attendance" -> repository.loadAttendance()
-                        "payments" -> repository.loadPayments()
-                        "outlet_menu_items" -> repository.loadOutletMenuItems()
-                        else -> repository.loadRows(table)
-                    }
-                }.getOrDefault(emptyList())
-            } + ("order_items" to runCatching { repository.loadOrderItems() }.getOrDefault(emptyList()))
-            _uiState.update { it.copy(dashboardRows = rowsByTable) }
+            val orders = runCatching { repository.loadOrders() }.getOrDefault(emptyList())
+            val products = runCatching { repository.loadProductCatalog() }.getOrDefault(emptyList())
+            val users = runCatching { repository.loadUsers() }.getOrDefault(emptyList())
+            val orderItems = runCatching { repository.loadOrderItems() }.getOrDefault(emptyList())
+
+            val data = DashboardData(
+                orders = orders.mapNotNull { runCatching { it.toModel<Order>() }.getOrNull() },
+                orderItems = orderItems.mapNotNull { runCatching { it.toModel<OrderItem>() }.getOrNull() },
+                products = products.mapNotNull { runCatching { it.toModel<ProductCatalog>() }.getOrNull() },
+                users = users.mapNotNull { runCatching { it.toModel<User>() }.getOrNull() }
+            )
+            val rowsByTable = mapOf(
+                "orders" to orders,
+                "product_catalog" to products,
+                "users" to users,
+                "order_items" to orderItems,
+                "employee" to runCatching { repository.loadEmployees() }.getOrDefault(emptyList()),
+                "outlets" to runCatching { repository.loadOutlets() }.getOrDefault(emptyList()),
+                "attendance" to runCatching { repository.loadAttendance() }.getOrDefault(emptyList())
+            )
+            _uiState.update { it.copy(dashboardData = data, dashboardRows = rowsByTable) }
         }
     }
 

@@ -12,11 +12,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.Outlet
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun OutletScreen(
+    session: UserSession?,
     state: AdminUiState,
     onSearch: (String) -> Unit,
     onCreate: () -> Unit,
@@ -64,12 +66,14 @@ fun OutletScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Button(
-                        onClick = onCreate,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("New")
+                    if (session?.canCreate("outlets") == true) {
+                        Button(
+                            onClick = onCreate,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("New")
+                        }
                     }
                 }
             }

@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Menu
@@ -95,50 +97,9 @@ internal fun PremiumCard(
     }
 }
 
-@Composable
-internal fun PremiumTopBar(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    onMenu: (() -> Unit)? = null,
-    onBack: (() -> Unit)? = null,
-    onRefresh: (() -> Unit)? = null
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        when {
-            onBack != null -> RoundIconButton(Icons.Default.ArrowBack, "Back", onBack)
-            onMenu != null -> RoundIconButton(Icons.Default.Menu, "Menu", onMenu)
-            else -> Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
-                }
-            }
-        }
-        Column(Modifier.weight(1f)) {
-            Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        onRefresh?.let { RoundIconButton(Icons.Default.Refresh, "Refresh", it) }
-    }
-}
 
-@Composable
-internal fun RoundIconButton(icon: ImageVector, contentDescription: String, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.size(46.dp).clickable(onClick = onClick),
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 4.dp
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = contentDescription, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(21.dp))
-        }
-    }
-}
+
+
 
 @Composable
 internal fun SearchAndFilterBar(query: String, onQueryChange: (String) -> Unit, placeholder: String) {
@@ -161,8 +122,8 @@ internal fun SearchAndFilterBar(query: String, onQueryChange: (String) -> Unit, 
 }
 
 @Composable
-internal fun StatusPill(label: String, color: Color) {
-    Surface(shape = RoundedCornerShape(100), color = color.copy(alpha = .12f)) {
+internal fun StatusPill(label: String, color: Color, modifier: Modifier = Modifier) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(100), color = color.copy(alpha = .12f)) {
         Text(
             label,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -478,28 +439,51 @@ internal fun DatePickerField(
     var showDialog by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
 
-    Box(modifier = modifier) {
-        OutlinedTextField(
-            value = value ?: "",
-            onValueChange = { },
-            label = { Text(label) },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = false,
-            readOnly = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        onClick = { showDialog = true },
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier.height(56.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.DateRange,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
             )
-        )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable { showDialog = true }
-        )
+            
+            Column(Modifier.weight(1f)) {
+                if (label.isNotBlank()) {
+                    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(
+                    text = value ?: "Select Date",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (value == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    fontWeight = if (value == null) FontWeight.Normal else FontWeight.Bold
+                )
+            }
+
+            if (value != null) {
+                IconButton(
+                    onClick = { onValueChange(null) },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Reset",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
     }
 
     if (showDialog) {
@@ -518,10 +502,7 @@ internal fun DatePickerField(
                 }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    onValueChange(null)
-                    showDialog = false
-                }) { Text("Clear") }
+                TextButton(onClick = { showDialog = false }) { Text("Cancel") }
             }
         ) {
             DatePicker(state = datePickerState)

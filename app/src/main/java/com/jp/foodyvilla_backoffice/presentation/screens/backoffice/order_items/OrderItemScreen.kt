@@ -11,18 +11,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jp.foodyvilla_backoffice.data.model.backoffice.OrderItem
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun OrderItemScreen(
+    session: UserSession?,
     state: AdminUiState,
     onSearch: (String) -> Unit,
     onOpenDetails: (JsonObject) -> Unit
 ) {
-    val items = remember(state.rows, state.searchQuery) {
-        state.rows.map { it.toModel<OrderItem>() }.filter {
+    val items = remember(state.orderItems, state.searchQuery) {
+        state.orderItems.filter {
             it.productName?.contains(state.searchQuery, ignoreCase = true) == true ||
                     it.orderId?.contains(state.searchQuery, ignoreCase = true) == true ||
                     state.searchQuery.isBlank()
@@ -77,11 +79,15 @@ fun OrderItemScreen(
                 )
             }
         } else {
-            items(state.rows) { row ->
-                val item = row.toModel<OrderItem>()
+            items(items, key = { it.id ?: it.hashCode() }) { item ->
                 OrderItemListItem(
                     item = item,
-                    onClick = { onOpenDetails(row) }
+                    onClick = { 
+                        // Find the original JsonObject for details
+                        state.rows.firstOrNull { it["id"].toDisplayText() == item.id.toString() }?.let {
+                            onOpenDetails(it)
+                        }
+                    }
                 )
             }
         }

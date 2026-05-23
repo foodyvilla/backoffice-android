@@ -237,7 +237,8 @@ internal fun BackOfficeListScreen(
                             Text("${rows.size} records", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
                             Text(state.selectedTable.description, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
-                        if (route.canCreate && (route != AdminRoute.Attendance || session?.roleOrNull() in listOf(OutletRole.OWNER, OutletRole.HEAD))) {
+                        val canCreate = session?.canCreate(state.selectedTable.name) == true
+                        if (route.canCreate && canCreate && (route != AdminRoute.Attendance || session?.roleOrNull() in listOf(OutletRole.OWNER, OutletRole.HEAD))) {
                             Button(
                                 onClick = onCreate,
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
@@ -282,30 +283,58 @@ internal fun BackOfficeListScreen(
                 EmptyState(
                     title = "No ${route.title.lowercase()} found",
                     message = "No Supabase rows matched this view.",
-                    actionLabel = if (route.canCreate) state.selectedTable.createLabel else null,
-                    onAction = if (route.canCreate) onCreate else null
+                    actionLabel = if (route.canCreate && session?.canCreate(state.selectedTable.name) == true) state.selectedTable.createLabel else null,
+                    onAction = if (route.canCreate && session?.canCreate(state.selectedTable.name) == true) onCreate else null
                 )
             }
         } else {
             items(rows, key = { it[state.selectedTable.primaryKey].toDisplayText() }) { row ->
                 when (route) {
-                    AdminRoute.Products -> ProductRecordCard(row.toModel<ProductCatalog>(), onClick = { onOpenDetails(row) })
-                    AdminRoute.OrderItems -> OrderItemRecordCard(row.toModel<OrderItem>(), onClick = { onOpenDetails(row) })
-                    AdminRoute.Orders -> OrderRecordCard(
-                        order = row.toModel<Order>(),
-                        onStatusChange = { status -> onOrderStatusChange(row, status) },
-                        onClick = { onOpenDetails(row) }
-                    )
-                    AdminRoute.Customers -> CustomerRecordCard(row.toModel<User>(), onClick = { onOpenDetails(row) })
-                    AdminRoute.Reviews -> ReviewRecordCard(row.toModel<Review>(), onClick = { onOpenDetails(row) })
+                    AdminRoute.Products -> {
+                        runCatching { row.toModel<ProductCatalog>() }.getOrNull()?.let {
+                            ProductRecordCard(it, onClick = { onOpenDetails(row) })
+                        }
+                    }
+                    AdminRoute.OrderItems -> {
+                        runCatching { row.toModel<OrderItem>() }.getOrNull()?.let {
+                            OrderItemRecordCard(it, onClick = { onOpenDetails(row) })
+                        }
+                    }
+                    AdminRoute.Orders -> {
+                        runCatching { row.toModel<Order>() }.getOrNull()?.let {
+                            OrderRecordCard(
+                                order = it,
+                                onStatusChange = { status -> onOrderStatusChange(row, status) },
+                                onClick = { onOpenDetails(row) }
+                            )
+                        }
+                    }
+                    AdminRoute.Customers -> {
+                        runCatching { row.toModel<User>() }.getOrNull()?.let {
+                            CustomerRecordCard(it, onClick = { onOpenDetails(row) })
+                        }
+                    }
+                    AdminRoute.Reviews -> {
+                        runCatching { row.toModel<Review>() }.getOrNull()?.let {
+                            ReviewRecordCard(it, onClick = { onOpenDetails(row) })
+                        }
+                    }
                     AdminRoute.Offers, AdminRoute.Banners -> MediaRecordCard(state.selectedTable, row, onClick = { onOpenDetails(row) })
                     AdminRoute.Employees -> EmployeeRecordCard(row, onClick = { onOpenDetails(row) })
-                    AdminRoute.OutletMenu -> OutletMenuRecordCard(row.toModel<OutletMenuItem>(), onClick = { onOpenDetails(row) })
-                    AdminRoute.Cart -> CartRecordCard(
-                        cart = row.toModel<Cart>(),
-                        onSendNotification = { token -> onSendFcm(token, "Foody Villa", "Items are waiting in your cart!") },
-                        onClick = { onOpenDetails(row) }
-                    )
+                    AdminRoute.OutletMenu -> {
+                        runCatching { row.toModel<OutletMenuItem>() }.getOrNull()?.let {
+                            OutletMenuRecordCard(it, onClick = { onOpenDetails(row) })
+                        }
+                    }
+                    AdminRoute.Cart -> {
+                        runCatching { row.toModel<Cart>() }.getOrNull()?.let {
+                            CartRecordCard(
+                                cart = it,
+                                onSendNotification = { token -> onSendFcm(token, "Foody Villa", "Items are waiting in your cart!") },
+                                onClick = { onOpenDetails(row) }
+                            )
+                        }
+                    }
                     else -> GenericRecordCard(state.selectedTable, row, onClick = { onOpenDetails(row) })
                 }
             }
@@ -316,12 +345,13 @@ internal fun BackOfficeListScreen(
 
 @Composable
 internal fun BackOfficeDetailScreen(
+    session: UserSession?,
     table: AdminTable,
     row: JsonObject?,
     orderItems: List<OrderItem>,
     customerOrders: List<Order> = emptyList(),
     customerCart: List<Cart> = emptyList(),
-    productsById: Map<String, JsonObject>,
+    productsById: Map<String, ProductCatalog>,
     onBack: () -> Unit,
     onEdit: () -> Unit
 ) {
@@ -340,17 +370,21 @@ internal fun BackOfficeDetailScreen(
                         LargeRecordImage(it, table.title)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Button(
-                            onClick = onEdit,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null)
-                            Text("Edit", modifier = Modifier.padding(start = 8.dp))
+                        if (session?.canEdit(table.name) == true) {
+                            Button(
+                                onClick = onEdit,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = null)
+                                Text("Edit", modifier = Modifier.padding(start = 8.dp))
+                            }
                         }
                         if (table.name == "orders") {
-                            val order = remember(row) { row.toModel<Order>() }
-                            StatusPill(order.status.normalizeOrderStatus(), statusColor(order.status))
+                            val order = remember(row) { runCatching { row.toModel<Order>() }.getOrNull() }
+                            if (order != null) {
+                                StatusPill(order.status.normalizeOrderStatus(), statusColor(order.status))
+                            }
                         }
                     }
                     table.columns.forEach { column ->
@@ -366,7 +400,9 @@ internal fun BackOfficeDetailScreen(
         }
         if (table.name == "outlet_menu_items") {
             item {
-                MenuDetailsSection(row.toModel<OutletMenuItem>())
+                runCatching { row.toModel<OutletMenuItem>() }.getOrNull()?.let {
+                    MenuDetailsSection(it)
+                }
             }
         }
         if (table.name == "users") {

@@ -34,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.*
-import kotlinx.serialization.json.JsonObject
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
@@ -44,15 +43,12 @@ internal fun DashboardScreen(
     state: AdminUiState,
     onOpenRoute: (AdminRoute) -> Unit
 ) {
-    val orders = remember(state.dashboardRows) { 
-        state.dashboardRows["orders"].orEmpty().map { it.toModel<Order>() } 
-    }
-    val orderItems = remember(state.dashboardRows) { 
-        state.dashboardRows["order_items"].orEmpty().map { it.toModel<OrderItem>() } 
-    }
-    val products = state.dashboardRows["product_catalog"].orEmpty()
-    val users = state.dashboardRows["users"].orEmpty()
-    val productsById = remember(products) { products.associateBy { it["id"].toDisplayText() } }
+    val orders = state.dashboardData.orders
+    val orderItems = state.dashboardData.orderItems
+    val products = state.dashboardData.products
+    val users = state.dashboardData.users
+    
+    val productsById = remember(products) { products.associateBy { it.id.toString() } }
     var selectedRange by remember { mutableStateOf("Today") }
     var selectedProductId by remember { mutableStateOf<String?>(null) }
     
@@ -107,9 +103,9 @@ internal fun DashboardScreen(
             PremiumCard {
                 Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Orders status", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    StatusPill("Completed: $delivered", MaterialTheme.colorScheme.primary)
-                    StatusPill("Active: $pending", MaterialTheme.colorScheme.secondary)
-                    StatusPill("Rejected: $cancelled", MaterialTheme.colorScheme.error)
+                    StatusPill("Completed: $delivered", StatusGreen)
+                    StatusPill("Active: $pending", StatusYellow)
+                    StatusPill("Rejected: $cancelled", StatusRed)
                 }
             }
         }
@@ -132,8 +128,8 @@ internal fun DashboardScreen(
             }
         }
         items(topProductIds.take(5)) { productId ->
-            productsById[productId]?.let { row ->
-                ProductRecordCard(product = row.toModel<ProductCatalog>(), onClick = { onOpenRoute(AdminRoute.Products) })
+            productsById[productId]?.let { product ->
+                ProductRecordCard(product = product, onClick = { onOpenRoute(AdminRoute.Products) })
             }
         }
         item {
@@ -159,7 +155,7 @@ internal fun DashboardScreen(
 private fun SalesFilters(
     selectedRange: String,
     onRangeChange: (String) -> Unit,
-    products: List<JsonObject>,
+    products: List<ProductCatalog>,
     selectedProductId: String?,
     onProductChange: (String?) -> Unit
 ) {
@@ -184,11 +180,11 @@ private fun SalesFilters(
                     )
                 }
                 items(products) { product ->
-                    val id = product["id"].toDisplayText()
+                    val id = product.id.toString()
                     FilterChip(
                         selected = selectedProductId == id,
                         onClick = { onProductChange(id) },
-                        label = { Text(product["name"].toDisplayText("Product")) }
+                        label = { Text(product.name) }
                     )
                 }
             }

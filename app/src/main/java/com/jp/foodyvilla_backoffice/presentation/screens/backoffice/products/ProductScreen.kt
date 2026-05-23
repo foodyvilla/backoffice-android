@@ -11,19 +11,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.jp.foodyvilla_backoffice.data.model.backoffice.ProductCatalog
+import com.jp.foodyvilla_backoffice.data.model.backoffice.*
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun ProductScreen(
+    session: UserSession?,
     state: AdminUiState,
     onSearch: (String) -> Unit,
     onCreate: () -> Unit,
     onOpenDetails: (JsonObject) -> Unit
 ) {
-    val products = remember(state.rows, state.searchQuery) {
-        state.rows.map { it.toModel<ProductCatalog>() }.filter {
+    val products = remember(state.products, state.searchQuery) {
+        state.products.filter {
             it.name.contains(state.searchQuery, ignoreCase = true) ||
                     it.category?.contains(state.searchQuery, ignoreCase = true) == true ||
                     state.searchQuery.isBlank()
@@ -64,12 +66,14 @@ fun ProductScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Button(
-                        onClick = onCreate,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("New")
+                    if (session?.canCreate("product_catalog") == true) {
+                        Button(
+                            onClick = onCreate,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("New")
+                        }
                     }
                 }
             }
@@ -87,11 +91,14 @@ fun ProductScreen(
                 )
             }
         } else {
-            items(state.rows) { row ->
-                val product = row.toModel<ProductCatalog>()
+            items(products, key = { it.id ?: it.hashCode() }) { product ->
                 ProductListItem(
                     product = product,
-                    onClick = { onOpenDetails(row) }
+                    onClick = { 
+                        state.rows.firstOrNull { it["id"].toDisplayText() == product.id.toString() }?.let {
+                            onOpenDetails(it)
+                        }
+                    }
                 )
             }
         }

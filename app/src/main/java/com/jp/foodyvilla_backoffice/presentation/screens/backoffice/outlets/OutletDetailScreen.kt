@@ -11,11 +11,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.Outlet
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun OutletDetailScreen(
+    session: UserSession?,
     row: JsonObject?,
     onEdit: () -> Unit
 ) {
@@ -43,13 +45,15 @@ fun OutletDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Button(
-                            onClick = onEdit,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null)
-                            Text("Edit Outlet", modifier = Modifier.padding(start = 8.dp))
+                        if (session?.canEdit("outlets") == true) {
+                            Button(
+                                onClick = onEdit,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            ) {
+                                Icon(Icons.Default.Edit, contentDescription = null)
+                                Text("Edit Outlet", modifier = Modifier.padding(start = 8.dp))
+                            }
                         }
                         StatusPill(if (outlet.isActive == true) "Active" else "Inactive", if (outlet.isActive == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                     }

@@ -20,7 +20,7 @@ internal fun ProductRecordCard(product: ProductCatalog, onClick: () -> Unit) {
                 Text(product.name, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(product.category ?: "No category", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (product.isBestseller) StatusPill("Bestseller", MaterialTheme.colorScheme.primary)
+                    if (product.isBestseller) StatusPill("Bestseller", StatusGreen)
                 }
             }
         }
@@ -36,9 +36,9 @@ internal fun OutletMenuRecordCard(item: OutletMenuItem, onClick: () -> Unit) {
                 Text(item.productName ?: "Product", fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(item.productCategory ?: "No category", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusPill("Rs ${item.price}", MaterialTheme.colorScheme.primary)
-                    StatusPill(if (item.isAvailable) "Available" else "Hidden", if (item.isAvailable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (item.isOutOfStock) StatusPill("Out of stock", MaterialTheme.colorScheme.error)
+                    StatusPill("Rs ${item.price}", StatusBlue)
+                    StatusPill(if (item.isAvailable) "Available" else "Hidden", if (item.isAvailable) StatusGreen else StatusRed)
+                    if (item.isOutOfStock) StatusPill("Out of stock", StatusRed)
                 }
             }
         }

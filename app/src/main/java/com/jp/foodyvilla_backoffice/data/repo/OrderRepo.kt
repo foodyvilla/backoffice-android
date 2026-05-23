@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import io.github.jan.supabase.postgrest.query.Columns
 
-class OrderRepository(
+class OrderRepo(
     private val supabase: SupabaseClient
 ) {
 

@@ -12,18 +12,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.User
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun CustomerScreen(
+    session: UserSession?,
     state: AdminUiState,
     onSearch: (String) -> Unit,
     onCreate: () -> Unit,
     onOpenDetails: (JsonObject) -> Unit
 ) {
-    val customers = remember(state.rows, state.searchQuery) {
-        state.rows.map { it.toModel<User>() }.filter {
+    val customers = remember(state.customers, state.searchQuery) {
+        state.customers.filter {
             it.name?.contains(state.searchQuery, ignoreCase = true) == true ||
                     it.phone?.contains(state.searchQuery) == true ||
                     state.searchQuery.isBlank()
@@ -64,12 +66,14 @@ fun CustomerScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Button(
-                        onClick = onCreate,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text("New")
+                    if (session?.canCreate("users") == true) {
+                        Button(
+                            onClick = onCreate,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("New")
+                        }
                     }
                 }
             }
@@ -87,11 +91,14 @@ fun CustomerScreen(
                 )
             }
         } else {
-            items(state.rows) { row ->
-                val customer = row.toModel<User>()
+            items(customers, key = { it.id ?: it.hashCode() }) { customer ->
                 CustomerListItem(
                     customer = customer,
-                    onClick = { onOpenDetails(row) }
+                    onClick = { 
+                        state.rows.firstOrNull { it["id"].toDisplayText() == customer.id.toString() }?.let {
+                            onOpenDetails(it)
+                        }
+                    }
                 )
             }
         }

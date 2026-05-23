@@ -42,8 +42,8 @@ internal fun CartRecordCard(
                     Text(cart.customerName ?: "Customer", fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     Text(cart.productName ?: "Product", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        StatusPill("Qty ${cart.qty}", MaterialTheme.colorScheme.primary)
-                        StatusPill("Rs ${cart.productPrice ?: 0.0}", MaterialTheme.colorScheme.primary)
+                        StatusPill("Qty ${cart.qty}", StatusBlue)
+                        StatusPill("Rs ${cart.productPrice ?: 0.0}", StatusGreen)
                     }
                 }
             }
@@ -88,7 +88,7 @@ internal fun ReviewRecordCard(review: Review, onClick: () -> Unit) {
                 Text(review.title ?: "Review", fontWeight = FontWeight.Bold)
                 Text(review.description ?: "No description", color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    StatusPill("${review.rating} stars", MaterialTheme.colorScheme.tertiary)
+                    StatusPill("${review.rating} stars", StatusYellow)
                     Text(review.createdAt?.formatTimestamp() ?: "-", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                 }
             }

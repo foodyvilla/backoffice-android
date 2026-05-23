@@ -13,11 +13,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.Cart
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun CartScreen(
+    session: UserSession?,
     state: AdminUiState,
     onSearch: (String) -> Unit,
     onSendOfferToAll: (String, String) -> Unit,
@@ -90,14 +92,16 @@ fun CartScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Button(
-                        onClick = { showOfferDialog = true },
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                    ) {
-                        Icon(Icons.Default.Campaign, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Push Offer")
+                    if (session?.canEdit("cart") == true) {
+                        Button(
+                            onClick = { showOfferDialog = true },
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                        ) {
+                            Icon(Icons.Default.Campaign, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Push Offer")
+                        }
                     }
                 }
             }

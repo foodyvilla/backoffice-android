@@ -23,10 +23,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminColumn
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 internal fun BackOfficeFormScreen(
+    session: UserSession?,
     state: AdminUiState,
     mode: FormMode,
     onBack: () -> Unit,
@@ -65,6 +67,14 @@ internal fun BackOfficeFormScreen(
                         Text("Fields", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         state.selectedTable.editableColumns
                             .filterNot { it.isImageColumn() }
+                            .filter { column ->
+                                // ID Field Protection:
+                                // 1. Never show outlet_id to non-owners (it's forced in repository)
+                                // 2. Never show emp_id in attendance to anyone (it's forced from session)
+                                if (column.name == "outlet_id" && session?.isOwner() == false) false
+                                else if (column.name == "emp_id" && state.selectedTable.name == "attendance") false
+                                else true
+                            }
                             .forEach { column ->
                                 AdminFormField(
                                     column = column,

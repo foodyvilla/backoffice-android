@@ -43,9 +43,9 @@ fun ProductListItem(
                     fontSize = 13.sp
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (product.isBestseller) StatusPill("Bestseller", MaterialTheme.colorScheme.primary)
-                    if (product.isVeg == true) StatusPill("Veg", MaterialTheme.colorScheme.primary)
-                    else if (product.isVeg == false) StatusPill("Non-Veg", MaterialTheme.colorScheme.error)
+                    if (product.isBestseller) StatusPill("Bestseller", StatusGreen)
+                    if (product.isVeg == true) StatusPill("Veg", StatusGreen)
+                    else if (product.isVeg == false) StatusPill("Non-Veg", StatusRed)
                 }
             }
         }

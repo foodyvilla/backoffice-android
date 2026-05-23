@@ -12,11 +12,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.Payment
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 import kotlinx.serialization.json.JsonObject
 
 @Composable
 fun PaymentScreen(
+    session: UserSession?,
     state: AdminUiState,
     onSearch: (String) -> Unit,
     onOpenDetails: (JsonObject) -> Unit
@@ -58,7 +60,7 @@ fun PaymentScreen(
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp
                         )
-                        val totalAmount = payments.sumOf { it.amount } / 100.0
+                        val totalAmount = payments.sumOf { it.amount }
                         Text(
                             "Total Revenue: Rs $totalAmount",
                             color = MaterialTheme.colorScheme.primary,

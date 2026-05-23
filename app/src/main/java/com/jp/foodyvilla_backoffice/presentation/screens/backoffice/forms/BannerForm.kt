@@ -10,10 +10,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jp.foodyvilla_backoffice.data.model.backoffice.adminTables
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
 
 @Composable
 internal fun BannerForm(
+    session: UserSession?,
     state: AdminUiState,
     onBack: () -> Unit,
     onFormChange: (String, String) -> Unit,
@@ -24,7 +26,7 @@ internal fun BannerForm(
     
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
-            contentPadding = PaddingValues(20.dp),
+            contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
@@ -39,20 +41,16 @@ internal fun BannerForm(
                             onChange = { onFormChange("title", it) }
                         )
 
-                        AdminFormField(
-                            column = table.columns.first { it.name == "display_order" },
-                            value = state.formValues["display_order"] ?: "0",
-                            options = emptyList(),
-                            onChange = { onFormChange("display_order", it) }
-                        )
-
-                        // If outlet_id is needed in form
-                        AdminFormField(
-                            column = table.columns.first { it.name == "outlet_id" },
-                            value = state.formValues["outlet_id"] ?: "",
-                            options = state.lookupRows["outlets"].orEmpty(),
-                            onChange = { onFormChange("outlet_id", it) }
-                        )
+                        // If owner, show outlet dropdown
+                        if (session?.isOwner() == true) {
+                            val outletColumn = table.columns.first { it.name == "outlet_id" }
+                            AdminFormField(
+                                column = outletColumn,
+                                value = state.formValues["outlet_id"] ?: "",
+                                options = state.lookupRows["outlets"].orEmpty(),
+                                onChange = { onFormChange("outlet_id", it) }
+                            )
+                        }
                     }
                 }
             }

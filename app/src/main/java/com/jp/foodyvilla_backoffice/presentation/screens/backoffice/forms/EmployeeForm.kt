@@ -19,9 +19,27 @@ internal fun EmployeeForm(
 ) {
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
-            contentPadding = PaddingValues(20.dp),
+            contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            item {
+                PremiumCard {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text("Employee Photo", style = MaterialTheme.typography.titleMedium)
+                        val imgColumn = state.selectedTable.columns.firstOrNull { it.name == "profile_img" }
+                        if (imgColumn != null) {
+                            ImageUploadField(
+                                column = imgColumn,
+                                value = state.formValues["profile_img"].orEmpty(),
+                                isUploading = state.uploadingColumn == "profile_img",
+                                onUpload = { onUploadImage(it, "profile_img") },
+                                onChange = { onFormChange("profile_img", it) }
+                            )
+                        }
+                    }
+                }
+            }
+
             item {
                 PremiumCard {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -30,19 +48,22 @@ internal fun EmployeeForm(
                             value = state.formValues["name"] ?: "",
                             onValueChange = { onFormChange("name", it) },
                             label = { Text("Name") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp)
                         )
                         OutlinedTextField(
                             value = state.formValues["contact"] ?: "",
                             onValueChange = { onFormChange("contact", it) },
                             label = { Text("Contact") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp)
                         )
                         OutlinedTextField(
                             value = state.formValues["role"] ?: "",
                             onValueChange = { onFormChange("role", it) },
                             label = { Text("Role") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp)
                         )
                     }
                 }
@@ -51,17 +72,30 @@ internal fun EmployeeForm(
                 PremiumCard {
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                         Text("Employment Info", style = MaterialTheme.typography.titleMedium)
+
+                        val outletColumn = state.selectedTable.columns.firstOrNull { it.name == "outlet_id" }
+                        if (outletColumn != null) {
+                            AdminFormField(
+                                column = outletColumn,
+                                value = state.formValues["outlet_id"].orEmpty(),
+                                options = state.lookupRows["outlets"].orEmpty(),
+                                onChange = { onFormChange("outlet_id", it) }
+                            )
+                        }
+
                         OutlinedTextField(
                             value = state.formValues["salary"] ?: "",
                             onValueChange = { onFormChange("salary", it) },
                             label = { Text("Salary") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp)
                         )
                         OutlinedTextField(
                             value = state.formValues["joining_date"] ?: "",
                             onValueChange = { onFormChange("joining_date", it) },
                             label = { Text("Joining Date (YYYY-MM-DD)") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp)
                         )
                     }
                 }

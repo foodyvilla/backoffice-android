@@ -8,6 +8,14 @@ import kotlinx.serialization.json.JsonObject
 sealed interface AdminModel
 
 @Serializable
+data class DashboardData(
+    val orders: List<Order> = emptyList(),
+    val orderItems: List<OrderItem> = emptyList(),
+    val products: List<ProductCatalog> = emptyList(),
+    val users: List<User> = emptyList()
+) : AdminModel
+
+@Serializable
 data class Outlet(
     val id: Long? = null,
     @SerialName("created_at") val createdAt: String? = null,
@@ -40,13 +48,17 @@ data class Order(
     @SerialName("customer_name") val customerName: String? = null,
     val status: String = "pending",
     @SerialName("outlet_id") val outletId: Long? = null,
-    @SerialName("customer_id") val customerId: String? = null,
+    @SerialName("customer_id") val customerId: Long? = null,
     @SerialName("order_type") val orderType: String? = null,
     @SerialName("transaction_id") val transactionId: String? = null,
+    @SerialName("accepted_by") val acceptedBy: Long? = null,
+    @SerialName("grand_total") val grandTotal: Long? = null,
     
     // Joined fields
     @SerialName("outlets") val outlet: Outlet? = null,
-    @SerialName("users") val user: User? = null
+    @SerialName("users") val user: User? = null,
+    @SerialName("employee") val acceptor: Employee? = null,
+    @SerialName("payments") val payments: List<Payment>? = null
 ) : AdminModel
 
 @Serializable
@@ -67,7 +79,7 @@ data class ProductCatalog(
 
 @Serializable
 data class User(
-    val id: String? = null,
+    val id: Long? = null, // Users typically have bigint IDs in this schema
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
     val name: String? = null,
@@ -85,7 +97,7 @@ data class User(
 data class Cart(
     val id: Long? = null,
     @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("customer_id") val customerId: String? = null,
+    @SerialName("customer_id") val customerId: Long? = null,
     @SerialName("outlet_id") val outletId: Long? = null,
     @SerialName("menu_item_id") val menuItemId: Long? = null,
     val qty: Long = 1,
@@ -95,7 +107,7 @@ data class Cart(
     @SerialName("outlets") val outlet: Outlet? = null,
     @SerialName("outlet_menu_items") val outletMenuItem: OutletMenuItem? = null,
     
-    // Display virtual fields (from repository joins)
+    // Display virtual fields
     @SerialName("customer_name") val customerName: String? = null,
     @SerialName("customer_phone") val customerPhone: String? = null,
     @SerialName("customer_fcm") val customerFcm: String? = null,
@@ -131,7 +143,7 @@ data class Offer(
 data class Review(
     val id: Long? = null,
     @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("customer_id") val customerId: String? = null,
+    @SerialName("customer_id") val customerId: Long? = null,
     @SerialName("review_type") val reviewType: String = "order",
     @SerialName("order_id") val orderId: String? = null,
     @SerialName("menu_item_id") val menuItemId: Long? = null,
@@ -149,7 +161,7 @@ data class Review(
 
 @Serializable
 data class Employee(
-    val id: String? = null,
+    val id: Long? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("outlet_id") val outletId: Long? = null,
     val name: String = "",
@@ -173,7 +185,7 @@ data class Employee(
 data class Attendance(
     val id: Long? = null,
     @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("emp_id") val empId: String? = null,
+    @SerialName("emp_id") val empId: Long? = null,
     val status: String? = null,
     @SerialName("in_time") val inTime: String? = null,
     @SerialName("out_time") val outTime: String? = null,
@@ -226,6 +238,9 @@ data class OutletMenuItem(
     @SerialName("is_out_of_stock") val isOutOfStock: Boolean = false,
     val rating: Float = 0f,
     @SerialName("reviews_count") val reviewsCount: Long = 0,
+    @SerialName("handling_charges") val handlingCharges: Double? = null,
+    @SerialName("delivery_charges") val deliveryCharges: Double? = null,
+    @SerialName("is_free_delivery") val isFreeDelivery: Boolean? = null,
     
     // Joined fields
     @SerialName("product_catalog") val productCatalog: ProductCatalog? = null,
@@ -245,7 +260,7 @@ data class Payment(
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
     @SerialName("order_id") val orderId: String? = null,
-    @SerialName("customer_id") val customerId: String? = null,
+    @SerialName("customer_id") val customerId: Long? = null,
     @SerialName("razorpay_order_id") val razorpayOrderId: String? = null,
     @SerialName("razorpay_payment_id") val razorpayPaymentId: String? = null,
     @SerialName("razorpay_signature") val razorpaySignature: String? = null,
@@ -274,4 +289,13 @@ data class AuthOtp(
     val phone: String = "",
     val otp: String = "",
     @SerialName("expires_at") val expiresAt: String? = null
+) : AdminModel
+
+@Serializable
+data class Category(
+    val id: Long? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    val name: String = "",
+    val emoji: String = "",
+    @SerialName("is_active") val isActive: Boolean = true
 ) : AdminModel

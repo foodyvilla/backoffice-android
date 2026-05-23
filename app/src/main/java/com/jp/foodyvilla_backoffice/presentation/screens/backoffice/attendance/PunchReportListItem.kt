@@ -46,7 +46,12 @@ fun PunchReportListItem(
             }
             StatusPill(
                 label = attendance.status?.uppercase() ?: "-",
-                color = if (attendance.status == "present" || attendance.status == "completed") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                color = when (attendance.status?.lowercase()) {
+                    "present", "completed" -> StatusGreen
+                    "late" -> StatusOrange
+                    "half day" -> StatusYellow
+                    else -> StatusRed
+                }
             )
         }
     }
