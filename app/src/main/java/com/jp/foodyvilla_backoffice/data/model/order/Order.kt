@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class OrderModel(
     val id: String,
-    val customer_id: Int,
+    val customer_id: String,
     val status: String,
     val created_at: String,
 
@@ -25,7 +25,7 @@ data class OrderModel(
 
 @Serializable
 data class OrderInsert(
-    val customer_id: Int,
+    val customer_id: String,
     val status: String,
     val address: String,
     val phone: String,

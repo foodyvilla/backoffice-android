@@ -22,7 +22,7 @@ data class BackOfficeSessionDto(
     val name: String? = null,
     val contact: String? = null,
     @SerialName("emp_id")
-    val empId: Long? = null,
+    val empId: String? = null,
     @SerialName("designation_id")
     val designationId: Long? = null,
     val permissions: List<String> = emptyList()
@@ -30,7 +30,7 @@ data class BackOfficeSessionDto(
 
 @Serializable
 data class BackOfficeEmployeeDto(
-    val id: Long,
+    val id: String,
     val name: String? = null,
     val role: String? = null,
     @SerialName("outlet_id")

@@ -143,7 +143,7 @@ fun SplashScreen0() {
             Spacer(Modifier.height(6.dp))
 
             Text(
-                "TASTE THE DIFFERENCE",
+                "BACK OFFICE",
                 style = MaterialTheme.typography.labelMedium.copy(
                     color = White.copy(alpha = 0.75f),
                     letterSpacing = 3.sp

@@ -1,0 +1,90 @@
+package com.jp.foodyvilla_backoffice.presentation.screens.backoffice.forms
+
+import android.net.Uri
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.jp.foodyvilla_backoffice.data.model.backoffice.adminTables
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.*
+
+@Composable
+internal fun OfferForm(
+    state: AdminUiState,
+    onBack: () -> Unit,
+    onFormChange: (String, String) -> Unit,
+    onUploadImage: (Uri, String) -> Unit,
+    onSave: () -> Unit
+) {
+    val table = remember { adminTables.first { it.name == "offers" } }
+    
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            contentPadding = PaddingValues(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                PremiumCard {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text("Offer Details", style = MaterialTheme.typography.titleMedium)
+                        
+                        AdminFormField(
+                            column = table.columns.first { it.name == "title" },
+                            value = state.formValues["title"] ?: "",
+                            options = emptyList(),
+                            onChange = { onFormChange("title", it) }
+                        )
+
+                        AdminFormField(
+                            column = table.columns.first { it.name == "description" },
+                            value = state.formValues["description"] ?: "",
+                            options = emptyList(),
+                            onChange = { onFormChange("description", it) }
+                        )
+
+                        AdminFormField(
+                            column = table.columns.first { it.name == "linked_url" },
+                            value = state.formValues["linked_url"] ?: "",
+                            options = emptyList(),
+                            onChange = { onFormChange("linked_url", it) }
+                        )
+
+                        AdminFormField(
+                            column = table.columns.first { it.name == "expires_at" },
+                            value = state.formValues["expires_at"] ?: "",
+                            options = emptyList(),
+                            onChange = { onFormChange("expires_at", it) }
+                        )
+                    }
+                }
+            }
+
+            item {
+                PremiumCard {
+                    Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text("Offer Image", style = MaterialTheme.typography.titleMedium)
+                        
+                        val imgColumn = table.columns.first { it.name == "img_url" }
+                        ImageUploadField(
+                            column = imgColumn,
+                            value = state.formValues["img_url"].orEmpty(),
+                            isUploading = state.uploadingColumn == "img_url",
+                            onUpload = { onUploadImage(it, "img_url") },
+                            onChange = { onFormChange("img_url", it) }
+                        )
+                    }
+                }
+            }
+        }
+        
+        FormActions(
+            onBack = onBack,
+            onSave = onSave,
+            isSaving = state.isSaving,
+            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
+        )
+    }
+}

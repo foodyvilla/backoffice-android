@@ -1,5 +1,6 @@
 package com.jp.foodyvilla_backoffice.data.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -35,9 +36,11 @@ data class FoodItem(
 
 @Serializable
 data class Category(
-    val id: String,
-    val name: String,
-    val emoji: String
+    val id: Long? = null,
+    val name: String = "",
+    val emoji: String = "",
+    @SerialName("is_active") val isActive: Boolean = true,
+    @SerialName("created_at") val createdAt: String? = null
 )
 
 @Serializable

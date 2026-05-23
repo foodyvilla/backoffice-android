@@ -463,8 +463,7 @@ class SupabaseAuthRepository(
                             obj["emp_id"]
                                 ?.jsonPrimitive
                                 ?.contentOrNull
-                                ?.toLongOrNull()
-                                ?: return null,
+                                .orEmpty(),
 
                         outletId =
                             obj["outlet_id"]

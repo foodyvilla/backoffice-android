@@ -127,8 +127,8 @@ fun MenuScreen(
                         CategoryChip(
                             label = cat.name,
                             emoji = cat.emoji,
-                            selected = state.selectedCategory == cat.id,
-                            onClick = { viewModel.selectCategory(cat.id) }
+                            selected = state.selectedCategory == (cat.id?.toString() ?: "all"),
+                            onClick = { viewModel.selectCategory(cat.id?.toString() ?: "all") }
                         )
                     }
                 }

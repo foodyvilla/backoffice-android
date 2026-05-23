@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CartItem(
     val id: Int,
-    val customer_id: Int,
+    val customer_id: String,
     val product_id: Int,
     val qty : Int = 1,
     val products: FoodItem? = null// relation alias

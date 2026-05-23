@@ -63,7 +63,7 @@ enum class AdminRoute(
 ) {
     Dashboard("Dashboard", "Live store overview", Icons.Default.Home),
     Products("Products", "Product catalog", Icons.Default.RestaurantMenu, "product_catalog", true),
-    Categories("Categories", "Menu hierarchy", Icons.Default.Category),
+    Categories("Categories", "Menu hierarchy", Icons.Default.Category, "categories", true),
     Orders("Orders", "Kitchen and delivery queue", Icons.Default.ReceiptLong, "orders", true),
     OrderItems("Order Items", "Line items and pricing", Icons.Default.Inventory, "order_items", true),
     Customers("Customers", "Profiles and activity", Icons.Default.People, "users", true),
@@ -110,6 +110,7 @@ internal fun routeForTable(tableName: String): AdminRoute = when (tableName) {
     "cart" -> AdminRoute.Cart
     "outlet_menu_items" -> AdminRoute.OutletMenu
     "outlets" -> AdminRoute.Outlets
+    "categories" -> AdminRoute.Categories
     else -> AdminRoute.Dashboard
 }
 

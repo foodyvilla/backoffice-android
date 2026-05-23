@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Employee(
-    val id: Long,
+    val id: String,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("outlet_id") val outletId: Long,
     val name: String? = null,
@@ -21,7 +21,7 @@ data class Employee(
 data class AttendanceLog(
     val id: Long? = null,
     @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("emp_id") val employeeId: Long,
+    @SerialName("emp_id") val employeeId: String,
     val status: String,
     @SerialName("in_time") val inTime: String? = null,
     @SerialName("out_time") val outTime: String? = null,
@@ -36,7 +36,7 @@ data class BackOfficeOrder(
     val id: String,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("outlet_id") val outletId: Long,
-    @SerialName("customer_id") val customerId: Long? = null,
+    @SerialName("customer_id") val customerId: String? = null,
     @SerialName("customer_name") val customerName: String? = null,
     val phone: String? = null,
     val status: String = OrderStatus.Pending.dbValue,

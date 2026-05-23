@@ -446,7 +446,7 @@ class HomeViewModel(
                         id = item.id,
                         products = item,
                         qty = quantity,
-                        customer_id = 0,
+                        customer_id = "0",
                         product_id = item.id
                     )
                 }
@@ -473,7 +473,7 @@ class HomeViewModel(
                     id = item.id,
                     products = item,
                     qty = quantity,
-                    customer_id = 0,
+                    customer_id = "0",
                     product_id = item.id
                 ))
             }

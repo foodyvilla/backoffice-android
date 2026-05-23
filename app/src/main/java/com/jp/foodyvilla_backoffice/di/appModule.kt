@@ -25,7 +25,6 @@ import com.jp.foodyvilla_backoffice.presentation.screens.home.HomeViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.menu.MenuViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.offers.OffersViewModel
-import com.jp.foodyvilla_backoffice.presentation.screens.reviews.ReviewsViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.task_category.TaskCategoryViewModel
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
@@ -106,9 +105,7 @@ val appModule = module{
         MenuViewModel(get())
     }
 
-    viewModel{
-        ReviewsViewModel(get())
-    }
+
 
     viewModel {
         TaskCategoryViewModel(get())

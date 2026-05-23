@@ -31,9 +31,33 @@ import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.fcm.MyFirebaseMessagingService
 import com.jp.foodyvilla_backoffice.presentation.components.security.FeatureGate
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.attendance.AttendanceCalendarScreen
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.forms.EmployeeForm
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.forms.OrderForm
-import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.forms.ProductForm
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.attendance.PunchReportListItem
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.attendance.PunchReportScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.banners.BannerDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.banners.BannerScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.cart.CartDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.cart.CartScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.customers.CustomerDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.customers.CustomerScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.employees.EmployeeDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.employees.EmployeeScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.forms.*
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.menu.OutletMenuDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.menu.OutletMenuScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.offers.OfferDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.offers.OfferScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.order_items.OrderItemDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.order_items.OrderItemScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.orders.OrderDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.orders.OrderScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.outlets.OutletDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.outlets.OutletScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.payments.PaymentDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.payments.PaymentScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.products.ProductDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.products.ProductScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.reviews.ReviewDetailScreen
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.reviews.ReviewScreen
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.utils.GlobalOrderNotification
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
 import kotlinx.coroutines.launch
@@ -221,7 +245,208 @@ fun MainBackOfficeScreen(
                             }
                         )
 
-                        currentRoute == AdminRoute.PunchReport -> BackOfficeListScreen(
+                        currentRoute == AdminRoute.Banners -> BannerScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onCreate = {
+                                previousListRoute = currentRoute
+                                selectedRow = null
+                                formMode = FormMode.Create
+                                viewModel.startCreate()
+                                currentRoute = AdminRoute.Form
+                            },
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.Offers -> OfferScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onCreate = {
+                                previousListRoute = currentRoute
+                                selectedRow = null
+                                formMode = FormMode.Create
+                                viewModel.startCreate()
+                                currentRoute = AdminRoute.Form
+                            },
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.Products -> ProductScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onCreate = {
+                                previousListRoute = currentRoute
+                                selectedRow = null
+                                formMode = FormMode.Create
+                                viewModel.startCreate()
+                                currentRoute = AdminRoute.Form
+                            },
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.Orders -> OrderScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onOrderDateChange = viewModel::updateOrderDateFilter,
+                            onOrderStatusFilterChange = viewModel::updateOrderStatusFilter,
+                            onCreate = {
+                                previousListRoute = currentRoute
+                                selectedRow = null
+                                formMode = FormMode.Create
+                                viewModel.startCreate()
+                                currentRoute = AdminRoute.Form
+                            },
+                            onOrderStatusChange = viewModel::updateOrderStatus,
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.Customers -> CustomerScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onCreate = {
+                                previousListRoute = currentRoute
+                                selectedRow = null
+                                formMode = FormMode.Create
+                                viewModel.startCreate()
+                                currentRoute = AdminRoute.Form
+                            },
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                                row["id"]?.toDisplayText()?.let { viewModel.loadCustomerDetails(it) }
+                            }
+                        )
+
+                        currentRoute == AdminRoute.Reviews -> ReviewScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onCreate = {
+                                previousListRoute = currentRoute
+                                selectedRow = null
+                                formMode = FormMode.Create
+                                viewModel.startCreate()
+                                currentRoute = AdminRoute.Form
+                            },
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.Employees -> EmployeeScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onCreate = {
+                                previousListRoute = currentRoute
+                                selectedRow = null
+                                formMode = FormMode.Create
+                                viewModel.startCreate()
+                                currentRoute = AdminRoute.Form
+                            },
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.Outlets -> OutletScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onCreate = {
+                                previousListRoute = currentRoute
+                                selectedRow = null
+                                formMode = FormMode.Create
+                                viewModel.startCreate()
+                                currentRoute = AdminRoute.Form
+                            },
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.Payments -> PaymentScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.Cart -> CartScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onSendOfferToAll = viewModel::sendOfferToCart,
+                            onSendFcm = viewModel::sendFcmToToken,
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.OutletMenu -> OutletMenuScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onCreate = {
+                                previousListRoute = currentRoute
+                                selectedRow = null
+                                formMode = FormMode.Create
+                                viewModel.startCreate()
+                                currentRoute = AdminRoute.Form
+                            },
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.OrderItems -> OrderItemScreen(
+                            state = state,
+                            onSearch = viewModel::updateSearch,
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.PunchReport -> PunchReportScreen(
+                            state = state,
+                            onSearch = viewModel::updateAttendanceSearch,
+                            onDateChange = viewModel::updateAttendanceDateFilter,
+                            onOutletChange = viewModel::updateAttendanceOutletFilter,
+                            onOpenDetails = { row ->
+                                previousListRoute = currentRoute
+                                selectedRow = row
+                                currentRoute = AdminRoute.Details
+                            }
+                        )
+
+                        currentRoute == AdminRoute.Categories -> BackOfficeListScreen(
                             session = session,
                             route = currentRoute,
                             state = state,
@@ -231,6 +456,10 @@ fun MainBackOfficeScreen(
                             onAttendanceDateChange = viewModel::updateAttendanceDateFilter,
                             onAttendanceOutletChange = viewModel::updateAttendanceOutletFilter,
                             onAttendanceSearch = viewModel::updateAttendanceSearch,
+                            onPunchIn = viewModel::punchIn,
+                            onPunchOut = viewModel::punchOut,
+                            onSendFcm = viewModel::sendFcmToToken,
+                            onSendOfferToAll = viewModel::sendOfferToCart,
                             onCreate = {
                                 previousListRoute = currentRoute
                                 selectedRow = null
@@ -239,10 +468,6 @@ fun MainBackOfficeScreen(
                                 currentRoute = AdminRoute.Form
                             },
                             onOrderStatusChange = viewModel::updateOrderStatus,
-                            onPunchIn = viewModel::punchIn,
-                            onPunchOut = viewModel::punchOut,
-                            onSendFcm = viewModel::sendFcmToToken,
-                            onSendOfferToAll = viewModel::sendOfferToCart,
                             onOpenDetails = { row ->
                                 previousListRoute = currentRoute
                                 selectedRow = row
@@ -250,56 +475,142 @@ fun MainBackOfficeScreen(
                             }
                         )
 
-                        currentRoute.tableName != null -> BackOfficeListScreen(
-                            session = session,
-                            route = currentRoute,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onOrderDateChange = viewModel::updateOrderDateFilter,
-                            onOrderStatusFilterChange = viewModel::updateOrderStatusFilter,
-                            onAttendanceDateChange = viewModel::updateAttendanceDateFilter,
-                            onAttendanceOutletChange = viewModel::updateAttendanceOutletFilter,
-                            onAttendanceSearch = viewModel::updateAttendanceSearch,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOrderStatusChange = viewModel::updateOrderStatus,
-                            onPunchIn = viewModel::punchIn,
-                            onPunchOut = viewModel::punchOut,
-                            onSendFcm = viewModel::sendFcmToToken,
-                            onSendOfferToAll = viewModel::sendOfferToCart,
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                                if (state.selectedTable.name == "users") {
-                                    row["id"]?.toDisplayText()?.let { viewModel.loadCustomerDetails(it) }
-                                }
-                            }
-                        )
+                        currentRoute == AdminRoute.Analytics -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Analytics Screen (Coming Soon)") }
+                        currentRoute == AdminRoute.Notifications -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Notifications Screen (Coming Soon)") }
+                        currentRoute == AdminRoute.Settings -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Settings Screen (Coming Soon)") }
+                        currentRoute == AdminRoute.Categories -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Categories Screen (Coming Soon)") }
 
-                        currentRoute == AdminRoute.Details -> BackOfficeDetailScreen(
-                            table = state.selectedTable,
-                            row = selectedRow,
-                            orderItems = state.orderItemsByOrderId[selectedRow?.get("id").toDisplayText()].orEmpty(),
-                            customerOrders = state.customerOrders,
-                            customerCart = state.customerCart,
-                            productsById = state.productsById,
-                            onBack = { currentRoute = previousListRoute },
-                            onEdit = {
-                                selectedRow?.let(viewModel::startEdit)
-                                formMode = FormMode.Edit
-                                currentRoute = AdminRoute.Form
+                        currentRoute == AdminRoute.Details -> {
+                            when (previousListRoute) {
+                                AdminRoute.Banners -> BannerDetailScreen(
+                                    row = selectedRow,
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                AdminRoute.Offers -> OfferDetailScreen(
+                                    row = selectedRow,
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                AdminRoute.Products -> ProductDetailScreen(
+                                    row = selectedRow,
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                AdminRoute.Orders -> OrderDetailScreen(
+                                    row = selectedRow,
+                                    orderItems = state.orderItemsByOrderId[selectedRow?.get("id").toDisplayText()].orEmpty(),
+                                    productsById = state.productsById,
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                AdminRoute.Customers -> CustomerDetailScreen(
+                                    row = selectedRow,
+                                    customerOrders = state.customerOrders,
+                                    customerCart = state.customerCart,
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                AdminRoute.Reviews -> ReviewDetailScreen(
+                                    row = selectedRow,
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                AdminRoute.Employees -> EmployeeDetailScreen(
+                                    row = selectedRow,
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                AdminRoute.Outlets -> OutletDetailScreen(
+                                    row = selectedRow,
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                AdminRoute.Payments -> PaymentDetailScreen(
+                                    row = selectedRow
+                                )
+                                AdminRoute.Cart -> CartDetailScreen(
+                                    row = selectedRow
+                                )
+                                AdminRoute.OrderItems -> OrderItemDetailScreen(
+                                    row = selectedRow
+                                )
+                                AdminRoute.PunchReport -> BackOfficeDetailScreen(
+                                    table = state.selectedTable,
+                                    row = selectedRow,
+                                    orderItems = emptyList(),
+                                    productsById = emptyMap(),
+                                    onBack = { currentRoute = previousListRoute },
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                AdminRoute.OutletMenu -> OutletMenuDetailScreen(
+                                    row = selectedRow,
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                AdminRoute.Categories -> BackOfficeDetailScreen(
+                                    table = state.selectedTable,
+                                    row = selectedRow,
+                                    orderItems = emptyList(),
+                                    productsById = emptyMap(),
+                                    onBack = { currentRoute = previousListRoute },
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
+                                else -> BackOfficeDetailScreen(
+                                    table = state.selectedTable,
+                                    row = selectedRow,
+                                    orderItems = state.orderItemsByOrderId[selectedRow?.get("id").toDisplayText()].orEmpty(),
+                                    customerOrders = state.customerOrders,
+                                    customerCart = state.customerCart,
+                                    productsById = state.productsById,
+                                    onBack = { currentRoute = previousListRoute },
+                                    onEdit = {
+                                        selectedRow?.let(viewModel::startEdit)
+                                        formMode = FormMode.Edit
+                                        currentRoute = AdminRoute.Form
+                                    }
+                                )
                             }
-                        )
+                        }
 
                         currentRoute == AdminRoute.Form -> {
-                            when (state.selectedTable.name) {
-                                "orders" -> OrderForm(
+                            when (previousListRoute) {
+                                AdminRoute.Orders -> OrderForm(
                                     state = state,
                                     onBack = { currentRoute = previousListRoute },
                                     onFormChange = viewModel::updateFormValue,
@@ -308,7 +619,7 @@ fun MainBackOfficeScreen(
                                         currentRoute = previousListRoute
                                     }
                                 )
-                                "product_catalog" -> ProductForm(
+                                AdminRoute.Products -> ProductForm(
                                     state = state,
                                     onBack = { currentRoute = previousListRoute },
                                     onFormChange = viewModel::updateFormValue,
@@ -317,7 +628,27 @@ fun MainBackOfficeScreen(
                                         currentRoute = previousListRoute
                                     }
                                 )
-                                "employee" -> EmployeeForm(
+                                AdminRoute.Employees -> EmployeeForm(
+                                    state = state,
+                                    onBack = { currentRoute = previousListRoute },
+                                    onFormChange = viewModel::updateFormValue,
+                                    onUploadImage = { uri, column -> viewModel.uploadImage(context, uri, column) },
+                                    onSave = {
+                                        viewModel.save()
+                                        currentRoute = previousListRoute
+                                    }
+                                )
+                                AdminRoute.Banners -> BannerForm(
+                                    state = state,
+                                    onBack = { currentRoute = previousListRoute },
+                                    onFormChange = viewModel::updateFormValue,
+                                    onUploadImage = { uri, column -> viewModel.uploadImage(context, uri, column) },
+                                    onSave = {
+                                        viewModel.save()
+                                        currentRoute = previousListRoute
+                                    }
+                                )
+                                AdminRoute.Offers -> OfferForm(
                                     state = state,
                                     onBack = { currentRoute = previousListRoute },
                                     onFormChange = viewModel::updateFormValue,
@@ -333,7 +664,7 @@ fun MainBackOfficeScreen(
                                     onBack = { currentRoute = previousListRoute },
                                     onFormChange = viewModel::updateFormValue,
                                     onUploadImage = { uri, column -> viewModel.uploadImage(context, uri, column) },
-                                    onCreateProduct = if (state.selectedTable.name == "outlet_menu_items") {
+                                    onCreateProduct = if (previousListRoute == AdminRoute.OutletMenu) {
                                         {
                                             previousListRoute = AdminRoute.OutletMenu
                                             formMode = FormMode.Create

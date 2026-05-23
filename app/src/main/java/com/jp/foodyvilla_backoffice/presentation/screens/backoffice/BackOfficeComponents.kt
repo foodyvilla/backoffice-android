@@ -52,6 +52,28 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.OutlinedButton
+import android.net.Uri
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminColumn
+import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminColumnType
 import com.jp.foodyvilla_backoffice.data.model.backoffice.AdminTable
 import kotlinx.serialization.json.JsonObject
 
@@ -304,6 +326,231 @@ internal fun MetricCard(title: String, value: String, icon: ImageVector, color: 
             Column {
                 Text(value, color = Ink, fontSize = 25.sp, fontWeight = FontWeight.ExtraBold)
                 Text(title, color = Muted, fontSize = 13.sp)
+            }
+        }
+    }
+}
+
+@Composable
+internal fun ImageUploadField(
+    column: AdminColumn,
+    value: String,
+    isUploading: Boolean,
+    onUpload: (Uri) -> Unit,
+    onChange: (String) -> Unit
+) {
+    val context = LocalContext.current
+    var previewUri by remember { mutableStateOf<Uri?>(null) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            previewUri = uri
+            onUpload(uri)
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(column.label, color = Muted, fontSize = 13.sp)
+        LargeRecordImage(previewUri?.toString() ?: value.extractUrl(), column.label)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                onClick = { picker.launch("image/*") },
+                enabled = !isUploading,
+                colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue)
+            ) {
+                Icon(Icons.Default.CloudUpload, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (isUploading) "Uploading" else "Upload")
+            }
+            OutlinedButton(onClick = { onChange("") }, enabled = !isUploading && value.isNotBlank()) {
+                Text("Clear")
+            }
+        }
+        OutlinedTextField(
+            value = value,
+            onValueChange = onChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Stored URL") },
+            minLines = 2,
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = RoyalBlue, unfocusedBorderColor = SoftLine)
+        )
+    }
+}
+
+@Composable
+internal fun AdminFormField(
+    column: AdminColumn,
+    value: String,
+    options: List<JsonObject>,
+    onChange: (String) -> Unit
+) {
+    if (column.reference != null && options.isNotEmpty()) {
+        ReferenceDropdownField(
+            column = column,
+            value = value,
+            options = options,
+            onChange = onChange
+        )
+    } else if (column.type == AdminColumnType.Boolean) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(column.label, color = Muted, fontSize = 13.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = value.equals("true", true), onClick = { onChange("true") }, label = { Text("True") })
+                FilterChip(selected = value.equals("false", true) || value.isBlank(), onClick = { onChange("false") }, label = { Text("False") })
+            }
+        }
+    } else {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(if (column.required) "${column.label} *" else column.label) },
+            supportingText = column.helper?.let { helper -> { Text(helper) } },
+            minLines = if (column.multiline) 4 else 1,
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = RoyalBlue,
+                unfocusedBorderColor = SoftLine,
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            )
+        )
+    }
+}
+
+@Composable
+internal fun ReferenceDropdownField(
+    column: AdminColumn,
+    value: String,
+    options: List<JsonObject>,
+    onChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val reference = column.reference ?: return
+    val selected = options.firstOrNull { it[reference.valueColumn].toDisplayText() == value }
+    val selectedLabel = selected?.referenceLabel(reference.labelColumns)
+        ?: value.takeIf { it.isNotBlank() }
+        ?: "Select ${column.label}"
+
+    Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth().height(58.dp),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Text(
+                text = selectedLabel,
+                modifier = Modifier.weight(1f),
+                color = Ink
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { row ->
+                val id = row[reference.valueColumn].toDisplayText()
+                DropdownMenuItem(
+                    text = { Text(row.referenceLabel(reference.labelColumns)) },
+                    onClick = {
+                        expanded = false
+                        onChange(id)
+                    }
+                )
+            }
+        }
+    }
+}
+
+private fun JsonObject.referenceLabel(columns: List<String>): String {
+    val pieces = columns.mapNotNull { column ->
+        this[column].toDisplayText().takeIf { it != "-" }
+    }
+    val fallback = this["id"].toDisplayText()
+    return pieces.joinToString(" - ").ifBlank { fallback }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+internal fun DatePickerField(
+    label: String,
+    value: String?,
+    onValueChange: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
+    Box(modifier = modifier) {
+        OutlinedTextField(
+            value = value ?: "",
+            onValueChange = { },
+            label = { Text(label) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = false,
+            readOnly = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { showDialog = true }
+        )
+    }
+
+    if (showDialog) {
+        DatePickerDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val date = Instant.ofEpochMilli(millis)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                            .format(DateTimeFormatter.ISO_LOCAL_DATE)
+                        onValueChange(date)
+                    }
+                    showDialog = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    onValueChange(null)
+                    showDialog = false
+                }) { Text("Clear") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+@Composable
+internal fun OrderStatusFilterDropdown(current: String?, onSelect: (String?) -> Unit, modifier: Modifier = Modifier) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = listOf(null, "placed", "accepted", "preparing", "ready", "picked", "delivered", "rejected", "cancelled")
+    Box(modifier = modifier) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text(current?.replaceFirstChar { it.uppercase() } ?: "All Statuses", maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Icon(Icons.Default.KeyboardArrowDown, null)
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { opt ->
+                DropdownMenuItem(
+                    text = { Text(opt?.replaceFirstChar { it.uppercase() } ?: "All Statuses") },
+                    onClick = {
+                        onSelect(opt)
+                        expanded = false
+                    }
+                )
             }
         }
     }

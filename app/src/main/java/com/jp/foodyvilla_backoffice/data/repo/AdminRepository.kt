@@ -102,7 +102,7 @@ class AdminRepository(
     suspend fun loadCustomerOrders(customerId: String): List<JsonObject> {
         val rows = supabase.from("orders")
             .select(adminTables.first { it.name == "orders" }.selectColumns()) {
-                filter { eq("customer_id", customerId.toLongOrNull() ?: 0L) }
+                filter { eq("customer_id", customerId) }
                 order("created_at", Order.DESCENDING)
             }
             .decodeList<JsonObject>()
@@ -112,7 +112,7 @@ class AdminRepository(
     suspend fun loadCustomerCart(customerId: String): List<JsonObject> {
         val rows = supabase.from("cart")
             .select(adminTables.first { it.name == "cart" }.selectColumns()) {
-                filter { eq("customer_id", customerId.toLongOrNull() ?: 0L) }
+                filter { eq("customer_id", customerId) }
                 order("created_at", Order.DESCENDING)
             }
             .decodeList<JsonObject>()

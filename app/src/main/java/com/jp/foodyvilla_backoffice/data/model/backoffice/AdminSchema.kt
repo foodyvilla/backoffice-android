@@ -325,5 +325,19 @@ val adminTables = listOf(
             AdminColumn("phone", required = true),
             AdminColumn("otp", required = true)
         )
+    ),
+    AdminTable(
+        name = "categories",
+        title = "Categories",
+        description = "Product categories for the catalog.",
+        displayColumns = listOf("emoji", "name", "is_active", "created_at"),
+        createLabel = "New category",
+        columns = listOf(
+            AdminColumn("id", type = AdminColumnType.LongNumber, editable = false),
+            AdminColumn("created_at", type = AdminColumnType.Timestamp, editable = false),
+            AdminColumn("name", required = true),
+            AdminColumn("emoji"),
+            AdminColumn("is_active", type = AdminColumnType.Boolean)
+        )
     )
 )

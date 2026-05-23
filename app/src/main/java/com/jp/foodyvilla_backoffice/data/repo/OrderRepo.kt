@@ -22,7 +22,7 @@ class OrderRepository(
 ) {
 
     // 🔐 Get customer_id from token
-    private suspend fun getCustomerId(): Int? {
+    private suspend fun getCustomerId(): String? {
         val authId = supabase.auth.currentUserOrNull()?.id ?: return null
 
         val user = supabase.postgrest["users"]

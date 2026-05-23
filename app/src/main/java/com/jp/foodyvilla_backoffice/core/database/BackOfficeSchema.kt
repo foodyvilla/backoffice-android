@@ -14,6 +14,7 @@ object BackOfficeSchema {
         const val ProductCatalog = "product_catalog"
         const val Reviews = "reviews"
         const val Users = "users"
+        const val Categories = "categories"
     }
 
     object Employee {

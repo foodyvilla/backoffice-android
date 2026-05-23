@@ -10,7 +10,7 @@ sealed interface UserSession {
     ) : UserSession
 
     data class EmployeeSession(
-        val empId: Long,
+        val empId: String,
         override val outletId: Long,
         val designationId: Long?,
         val permissions: Set<String>,

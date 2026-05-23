@@ -559,6 +559,6 @@ class AdminViewModel(
     }
 
     private companion object {
-        val dashboardTableNames = setOf("orders", "product_catalog", "outlet_menu_items", "users", "reviews", "offers", "banners", "employee", "attendance", "outlets", "payments")
+        val dashboardTableNames = setOf("orders", "product_catalog", "outlet_menu_items", "users", "reviews", "offers", "banners", "employee", "attendance", "outlets", "payments", "categories")
     }
 }

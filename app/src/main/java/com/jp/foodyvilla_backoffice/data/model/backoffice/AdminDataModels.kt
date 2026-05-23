@@ -40,7 +40,7 @@ data class Order(
     @SerialName("customer_name") val customerName: String? = null,
     val status: String = "pending",
     @SerialName("outlet_id") val outletId: Long? = null,
-    @SerialName("customer_id") val customerId: Long? = null,
+    @SerialName("customer_id") val customerId: String? = null,
     @SerialName("order_type") val orderType: String? = null,
     @SerialName("transaction_id") val transactionId: String? = null,
     
@@ -67,7 +67,7 @@ data class ProductCatalog(
 
 @Serializable
 data class User(
-    val id: Long? = null,
+    val id: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
     val name: String? = null,
@@ -85,7 +85,7 @@ data class User(
 data class Cart(
     val id: Long? = null,
     @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("customer_id") val customerId: Long? = null,
+    @SerialName("customer_id") val customerId: String? = null,
     @SerialName("outlet_id") val outletId: Long? = null,
     @SerialName("menu_item_id") val menuItemId: Long? = null,
     val qty: Long = 1,
@@ -131,7 +131,7 @@ data class Offer(
 data class Review(
     val id: Long? = null,
     @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("customer_id") val customerId: Long? = null,
+    @SerialName("customer_id") val customerId: String? = null,
     @SerialName("review_type") val reviewType: String = "order",
     @SerialName("order_id") val orderId: String? = null,
     @SerialName("menu_item_id") val menuItemId: Long? = null,
@@ -173,7 +173,7 @@ data class Employee(
 data class Attendance(
     val id: Long? = null,
     @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("emp_id") val empId: Long? = null,
+    @SerialName("emp_id") val empId: String? = null,
     val status: String? = null,
     @SerialName("in_time") val inTime: String? = null,
     @SerialName("out_time") val outTime: String? = null,
@@ -245,7 +245,7 @@ data class Payment(
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null,
     @SerialName("order_id") val orderId: String? = null,
-    @SerialName("customer_id") val customerId: Long? = null,
+    @SerialName("customer_id") val customerId: String? = null,
     @SerialName("razorpay_order_id") val razorpayOrderId: String? = null,
     @SerialName("razorpay_payment_id") val razorpayPaymentId: String? = null,
     @SerialName("razorpay_signature") val razorpaySignature: String? = null,

@@ -21,7 +21,7 @@ class CartRepository(
     }
 
     // 🧩 Map auth user → users table → customer_id
-    private suspend fun getCustomerId(): Int? {
+    private suspend fun getCustomerId(): String? {
 
         val authId = getAuthUserId() ?: return null
 
