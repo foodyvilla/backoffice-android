@@ -27,76 +27,76 @@ data class NavigationMatrix(
     val drawer: List<BackOfficeDestination>
 )
 
-object BackOfficeNavigationPolicy {
-    fun forSession(session: UserSession?): NavigationMatrix {
-        return when (session?.role()) {
-            OutletRole.OWNER -> NavigationMatrix(
-                primary = listOf(
-                    BackOfficeDestination.Dashboard,
-                    BackOfficeDestination.Orders,
-                    BackOfficeDestination.OutletsRegistry,
-                    BackOfficeDestination.MasterEmployeeDirectory,
-                    BackOfficeDestination.Analytics
-                ),
-                drawer = listOf(
-                    BackOfficeDestination.Attendance,
-                    BackOfficeDestination.MenuSettings,
-                    BackOfficeDestination.Offers,
-                    BackOfficeDestination.Banners,
-                    BackOfficeDestination.Reviews,
-                    BackOfficeDestination.Payments,
-                    BackOfficeDestination.Settings
-                )
-            )
-            OutletRole.HEAD -> NavigationMatrix(
-                primary = listOf(
-                    BackOfficeDestination.Dashboard,
-                    BackOfficeDestination.Orders,
-                    BackOfficeDestination.EmployeeRoster,
-                    BackOfficeDestination.MenuSettings,
-                    BackOfficeDestination.Profile
-                ),
-                drawer = listOf(
-                    BackOfficeDestination.Attendance,
-                    BackOfficeDestination.Offers,
-                    BackOfficeDestination.Banners,
-                    BackOfficeDestination.Reviews,
-                    BackOfficeDestination.Payments,
-                    BackOfficeDestination.Analytics,
-                    BackOfficeDestination.Settings
-                )
-            )
-            OutletRole.CHEF -> NavigationMatrix(
-                primary = listOf(
-                    BackOfficeDestination.KitchenTerminal,
-                    BackOfficeDestination.Orders,
-                    BackOfficeDestination.Attendance,
-                    BackOfficeDestination.Profile
-                ),
-                drawer = listOf(
-                    BackOfficeDestination.Offers,
-                    BackOfficeDestination.Banners,
-                    BackOfficeDestination.Reviews
-                )
-            )
-            else -> NavigationMatrix(
-                primary = listOf(
-                    BackOfficeDestination.Dashboard,
-                    BackOfficeDestination.Orders,
-                    BackOfficeDestination.Attendance,
-                    BackOfficeDestination.Profile
-                ),
-                drawer = listOf(
-                    BackOfficeDestination.Offers,
-                    BackOfficeDestination.Banners,
-                    BackOfficeDestination.Customers,
-                    BackOfficeDestination.Reviews,
-                    BackOfficeDestination.Payments
-                )
-            )
-        }
-    }
-}
+//object BackOfficeNavigationPolicy {
+//    fun forSession(session: UserSession?): NavigationMatrix {
+//        return when (session?.role()) {
+//            OutletRole.OWNER -> NavigationMatrix(
+//                primary = listOf(
+//                    BackOfficeDestination.Dashboard,
+//                    BackOfficeDestination.Orders,
+//                    BackOfficeDestination.OutletsRegistry,
+//                    BackOfficeDestination.MasterEmployeeDirectory,
+//                    BackOfficeDestination.Analytics
+//                ),
+//                drawer = listOf(
+//                    BackOfficeDestination.Attendance,
+//                    BackOfficeDestination.MenuSettings,
+//                    BackOfficeDestination.Offers,
+//                    BackOfficeDestination.Banners,
+//                    BackOfficeDestination.Reviews,
+//                    BackOfficeDestination.Payments,
+//                    BackOfficeDestination.Settings
+//                )
+//            )
+//            OutletRole.HEAD -> NavigationMatrix(
+//                primary = listOf(
+//                    BackOfficeDestination.Dashboard,
+//                    BackOfficeDestination.Orders,
+//                    BackOfficeDestination.EmployeeRoster,
+//                    BackOfficeDestination.MenuSettings,
+//                    BackOfficeDestination.Profile
+//                ),
+//                drawer = listOf(
+//                    BackOfficeDestination.Attendance,
+//                    BackOfficeDestination.Offers,
+//                    BackOfficeDestination.Banners,
+//                    BackOfficeDestination.Reviews,
+//                    BackOfficeDestination.Payments,
+//                    BackOfficeDestination.Analytics,
+//                    BackOfficeDestination.Settings
+//                )
+//            )
+//            OutletRole.CHEF -> NavigationMatrix(
+//                primary = listOf(
+//                    BackOfficeDestination.KitchenTerminal,
+//                    BackOfficeDestination.Orders,
+//                    BackOfficeDestination.Attendance,
+//                    BackOfficeDestination.Profile
+//                ),
+//                drawer = listOf(
+//                    BackOfficeDestination.Offers,
+//                    BackOfficeDestination.Banners,
+//                    BackOfficeDestination.Reviews
+//                )
+//            )
+//            else -> NavigationMatrix(
+//                primary = listOf(
+//                    BackOfficeDestination.Dashboard,
+//                    BackOfficeDestination.Orders,
+//                    BackOfficeDestination.Attendance,
+//                    BackOfficeDestination.Profile
+//                ),
+//                drawer = listOf(
+//                    BackOfficeDestination.Offers,
+//                    BackOfficeDestination.Banners,
+//                    BackOfficeDestination.Customers,
+//                    BackOfficeDestination.Reviews,
+//                    BackOfficeDestination.Payments
+//                )
+//            )
+//        }
+//    }
+//}
 
 private fun UserSession.role(): OutletRole? = when (this) {
     is UserSession.EmployeeSession -> role

@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -49,6 +50,29 @@ class SupabaseAuthRepository(
     override val currentSession: StateFlow<UserSession?> =
         _currentSession
 
+    init {
+        // Restore Supabase session on startup if tokens were persisted
+        restoreSupabaseSession()
+    }
+
+    private fun restoreSupabaseSession() {
+        val raw = prefs.getString(KEY_SESSION, null) ?: return
+        try {
+            val obj = json.parseToJsonElement(raw) as JsonObject
+            val accessToken = obj["access_token"]?.jsonPrimitive?.contentOrNull
+            val refreshToken = obj["refresh_token"]?.jsonPrimitive?.contentOrNull
+            if (!accessToken.isNullOrBlank() && !refreshToken.isNullOrBlank()) {
+                val token = BackOfficeTokenDto(accessToken, refreshToken)
+                // Use background scope to avoid blocking init
+                kotlinx.coroutines.CoroutineScope(ioDispatcher).launch {
+                    importSupabaseSession(token)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not restore Supabase session: ${e.message}")
+        }
+    }
+
     // =====================================================
     // OUTLET LOGIN
     // =====================================================
@@ -59,7 +83,7 @@ class SupabaseAuthRepository(
     ): Result<UserSession.OutletSession> = login(
         phone = username,
         password = password
-    ).mapCatching { dto ->
+    ).mapCatching { (dto, token) ->
 
         Log.d(
             TAG,
@@ -75,7 +99,7 @@ class SupabaseAuthRepository(
             outletId = dto.outletId,
             username = dto.username ?: username,
             role = role
-        ).also { persistSession(it) }
+        ).also { persistSession(it, token) }
     }
 
     // =====================================================
@@ -88,7 +112,7 @@ class SupabaseAuthRepository(
     ): Result<UserSession.EmployeeSession> = login(
         phone = identifier,
         password = password
-    ).mapCatching { dto ->
+    ).mapCatching { (dto, token) ->
 
         Log.d(
             TAG,
@@ -113,7 +137,7 @@ class SupabaseAuthRepository(
 
             contact = dto.contact
 
-        ).also { persistSession(it) }
+        ).also { persistSession(it, token) }
     }
 
     // =====================================================
@@ -132,7 +156,7 @@ class SupabaseAuthRepository(
     private suspend fun login(
         phone: String,
         password: String
-    ): Result<BackOfficeSessionDto> = withContext(ioDispatcher) {
+    ): Result<Pair<BackOfficeSessionDto, BackOfficeTokenDto?>> = withContext(ioDispatcher) {
 
         runCatching {
             val normalizedPhone = phone.trim()
@@ -174,7 +198,7 @@ class SupabaseAuthRepository(
 
             importSupabaseSession(decoded.token)
 
-            decoded.session ?: decoded.employee?.let { employee ->
+            val session = decoded.session ?: decoded.employee?.let { employee ->
                 BackOfficeSessionDto(
                     type = "employee",
                     outletId = employee.outletId,
@@ -186,6 +210,8 @@ class SupabaseAuthRepository(
                     permissions = defaultPermissionsFor(employee.role)
                 )
             } ?: throw IllegalStateException("Login success but employee session missing")
+
+            session to decoded.token
         }.onFailure { throwable ->
 
             Log.e(
@@ -351,10 +377,11 @@ class SupabaseAuthRepository(
     // =====================================================
 
     private fun persistSession(
-        session: UserSession
+        session: UserSession,
+        token: BackOfficeTokenDto? = null
     ) {
 
-        val payload = when (session) {
+        val basePayload = when (session) {
 
             is UserSession.OutletSession -> buildJsonObject {
 
@@ -398,8 +425,14 @@ class SupabaseAuthRepository(
             }
         }
 
+        val finalPayload = buildJsonObject {
+            basePayload.forEach { (key, value) -> put(key, value) }
+            token?.accessToken?.let { put("access_token", it) }
+            token?.refreshToken?.let { put("refresh_token", it) }
+        }
+
         prefs.edit()
-            .putString(KEY_SESSION, payload.toString())
+            .putString(KEY_SESSION, finalPayload.toString())
             .apply()
 
         _currentSession.value = session

@@ -26,6 +26,7 @@ fun FoodyVillaNavGraph() {
     )
     {
         composable<Screen.Splash> {
+
             SplashScreen(
                 loginViewModel = loginViewModel, navController = navController
             )

@@ -110,7 +110,7 @@ fun OrderDetailScreen(
                         
                         val grandTotal = order.grandTotal
                         if (grandTotal != null) {
-                            DetailLineRow("Financial Settlement", "Rs ${grandTotal / 100.0}")
+                            DetailLineRow("Financial Settlement", "Rs $grandTotal")
                         } else {
                             DetailLineRow("Transaction Token", order.transactionId ?: "Unpaid / COD")
                         }

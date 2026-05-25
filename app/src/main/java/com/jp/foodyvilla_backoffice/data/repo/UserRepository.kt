@@ -5,121 +5,188 @@ import com.jp.foodyvilla_backoffice.presentation.utils.UiState
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
+// ==========================================
+// Domain & Data Models
+// ==========================================
+
+@Serializable
+enum class EmployeeRole {
+    HEAD, OWNER, CHEF, EMPLOYEE
+}
+
+@Serializable
+data class NewEmployeeProfileUiModel(
+    val id: Long,
+    val outletId: Long?,
+    val name: String,
+    val address: String?,
+    val contact: String?,
+    val aadharNo: String?,
+    val emergencyContact: String?,
+    val salary: Long?,
+    val profileImg: String?,
+    val joiningDate: String?,
+    val punchLat: Double?,
+    val punchLng: Double?,
+    val role: EmployeeRole,
+    val fcmToken: String?,
+    val isActive: Boolean
+)
+
+@Serializable
+private data class NewEmployeeResponse(
+    val id: Long,
+    val outlet_id: Long? = null,
+    val name: String,
+    val address: String? = null,
+    val contact: String? = null,
+    val aadhar_no: String? = null,
+    val emergency_contact: String? = null,
+    val salary: Long? = null,
+    val profile_img: String? = null,
+    val joining_date: String? = null,
+    val punch_lat: Double? = null,
+    val punch_lng: Double? = null,
+    val role: String? = null,
+    val is_active: Boolean,
+    val auth_user_id: String? = null,
+    val fcm_token: String? = null
+)
+
+@Serializable
+data class NewUserProfileUiModel(
+    val id: Long,
+    val name: String,
+    val email: String,
+    val phone: String,
+    val address: String?,
+    val lat: Double?,
+    val lng: Double?,
+    val fcmToken: String?
+)
+
+@Serializable
+private data class NewUserResponse(
+    val id: Long,
+    val name: String? = null,
+    val email: String? = null,
+    val phone: String? = null,
+    val address: String? = null,
+    val lat: Double? = null,
+    val long: Double? = null,
+    val fcm_token: String? = null,
+    val auth_user_id: String? = null
+)
+
+// ==========================================
+// Mappers
+// ==========================================
+
+private fun NewEmployeeResponse.toUiModel(): NewEmployeeProfileUiModel {
+    val matchedRole = runCatching {
+        EmployeeRole.valueOf(role.orEmpty().uppercase())
+    }.getOrElse { EmployeeRole.EMPLOYEE }
+
+    return NewEmployeeProfileUiModel(
+        id = id, outletId = outlet_id, name = name, address = address,
+        contact = contact, aadharNo = aadhar_no, emergencyContact = emergency_contact,
+        salary = salary, profileImg = profile_img, joiningDate = joining_date,
+        punchLat = punch_lat, punchLng = punch_lng, role = matchedRole,
+        fcmToken = fcm_token, isActive = is_active
+    )
+}
+
+private fun NewUserResponse.toProfileUiModel(): NewUserProfileUiModel {
+    return NewUserProfileUiModel(
+        id = id, name = name.orEmpty().ifBlank { "User #$id" }, email = email.orEmpty(),
+        phone = phone.orEmpty(), address = address, lat = lat, lng = long, fcmToken = fcm_token
+    )
+}
+
+// ==========================================
+// Repository Implementation
+// ==========================================
+
 class UserRepository(private val supabase: SupabaseClient) {
 
-     fun getCurrentUserProfile(): Flow<UiState<UserProfile>> = flow {
-        emit(UiState.Loading)
-        try {
-            val session = supabase.auth.currentSessionOrNull()
-
-            if (session == null) {
-                emit(UiState.Error(Exception("user not logged in")))
-                return@flow
-            }
-            val user = session.user
-            val authUserId = user?.id
-
-            if (authUserId == null) {
-                emit(UiState.Error(Exception("user not logged in")))
-                return@flow
-            }
-            val response = supabase.postgrest["users"]
+    /**
+     * Retrieves the employee profile matching the current session metadata context.
+     */
+    suspend fun getCurrentEmployeeProfile(): NewEmployeeProfileUiModel? {
+        return runCatching {
+            val authUser = supabase.auth.currentUserOrNull() ?: return null
+            supabase
+                .from("employee")
                 .select {
+                    filter {
+                        eq("auth_user_id", authUser.id)
+                        eq("is_active", true)
+                    }
+                }
+                .decodeSingleOrNull<NewEmployeeResponse>()
+                ?.toUiModel()
+        }.getOrNull()
+    }
+
+    /**
+     * Retrieves the customer user profile matching the current session metadata context.
+     */
+    suspend fun getCurrentLoggedInUserProfile(): NewUserProfileUiModel? {
+        return runCatching {
+            val currentAuthUser = supabase.auth.currentUserOrNull() ?: return null
+            supabase
+                .from("users")
+                .select {
+                    filter {
+                        eq("auth_user_id", currentAuthUser.id)
+                    }
+                }
+                .decodeSingleOrNull<NewUserResponse>()
+                ?.toProfileUiModel()
+        }.getOrNull()
+    }
+
+    /**
+     * Safely updates an employee's FCM Token either via Auth User ID context or a direct database row ID match.
+     */
+    suspend fun updateFcmToken(
+        fcmToken: String?,
+        empId: String? = null
+    ) {
+        try {
+            val authUserId = supabase.auth.currentUserOrNull()?.id
+
+            val updatePayload = buildJsonObject {
+                put("fcm_token", fcmToken)
+            }
+
+            // 1. Update by authUserId in employee table
+            if (authUserId != null) {
+                supabase.from("employee").update(updatePayload) {
                     filter {
                         eq("auth_user_id", authUserId)
                     }
                 }
-                .decodeSingleOrNull<UserProfile>()
-
-            println("User $response")
-            if (response == null) {
-                emit(UiState.Error(Exception("User Not found")))
-                return@flow
-            }
-            emit(UiState.Success(response))
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emit(UiState.Error(e))
-        }
-    }
-
-
-    suspend fun updateFcmToken(
-        fcmToken: String
-    ) {
-        val userId = supabase.auth.currentUserOrNull()?.id
-            ?: throw Exception("User not logged in")
-
-        try {
-            // Update users table
-            supabase.from("users").update(
-                {
-                    set("fcm_token", fcmToken)
-                }
-            ) {
-                filter {
-                    eq("auth_user_id", userId)
-                }
             }
 
-            // Also update employee table for backoffice users
-            supabase.from("employee").update(
-                {
-                    set("fcm_token", fcmToken)
-                }
-            ) {
-                filter {
-                    eq("auth_user_id", userId)
+            // 2. Update by empId in employee table
+            if (empId != null) {
+                supabase.from("employee").update(updatePayload) {
+                    filter {
+                        eq("id", empId.toLong()) // Safe casting pattern to match database structure types
+                    }
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-    }
-
-
-    @OptIn(ExperimentalTime::class)
-    suspend fun updateUserProfile(
-        userProfile: UserProfile
-    ): UiState<String> {
-
-        return try {
-
-            val userId = supabase.auth.currentUserOrNull()?.id
-
-            if (userId == null) {
-                return UiState.Error(
-                    Exception("User not logged in")
-                )
-            }
-
-            supabase.from("users").update({
-
-                set("name", userProfile.name)
-                set("email", userProfile.email)
-                set("phone", userProfile.phone)
-                set("address", userProfile.address)
-                set("lat", userProfile.lat)
-                set("long", userProfile.long)
-                set("updated_at", Clock.System.now())
-            }) {
-
-                filter {
-                    eq("auth_user_id", userId)
-                }
-            }
-
-            UiState.Success("Profile updated successfully")
-
-        } catch (e: Exception) {
-
-            UiState.Error(e)
         }
     }
 }

@@ -4,17 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import androidx.navigation.compose.rememberNavController
 import com.jp.foodyvilla_backoffice.fcm.createNotificationChannel
 import com.jp.foodyvilla_backoffice.fcm.subscribeToTopic
-import com.jp.foodyvilla_backoffice.presentation.navigation.FoodyVillaNavGraph
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.NewFoodyVillaNavGraph
 
 import com.jp.foodyvilla_backoffice.presentation.utils.HideSystemBars
 import com.jp.foodyvilla_backoffice.ui.theme.AppTheme
 import com.razorpay.Checkout
-import com.razorpay.PaymentData
-import com.razorpay.PaymentResultWithDataListener
-import kotlin.getValue
 
 class MainActivity : ComponentActivity() {
 
@@ -29,7 +30,22 @@ class MainActivity : ComponentActivity() {
             AppTheme(dynamicColor = false) {
                 HideSystemBars()
 
-                FoodyVillaNavGraph()
+
+
+
+
+
+                // Inside your MainActivity or App Entry View scaffolding layout:
+                val navController = rememberNavController()
+
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    // Dynamically specify which business outlet location ID is running the terminal instance
+                    NewFoodyVillaNavGraph()
+                }
+//                FoodyVillaNavGraph()
 //
 ////                MobileLoginScreen { }
 //

@@ -8,6 +8,12 @@ sealed interface UserSession {
         is EmployeeSession -> role == OutletRole.OWNER
     }
 
+
+    fun role() : String{
+        if (isHead()) return "head"
+        if (isOwner()) return "owner"
+        else return "employee"
+    }
     fun isHead(): Boolean = when (this) {
         is OutletSession -> role == OutletRole.HEAD || role == OutletRole.MANAGER
         is EmployeeSession -> role == OutletRole.HEAD || role == OutletRole.MANAGER

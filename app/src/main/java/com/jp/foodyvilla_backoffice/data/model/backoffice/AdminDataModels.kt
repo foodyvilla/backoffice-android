@@ -52,7 +52,7 @@ data class Order(
     @SerialName("order_type") val orderType: String? = null,
     @SerialName("transaction_id") val transactionId: String? = null,
     @SerialName("accepted_by") val acceptedBy: Long? = null,
-    @SerialName("grand_total") val grandTotal: Long? = null,
+    @SerialName("grand_total") val grandTotal: Double? = null,
     
     // Joined fields
     @SerialName("outlets") val outlet: Outlet? = null,
@@ -264,9 +264,9 @@ data class Payment(
     @SerialName("razorpay_order_id") val razorpayOrderId: String? = null,
     @SerialName("razorpay_payment_id") val razorpayPaymentId: String? = null,
     @SerialName("razorpay_signature") val razorpaySignature: String? = null,
-    val amount: Long = 0,
-    @SerialName("amount_due") val amountDue: Long? = null,
-    @SerialName("amount_refunded") val amountRefunded: Long = 0,
+    val amount: Double = 0.0,
+    @SerialName("amount_due") val amountDue: Double? = null,
+    @SerialName("amount_refunded") val amountRefunded: Double = 0.0,
     val currency: String = "INR",
     @SerialName("payment_status") val paymentStatus: String = "created",
     @SerialName("payment_method") val paymentMethod: String? = null,

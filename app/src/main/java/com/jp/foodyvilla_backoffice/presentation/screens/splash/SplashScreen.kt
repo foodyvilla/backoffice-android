@@ -17,7 +17,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,9 +30,10 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-import com.jp.foodyvilla_backoffice.presentation.navigation.Screen
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
  import  com.jp.foodyvilla_backoffice.R
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ScreenDestinations
+
 @Composable
 fun SplashScreen(
     loginViewModel: LoginViewModel,
@@ -56,8 +56,8 @@ fun SplashScreen(
 
         if (!splashFinished) return@LaunchedEffect
 
-        navController.navigate(if (currentSession != null) Screen.BackOffice else Screen.BackOfficeLogin) {
-            popUpTo(Screen.Splash) {
+        navController.navigate(if (currentSession != null) ScreenDestinations.BackOffice else ScreenDestinations.BackOfficeLogin) {
+            popUpTo(ScreenDestinations.Splash) {
                 inclusive = true
             }
         }

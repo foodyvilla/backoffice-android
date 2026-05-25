@@ -4,18 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessaging
-import com.jp.foodyvilla_backoffice.data.model.user.UserProfile
 import com.jp.foodyvilla_backoffice.data.repo.AuthRepo
 import com.jp.foodyvilla_backoffice.data.repo.LocationRepository
 import com.jp.foodyvilla_backoffice.data.repo.UserRepository
+import com.jp.foodyvilla_backoffice.data.repo.NewEmployeeProfileUiModel
 import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import com.jp.foodyvilla_backoffice.presentation.utils.UiState
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -31,130 +29,36 @@ class LoginViewModel(
     private val userRepository: UserRepository,
     private val locationRepository: LocationRepository,
     private val backOfficeAuthRepository: AuthRepository
-) :
-    ViewModel() {
-
-
-
-    init {
-        viewModelScope.launch {
-
-            val user = userRepository.getCurrentUserProfile()
-            println("ViewModel user $user")
-        }
-    }
-
-    private val _loginUiState = MutableStateFlow<UiState<String>>(UiState.Idle)
-    val loginUiState = _loginUiState.asStateFlow()
+) : ViewModel() {
 
     private val _credentialLoginUiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val credentialLoginUiState = _credentialLoginUiState.asStateFlow()
+
     val currentSession = backOfficeAuthRepository.currentSession
 
-
-    private val _getOtpState = MutableStateFlow<UiState<String>>(UiState.Idle)
-    val getOtpState = _getOtpState.asStateFlow()
-
-    private val _phoneNumber = MutableStateFlow("")
-    val phoneNumber = _phoneNumber.asStateFlow()
-    private val _otp = MutableStateFlow("")
-    val otp = _phoneNumber.asStateFlow()
-
-    fun updatePhone(newValue: String) {
-        _phoneNumber.value = newValue
-    }
-
-    fun updateOtp(newValue: String) {
-        _otp.value = newValue
-    }
-
-    private val _isLoggedIn = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
-    val isLoggedIn = _isLoggedIn.asStateFlow()
+    // Expose employee profile state using the project's standard UiState wrapper
+    private val _employeeProfileState = MutableStateFlow<UiState<NewEmployeeProfileUiModel>>(UiState.Idle)
+    val employeeProfileState = _employeeProfileState.asStateFlow()
 
     init {
-        isLoggedIn()
-        viewModelScope.launch {
-            userRepository.getCurrentUserProfile().collectLatest {
-                println("User $it")
-            }
-        }
-        getUserProfile()
         updateFcmToken()
 
-        // Observe session changes to update FCM token immediately when logged in
+        // Observe session changes to update FCM token and fetch profile immediately upon login
         viewModelScope.launch {
             currentSession.collectLatest { session ->
                 if (session != null) {
                     updateFcmToken()
+                    getEmployeeProfile()
+                } else {
+                    _employeeProfileState.value = UiState.Idle
                 }
             }
         }
     }
 
-
-    private fun isLoggedIn() {
-        viewModelScope.launch {
-
-         authRepo.isLoggedIn().collectLatest {
-             _isLoggedIn.value = it
-         }
-            println("Login status : ${authRepo.isLoggedIn()}    ${_isLoggedIn.value}")
-        }
-    }
-
-    fun login() {
-        viewModelScope.launch {
-            authRepo.loginWithOtp("+91${phoneNumber.value}").collectLatest {
-
-                println("Login res $it")
-                _getOtpState.value = it
-
-            }
-
-        }
-    }
-
-
-    private val _logoutState = MutableStateFlow<UiState<Unit>>(UiState.Idle)
-    val logoutState = _logoutState.asStateFlow()
     fun logout() {
         viewModelScope.launch {
-            authRepo.logout().collect { state ->
-                _logoutState.value = state
-            }
-        }
-    }
-
-    fun login(otp: String? = null) {
-        viewModelScope.launch {
-            authRepo.loginWithOtp("+91${phoneNumber.value}", otp).collectLatest {
-
-                println("Login res $it")
-                _loginUiState.value = it
-                if (it is UiState.Success) {
-                    _isLoggedIn.value = UiState.Success(true)
-                    updateFcmToken()
-                }
-            }
-
-        }
-    }
-
-    fun loginOutlet(username: String, password: String) {
-        viewModelScope.launch {
-            Log.d(TAG, "Outlet login requested for username=${username.trim()}")
-            _credentialLoginUiState.value = LoginUiState.Loading
-            backOfficeAuthRepository.loginOutlet(username = username, password = password)
-                .onSuccess { session ->
-                    Log.d(TAG, "Outlet login success: outletId=${session.outletId}, username=${session.username}, role=${session.role}")
-                    _credentialLoginUiState.value = LoginUiState.Success(session)
-                    updateFcmToken()
-                }
-                .onFailure { throwable ->
-                    Log.e(TAG, "Outlet login failed: ${throwable.message}", throwable)
-                    _credentialLoginUiState.value =
-                        LoginUiState.Error(throwable.message ?: "Unable to sign in")
-                }
+            backOfficeAuthRepository.logout()
         }
     }
 
@@ -166,10 +70,11 @@ class LoginViewModel(
                 .onSuccess { session ->
                     Log.d(
                         TAG,
-                        "Employee login success: empId=${session.empId}, outletId=${session.outletId}, designationId=${session.designationId}, role=${session.role}, name=${session.name}, contact=${session.contact}, permissions=${session.permissions}"
+                        "Employee login success: empId=${session.empId}, role=${session.role}, name=${session.name}"
                     )
                     _credentialLoginUiState.value = LoginUiState.Success(session)
                     updateFcmToken()
+                    getEmployeeProfile()
                 }
                 .onFailure { throwable ->
                     Log.e(TAG, "Employee login failed: ${throwable.message}", throwable)
@@ -179,151 +84,70 @@ class LoginViewModel(
         }
     }
 
+    /**
+     * Fetches the current authenticated employee's detailed workspace profile matrix
+     */
+    fun getEmployeeProfile() {
+        viewModelScope.launch {
+            _employeeProfileState.value = UiState.Loading
+            try {
+                val profile = userRepository.getCurrentEmployeeProfile()
+                println("Employee Profile $profile")
+                if (profile != null) {
+                    _employeeProfileState.value = UiState.Success(profile)
+                    // Match and make sure token syncs with accurate database table row identity
+                    updateFcmToken()
+                } else {
+                    _employeeProfileState.value = UiState.Error(Exception("Employee profile record not found."))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception loading employee profile: ${e.message}", e)
+                _employeeProfileState.value = UiState.Error(e)
+            }
+        }
+    }
+
     fun logoutBackOffice() {
         viewModelScope.launch {
             Log.d(TAG, "Backoffice logout requested")
+            // Clear FCM token on server before clearing local session
+            try {
+                val session = backOfficeAuthRepository.currentSession.value
+                val empId = (session as? UserSession.EmployeeSession)?.empId
+                userRepository.updateFcmToken(null, empId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to clear FCM token on logout", e)
+            }
+
             backOfficeAuthRepository.logout()
             _credentialLoginUiState.value = LoginUiState.Idle
+            _employeeProfileState.value = UiState.Idle
         }
     }
 
-    fun updateFcmToken() {
+    fun updateFcmToken(tokenOverride: String? = null) {
         viewModelScope.launch {
             try {
+                val token = tokenOverride ?: FirebaseMessaging.getInstance().token.await()
+                val session = backOfficeAuthRepository.currentSession.value
 
-                val token = FirebaseMessaging.getInstance().token.await()
-                userRepository.updateFcmToken(token)
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    private val _userState = MutableStateFlow<UiState<UserProfile>>(UiState.Idle)
-    val user = _userState.asStateFlow()
-    fun getUserProfile() {
-        viewModelScope.launch {
-            try {
-                userRepository.getCurrentUserProfile().collectLatest {
-
-
-                   if(_userState.value is UiState.Success){
-                       if(it is UiState.Success){
-                           _userState.value = it
-                       }
-                   }else{
-                       _userState.value = it
-
-                   }
-
+                // Prioritize the actual profile ID fallback to active session identity details
+                val empId = when (val profile = _employeeProfileState.value) {
+                    is UiState.Success -> profile.data.id.toString()
+                    else -> (session as? UserSession.EmployeeSession)?.empId
                 }
+
+                userRepository.updateFcmToken(
+                    fcmToken = token,
+                    empId = empId
+                )
             } catch (e: Exception) {
-
+                Log.e(TAG, "Error updating FCM token: ${e.message}")
             }
         }
-    }
-
-    fun signInWithSupabase(idToken: String) {
-        viewModelScope.launch {
-            authRepo.signInWithSupabase(idToken).collectLatest {
-                println("Login Res $it")
-            }
-        }
-    }
-
-
-    private val _locationState =
-        MutableStateFlow<UiState<Pair<Double, Double>>>(UiState.Idle)
-
-    val locationState = _locationState.asStateFlow()
-
-    fun hasLocationPermission(): Boolean {
-        return locationRepository.hasLocationPermission()
-    }
-
-    fun isGpsEnabled(): Boolean {
-        return locationRepository.isGpsEnabled()
-    }
-
-    fun fetchCurrentLocation() {
-
-        viewModelScope.launch {
-
-            _locationState.value = UiState.Loading
-
-            val result = locationRepository.fetchLocation()
-
-            println("Location fetch $result")
-            result.onSuccess { location ->
-
-                _locationState.value = UiState.Success(location)
-                val addressResult =
-                    locationRepository.getAddressFromLocation(
-                        latitude = location.first,
-                        longitude = location.second
-                    )
-
-                println("Location address fetch $addressResult")
-
-
-                val address = addressResult.getOrNull() ?: ""
-                _userState.update { state ->
-
-                    when (state) {
-
-                        is UiState.Success -> {
-
-                            UiState.Success(
-                                state.data.copy(
-                                  address = address ?: "",
-                                    lat = location.first,
-                                    long = location.second
-
-                                )
-                            )
-                        }
-
-                        else -> state
-                    }
-
-                }
-            }
-
-            result.onFailure { exception ->
-
-                _locationState.value =
-                    UiState.Error(
-                        Exception(exception)
-                    )
-            }
-        }
-    }
-
-private val _updateState = MutableStateFlow<UiState<String>>(UiState.Idle)
-val updateState = _updateState.asStateFlow()
-
-    fun updateProfile(userProfile: UserProfile) {
-
-        viewModelScope.launch {
-
-            _updateState.value = UiState.Loading
-
-            _updateState.value =
-                userRepository.updateUserProfile(userProfile)
-            getUserProfile()
-            delay(1500)
-            resetUpdateState()
-        }
-    }
-
-    fun resetUpdateState(){
-        _updateState.value = UiState.Idle
     }
 
     private companion object {
         const val TAG = "BackOfficeLoginVM"
     }
 }
-
-

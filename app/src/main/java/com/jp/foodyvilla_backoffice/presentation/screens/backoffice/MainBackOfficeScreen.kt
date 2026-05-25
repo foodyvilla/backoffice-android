@@ -79,9 +79,28 @@ fun MainBackOfficeScreen(
     session: UserSession?,
     onLogout: () -> Unit,
     viewModel: AdminViewModel = koinViewModel(),
-    loginViewModel: LoginViewModel = koinViewModel()
+    loginViewModel: LoginViewModel = koinViewModel(),
+    orderViewModel: com.jp.foodyvilla_backoffice.presentation.screens.backoffice.orders.OrderViewModel = koinViewModel(),
+    productViewModel: com.jp.foodyvilla_backoffice.presentation.screens.backoffice.products.ProductViewModel = koinViewModel(),
+    marketingViewModel: com.jp.foodyvilla_backoffice.presentation.screens.backoffice.offers.MarketingViewModel = koinViewModel(),
+    teamViewModel: com.jp.foodyvilla_backoffice.presentation.screens.backoffice.employees.TeamViewModel = koinViewModel(),
+    customerViewModel: com.jp.foodyvilla_backoffice.presentation.screens.backoffice.customers.CustomerViewModel = koinViewModel(),
+    reviewViewModel: com.jp.foodyvilla_backoffice.presentation.screens.backoffice.reviews.ReviewViewModel = koinViewModel(),
+    financeViewModel: com.jp.foodyvilla_backoffice.presentation.screens.backoffice.payments.FinanceViewModel = koinViewModel(),
+    outletViewModel: com.jp.foodyvilla_backoffice.presentation.screens.backoffice.outlets.OutletViewModel = koinViewModel(),
+    dashboardViewModel: DashboardViewModel = koinViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val orderState by orderViewModel.uiState.collectAsStateWithLifecycle()
+    val productState by productViewModel.uiState.collectAsStateWithLifecycle()
+    val marketingState by marketingViewModel.uiState.collectAsStateWithLifecycle()
+    val teamState by teamViewModel.uiState.collectAsStateWithLifecycle()
+    val customerState by customerViewModel.uiState.collectAsStateWithLifecycle()
+    val reviewState by reviewViewModel.uiState.collectAsStateWithLifecycle()
+    val financeState by financeViewModel.uiState.collectAsStateWithLifecycle()
+    val outletState by outletViewModel.uiState.collectAsStateWithLifecycle()
+    val dashboardState by dashboardViewModel.uiState.collectAsStateWithLifecycle()
+
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -136,7 +155,7 @@ fun MainBackOfficeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) {
-        viewModel.refresh()
+        // viewModel.refresh() // Removed to avoid loading all data at once
         // Refresh FCM token on backoffice open
         loginViewModel.updateFcmToken()
     }
@@ -150,8 +169,17 @@ fun MainBackOfficeScreen(
     }
 
     LaunchedEffect(currentRoute.tableName) {
-        currentRoute.tableName?.let { tableName ->
-            state.tables.firstOrNull { it.name == tableName }?.let(viewModel::selectTable)
+        val refactoredRoutes = setOf(
+            AdminRoute.Orders, AdminRoute.OrderItems, AdminRoute.Products, 
+            AdminRoute.Banners, AdminRoute.Offers, AdminRoute.Employees, 
+            AdminRoute.PunchReport, AdminRoute.Customers, AdminRoute.Reviews,
+            AdminRoute.Payments, AdminRoute.Cart, AdminRoute.OutletMenu,
+            AdminRoute.Outlets, AdminRoute.Categories
+        )
+        if (currentRoute !in refactoredRoutes) {
+            currentRoute.tableName?.let { tableName ->
+                state.tables.firstOrNull { it.name == tableName }?.let(viewModel::selectTable)
+            }
         }
     }
 
@@ -220,6 +248,7 @@ fun MainBackOfficeScreen(
                                 Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                             }
                         }
+
                         Image(
                             painter = painterResource(R.drawable.logo_new),
                             contentDescription = "Logo",
@@ -230,263 +259,376 @@ fun MainBackOfficeScreen(
             },
             snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { padding ->
+
             Box(Modifier.fillMaxSize().padding(padding)) {
                 FeatureGate(feature = currentRoute.gatedFeature(previousListRoute)) {
                     when {
                         !session.isRouteAllowed(currentRoute, previousListRoute) -> AccessDeniedView(currentRoute)
                         
-                        currentRoute == AdminRoute.Dashboard -> DashboardScreen(
-                            state = state,
-                            onOpenRoute = { next ->
-                                if (session.isRouteAllowed(next, currentRoute)) {
-                                    currentRoute = next
-                                    previousListRoute = next
+                        currentRoute == AdminRoute.Dashboard -> {
+                            LaunchedEffect(Unit) { dashboardViewModel.loadDashboardData() }
+                            DashboardScreen(
+                                state = state.copy(
+                                    dashboardData = dashboardState.dashboardData,
+                                    dashboardRows = dashboardState.dashboardRows,
+                                    isLoading = dashboardState.isLoading
+                                ),
+                                onOpenRoute = { next ->
+                                    if (session.isRouteAllowed(next, currentRoute)) {
+                                        currentRoute = next
+                                        previousListRoute = next
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Banners -> BannerScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.Banners -> {
+                            LaunchedEffect(Unit) { marketingViewModel.loadBanners() }
+                            BannerScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = marketingState.rawRows,
+                                    isLoading = marketingState.isLoading,
+                                    searchQuery = marketingState.searchQuery
+                                ),
+                                onSearch = marketingViewModel::setSearchQuery,
+                                onCreate = {
+                                    previousListRoute = currentRoute
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    currentRoute = AdminRoute.Form
+                                },
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Offers -> OfferScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.Offers -> {
+                            LaunchedEffect(Unit) { marketingViewModel.loadOffers() }
+                            OfferScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = marketingState.rawRows,
+                                    isLoading = marketingState.isLoading,
+                                    searchQuery = marketingState.searchQuery
+                                ),
+                                onSearch = marketingViewModel::setSearchQuery,
+                                onCreate = {
+                                    previousListRoute = currentRoute
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    currentRoute = AdminRoute.Form
+                                },
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Products -> ProductScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.Products -> {
+                            LaunchedEffect(Unit) { productViewModel.loadProducts() }
+                            ProductScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = productState.rawRows,
+                                    isLoading = productState.isLoading,
+                                    searchQuery = productState.searchQuery
+                                ),
+                                onSearch = productViewModel::setSearchQuery,
+                                onCreate = {
+                                    previousListRoute = currentRoute
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    currentRoute = AdminRoute.Form
+                                },
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Orders -> OrderScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onOrderDateChange = viewModel::updateOrderDateFilter,
-                            onOrderStatusFilterChange = viewModel::updateOrderStatusFilter,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOrderStatusChange = viewModel::updateOrderStatus,
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.Orders -> {
+                            LaunchedEffect(Unit) { orderViewModel.loadOrders() }
+                            OrderScreen(
+                                session = session,
+                                state = state.copy(
+                                    orders = orderState.orders,
+                                    rows = orderState.rawRows,
+                                    isLoading = orderState.isLoading,
+                                    searchQuery = orderState.searchQuery,
+                                    orderDateFilter = orderState.dateFilter,
+                                    orderStatusFilter = orderState.statusFilter
+                                ),
+                                onSearch = orderViewModel::setSearchQuery,
+                                onOrderDateChange = orderViewModel::setDateFilter,
+                                onOrderStatusFilterChange = orderViewModel::setStatusFilter,
+                                onCreate = {
+                                    previousListRoute = currentRoute
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    currentRoute = AdminRoute.Form
+                                },
+                                onOrderStatusChange = { row, status ->
+                                    orderViewModel.updateStatus(row["id"].toDisplayText(), status)
+                                },
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Customers -> CustomerScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                                row["id"]?.toDisplayText()?.let { viewModel.loadCustomerDetails(it) }
-                            }
-                        )
+                        currentRoute == AdminRoute.Customers -> {
+                            LaunchedEffect(Unit) { customerViewModel.loadCustomers() }
+                            CustomerScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = customerState.rawRows,
+                                    isLoading = customerState.isLoading,
+                                    searchQuery = customerState.searchQuery
+                                ),
+                                onSearch = customerViewModel::setSearchQuery,
+                                onCreate = {
+                                    previousListRoute = currentRoute
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    currentRoute = AdminRoute.Form
+                                },
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                    row["id"]?.toDisplayText()?.let { customerViewModel.loadCustomerDetails(it) }
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Reviews -> ReviewScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.Reviews -> {
+                            LaunchedEffect(Unit) { reviewViewModel.loadReviews() }
+                            ReviewScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = reviewState.rawRows,
+                                    isLoading = reviewState.isLoading,
+                                    searchQuery = reviewState.searchQuery
+                                ),
+                                onSearch = reviewViewModel::setSearchQuery,
+                                onCreate = {
+                                    previousListRoute = currentRoute
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    currentRoute = AdminRoute.Form
+                                },
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Employees -> EmployeeScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.Employees -> {
+                            LaunchedEffect(Unit) { teamViewModel.loadEmployees() }
+                            EmployeeScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = teamState.rawRows,
+                                    isLoading = teamState.isLoading,
+                                    searchQuery = teamState.searchQuery
+                                ),
+                                onSearch = teamViewModel::setSearchQuery,
+                                onCreate = {
+                                    previousListRoute = currentRoute
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    currentRoute = AdminRoute.Form
+                                },
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Outlets -> OutletScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.Outlets -> {
+                            LaunchedEffect(Unit) { outletViewModel.loadOutlets() }
+                            OutletScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = outletState.rawRows,
+                                    isLoading = outletState.isLoading,
+                                    searchQuery = outletState.searchQuery
+                                ),
+                                onSearch = outletViewModel::setSearchQuery,
+                                onCreate = {
+                                    previousListRoute = currentRoute
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    currentRoute = AdminRoute.Form
+                                },
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Payments -> PaymentScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.Payments -> {
+                            LaunchedEffect(Unit) { financeViewModel.loadPayments() }
+                            PaymentScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = financeState.rawRows,
+                                    isLoading = financeState.isLoading,
+                                    searchQuery = financeState.searchQuery
+                                ),
+                                onSearch = financeViewModel::setSearchQuery,
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Cart -> CartScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onSendOfferToAll = viewModel::sendOfferToCart,
-                            onSendFcm = viewModel::sendFcmToToken,
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.Cart -> {
+                            LaunchedEffect(Unit) { financeViewModel.loadCartItems() }
+                            CartScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = financeState.rawRows,
+                                    isLoading = financeState.isLoading,
+                                    searchQuery = financeState.searchQuery
+                                ),
+                                onSearch = financeViewModel::setSearchQuery,
+                                onSendOfferToAll = viewModel::sendOfferToCart,
+                                onSendFcm = viewModel::sendFcmToToken,
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.OutletMenu -> OutletMenuScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.OutletMenu -> {
+                            LaunchedEffect(Unit) { productViewModel.loadOutletMenu() }
+                            OutletMenuScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = productState.rawRows,
+                                    isLoading = productState.isLoading,
+                                    searchQuery = productState.searchQuery
+                                ),
+                                onSearch = productViewModel::setSearchQuery,
+                                onCreate = {
+                                    previousListRoute = currentRoute
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    currentRoute = AdminRoute.Form
+                                },
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.OrderItems -> OrderItemScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.OrderItems -> {
+                            LaunchedEffect(Unit) { orderViewModel.loadAllOrderItems() }
+                            OrderItemScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = orderState.rawRows,
+                                    isLoading = orderState.isLoading,
+                                    searchQuery = orderState.searchQuery
+                                ),
+                                onSearch = orderViewModel::setSearchQuery,
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.PunchReport -> PunchReportScreen(
-                            session = session,
-                            state = state,
-                            onSearch = viewModel::updateAttendanceSearch,
-                            onDateChange = viewModel::updateAttendanceDateFilter,
-                            onOutletChange = viewModel::updateAttendanceOutletFilter,
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.PunchReport -> {
+                            LaunchedEffect(Unit) { teamViewModel.loadAttendance() }
+                            PunchReportScreen(
+                                session = session,
+                                state = state.copy(
+                                    rows = teamState.rawRows,
+                                    isLoading = teamState.isLoading,
+                                    attendanceSearchQuery = teamState.attendanceSearchQuery,
+                                    attendanceDateFilter = teamState.attendanceDateFilter,
+                                    attendanceOutletFilter = teamState.attendanceOutletFilter
+                                ),
+                                onSearch = teamViewModel::setAttendanceSearch,
+                                onDateChange = teamViewModel::setAttendanceDateFilter,
+                                onOutletChange = teamViewModel::setAttendanceOutletFilter,
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
-                        currentRoute == AdminRoute.Categories -> BackOfficeListScreen(
-                            session = session,
-                            route = currentRoute,
-                            state = state,
-                            onSearch = viewModel::updateSearch,
-                            onOrderDateChange = viewModel::updateOrderDateFilter,
-                            onOrderStatusFilterChange = viewModel::updateOrderStatusFilter,
-                            onAttendanceDateChange = viewModel::updateAttendanceDateFilter,
-                            onAttendanceOutletChange = viewModel::updateAttendanceOutletFilter,
-                            onAttendanceSearch = viewModel::updateAttendanceSearch,
-                            onPunchIn = viewModel::punchIn,
-                            onPunchOut = viewModel::punchOut,
-                            onSendFcm = viewModel::sendFcmToToken,
-                            onSendOfferToAll = viewModel::sendOfferToCart,
-                            onCreate = {
-                                previousListRoute = currentRoute
-                                selectedRow = null
-                                formMode = FormMode.Create
-                                viewModel.startCreate()
-                                currentRoute = AdminRoute.Form
-                            },
-                            onOrderStatusChange = viewModel::updateOrderStatus,
-                            onOpenDetails = { row ->
-                                previousListRoute = currentRoute
-                                selectedRow = row
-                                currentRoute = AdminRoute.Details
-                            }
-                        )
+                        currentRoute == AdminRoute.Categories -> {
+                            LaunchedEffect(Unit) { productViewModel.loadCategories() }
+                            BackOfficeListScreen(
+                                session = session,
+                                route = currentRoute,
+                                state = state.copy(
+                                    rows = productState.rawRows,
+                                    isLoading = productState.isLoading,
+                                    searchQuery = productState.searchQuery
+                                ),
+                                onSearch = productViewModel::setSearchQuery,
+                                onOrderDateChange = viewModel::updateOrderDateFilter,
+                                onOrderStatusFilterChange = viewModel::updateOrderStatusFilter,
+                                onAttendanceDateChange = viewModel::updateAttendanceDateFilter,
+                                onAttendanceOutletChange = viewModel::updateAttendanceOutletFilter,
+                                onAttendanceSearch = viewModel::updateAttendanceSearch,
+                                onPunchIn = viewModel::punchIn,
+                                onPunchOut = viewModel::punchOut,
+                                onSendFcm = viewModel::sendFcmToToken,
+                                onSendOfferToAll = viewModel::sendOfferToCart,
+                                onCreate = {
+                                    previousListRoute = currentRoute
+                                    selectedRow = null
+                                    formMode = FormMode.Create
+                                    viewModel.startCreate()
+                                    currentRoute = AdminRoute.Form
+                                },
+                                onOrderStatusChange = viewModel::updateOrderStatus,
+                                onOpenDetails = { row ->
+                                    previousListRoute = currentRoute
+                                    selectedRow = row
+                                    currentRoute = AdminRoute.Details
+                                }
+                            )
+                        }
 
                         currentRoute == AdminRoute.Analytics -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Analytics Screen (Coming Soon)") }
                         currentRoute == AdminRoute.Notifications -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Notifications Screen (Coming Soon)") }
@@ -525,8 +667,8 @@ fun MainBackOfficeScreen(
                                 AdminRoute.Orders -> OrderDetailScreen(
                                     session = session,
                                     row = selectedRow,
-                                    orderItems = state.orderItemsByOrderId[selectedRow?.get("id").toDisplayText()].orEmpty(),
-                                    productsById = state.productsById,
+                                    orderItems = orderState.orderItemsByOrderId[selectedRow?.get("id").toDisplayText()].orEmpty(),
+                                    productsById = orderState.productsById,
                                     onEdit = {
                                         selectedRow?.let(viewModel::startEdit)
                                         formMode = FormMode.Edit
@@ -536,8 +678,8 @@ fun MainBackOfficeScreen(
                                 AdminRoute.Customers -> CustomerDetailScreen(
                                     session = session,
                                     row = selectedRow,
-                                    customerOrders = state.customerOrders,
-                                    customerCart = state.customerCart,
+                                    customerOrders = customerState.customerOrders,
+                                    customerCart = customerState.customerCart,
                                     onEdit = {
                                         selectedRow?.let(viewModel::startEdit)
                                         formMode = FormMode.Edit
@@ -719,10 +861,16 @@ fun MainBackOfficeScreen(
                             onPunchOut = viewModel::punchOut
                         )
 
-                        currentRoute == AdminRoute.Profile -> EmployeeProfileScreen(
-                            session = session,
-                            state = state
-                        )
+                        currentRoute == AdminRoute.Profile -> {
+                            LaunchedEffect(Unit) { dashboardViewModel.loadDashboardData() }
+                            EmployeeProfileScreen(
+                                session = session,
+                                state = state.copy(
+                                    dashboardRows = dashboardState.dashboardRows,
+                                    isLoading = dashboardState.isLoading
+                                )
+                            )
+                        }
 
                         else -> AccessDeniedView(currentRoute)
                     }
@@ -746,14 +894,14 @@ fun MainBackOfficeScreen(
                         onDismiss = { dismissedOrderIds = dismissedOrderIds + orderId },
                         onAccept = {
                             // Find the original JsonObject to update status
-                            state.dashboardRows["orders"]?.firstOrNull { it["id"].toDisplayText() == orderId }?.let { row ->
+                            state.pendingOrderRows.firstOrNull { it["id"].toDisplayText() == orderId }?.let { row ->
                                 viewModel.updateOrderStatus(row, "accepted")
 
                                 dismissedOrderIds = dismissedOrderIds + orderId
                             }
                         },
                         onView = {
-                            state.dashboardRows["orders"]?.firstOrNull { it["id"].toDisplayText() == orderId }?.let { row ->
+                            state.pendingOrderRows.firstOrNull { it["id"].toDisplayText() == orderId }?.let { row ->
                                 selectedRow = row
                                 previousListRoute = AdminRoute.Orders
                                 currentRoute = AdminRoute.Details

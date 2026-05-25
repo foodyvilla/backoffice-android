@@ -61,7 +61,7 @@ fun OrderListItem(
                     val grandTotal = order.grandTotal
                     if (grandTotal != null) {
                         Text(
-                            text = "Total: Rs ${grandTotal / 100.0}",
+                            text = "Total: Rs $grandTotal",
                             style = MaterialTheme.typography.bodyMedium,
                             color = StatusGreen,
                             fontWeight = FontWeight.ExtraBold

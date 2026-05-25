@@ -55,17 +55,25 @@ class AdminRepository(
         return loadTableRows(table)
     }
 
-    private suspend fun loadTableRows(table: AdminTable): List<JsonObject> {
-        val rows = supabase.from(table.name)
+    private suspend fun loadTableRows(table: AdminTable, dateFilter: String? = null): List<JsonObject> {
+        val query = supabase.from(table.name)
             .select(table.selectColumns()) {
                 order(table.orderBy, Order.DESCENDING)
+                if (table.name == "orders" && dateFilter != null) {
+                    filter {
+                        and {
+                            gte("created_at", "${dateFilter}T00:00:00")
+                            lte("created_at", "${dateFilter}T23:59:59")
+                        }
+                    }
+                }
             }
-            .decodeList<JsonObject>()
+        val rows = query.decodeList<JsonObject>()
         return scopeRows(table.name, rows).map { row -> row.withDisplayJoins(table.name) }
     }
 
     suspend fun loadOutlets() = loadTableRows(adminTables.first { it.name == "outlets" })
-    suspend fun loadOrders() = loadTableRows(adminTables.first { it.name == "orders" })
+    suspend fun loadOrders(dateFilter: String? = null) = loadTableRows(adminTables.first { it.name == "orders" }, dateFilter)
     suspend fun loadProductCatalog() = loadTableRows(adminTables.first { it.name == "product_catalog" })
     suspend fun loadUsers() = loadTableRows(adminTables.first { it.name == "users" })
     suspend fun loadCart() = loadTableRows(adminTables.first { it.name == "cart" })
@@ -231,9 +239,17 @@ class AdminRepository(
         return observeTableRows(table)
     }
 
-    private fun observeTableRows(table: AdminTable): Flow<Result<List<JsonObject>>> = callbackFlow {
+    private fun observeTableRows(table: AdminTable, dateFilter: String? = null): Flow<Result<List<JsonObject>>> = callbackFlow {
+        var currentData = emptyList<JsonObject>()
+
         suspend fun pushRows() {
-            trySend(runCatching { loadTableRows(table) })
+            try {
+                val newRows = loadTableRows(table, dateFilter)
+                currentData = newRows
+                trySend(Result.success(newRows))
+            } catch (e: Exception) {
+                trySend(Result.failure(e))
+            }
         }
 
         val channel = supabase.realtime.channel("backoffice-${table.name}-${UUID.randomUUID()}")
@@ -525,7 +541,7 @@ class AdminRepository(
             buildJsonObject {
                 put("order_id", orderId)
                 put("customer_id", userId)
-                put("amount", (totalOrderPrice * 100).toLong()) // Paise
+                put("amount", totalOrderPrice) // Stored as Rupees
                 put("payment_status", "captured")
                 put("payment_method", "cash")
                 put("currency", "INR")
@@ -643,7 +659,7 @@ class AdminRepository(
     suspend fun deletePayment(row: JsonObject) = deleteRow(adminTables.first { it.name == "payments" }, row)
 
     fun observeOutlets() = observeTableRows(adminTables.first { it.name == "outlets" })
-    fun observeOrders() = observeTableRows(adminTables.first { it.name == "orders" })
+    fun observeOrders(dateFilter: String? = null) = observeTableRows(adminTables.first { it.name == "orders" }, dateFilter)
     fun observeProductCatalog() = observeTableRows(adminTables.first { it.name == "product_catalog" })
     fun observeUsers() = observeTableRows(adminTables.first { it.name == "users" })
     fun observeCart() = observeTableRows(adminTables.first { it.name == "cart" })

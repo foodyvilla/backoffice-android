@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
+import java.text.SimpleDateFormat
+import java.util.*
 import org.koin.androidx.compose.koinViewModel
 
 data class AdminUiState(
@@ -34,11 +36,12 @@ data class AdminUiState(
     val productsById: Map<String, ProductCatalog> = emptyMap(),
     val customerOrders: List<Order> = emptyList(),
     val customerCart: List<Cart> = emptyList(),
-    val dashboardData: DashboardData = DashboardData(),
-    val dashboardRows: Map<String, List<JsonObject>> = emptyMap(),
     val lookupRows: Map<String, List<JsonObject>> = emptyMap(),
     val uploadingColumn: String? = null,
     val pendingOrders: List<Order> = emptyList(),
+    val pendingOrderRows: List<JsonObject> = emptyList(),
+    val dashboardData: DashboardData = DashboardData(emptyList(), emptyList(), emptyList(), emptyList()),
+    val dashboardRows: Map<String, List<JsonObject>> = emptyMap(),
     
     // Filters
     val orderDateFilter: String? = null, // yyyy-MM-dd
@@ -74,19 +77,24 @@ class AdminViewModel(
     private var globalOrdersJob: Job? = null
 
     init {
-        selectTable(adminTables.first())
+        // selectTable(adminTables.first()) // Removed to avoid loading data at once
         startGlobalOrderObservation()
     }
 
     private fun startGlobalOrderObservation() {
         globalOrdersJob?.cancel()
         globalOrdersJob = viewModelScope.launch {
-            repository.observeOrders().collect { result ->
+            val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            repository.observeOrders(today).collect { result ->
                 result.onSuccess { allOrders ->
-                    val pending = allOrders.mapNotNull { runCatching { it.toModel<Order>() }.getOrNull() }.filter {
-                        (it.status.lowercase() == "pending" || it.status.lowercase() == "placed") && it.acceptedBy == null
+                    val pendingRows = allOrders.filter { row ->
+                        val status = row["status"].toDisplayText().lowercase()
+                        val acceptedBy = row["accepted_by"]
+                        (status == "pending" || status == "placed") && (acceptedBy == null || acceptedBy is kotlinx.serialization.json.JsonNull)
                     }
-                    _uiState.update { it.copy(pendingOrders = pending) }
+                    val pending = pendingRows.mapNotNull { runCatching { it.toModel<Order>() }.getOrNull() }
+                    
+                    _uiState.update { it.copy(pendingOrders = pending, pendingOrderRows = pendingRows) }
                     
                     if (pending.isNotEmpty()) {
                         loadOrderItemsFor(allOrders)
@@ -106,6 +114,12 @@ class AdminViewModel(
         if (current.selectedTable.name == table.name && observeJob?.isActive == true) return
 
         observeJob?.cancel()
+        
+        // Default to today's date for orders if not already filtered
+        val initialOrderDate = if (table.name == "orders") {
+            current.orderDateFilter ?: SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        } else null
+
         _uiState.update {
             it.copy(
                 selectedTable = table,
@@ -117,14 +131,15 @@ class AdminViewModel(
                 formValues = repository.toEditableValues(table, null),
                 searchQuery = "",
                 orderItemsByOrderId = emptyMap(),
-                productsById = emptyMap()
+                productsById = emptyMap(),
+                orderDateFilter = initialOrderDate
             )
         }
         loadLookupsFor(table)
         observeJob = viewModelScope.launch {
             val flow = when (table.name) {
                 "outlets" -> repository.observeOutlets()
-                "orders" -> repository.observeOrders()
+                "orders" -> repository.observeOrders(_uiState.value.orderDateFilter)
                 "product_catalog" -> repository.observeProductCatalog()
                 "users" -> repository.observeUsers()
                 "cart" -> repository.observeCart()
@@ -161,7 +176,7 @@ class AdminViewModel(
                         if (table.name == "orders") {
                             loadOrderItemsFor(rows)
                         }
-                        loadDashboardRows()
+                        // loadDashboardRows() // Removed as it is now in DashboardViewModel
                     },
                     onFailure = { throwable ->
                         _uiState.update {
@@ -178,12 +193,13 @@ class AdminViewModel(
 
     fun refresh() {
         val table = _uiState.value.selectedTable
+        val dateFilter = _uiState.value.orderDateFilter
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             runCatching {
                 when (table.name) {
                     "outlets" -> repository.loadOutlets()
-                    "orders" -> repository.loadOrders()
+                    "orders" -> repository.loadOrders(dateFilter)
                     "product_catalog" -> repository.loadProductCatalog()
                     "users" -> repository.loadUsers()
                     "cart" -> repository.loadCart()
@@ -261,6 +277,10 @@ class AdminViewModel(
 
     fun updateOrderDateFilter(date: String?) {
         _uiState.update { it.copy(orderDateFilter = date) }
+        // Re-observe with new date filter
+        if (_uiState.value.selectedTable.name == "orders") {
+            selectTable(_uiState.value.selectedTable)
+        }
     }
 
     fun updateOrderStatusFilter(status: String?) {
@@ -587,32 +607,6 @@ class AdminViewModel(
 
     fun clearMessage() {
         _uiState.update { it.copy(error = null, successMessage = null) }
-    }
-
-    private fun loadDashboardRows() {
-        viewModelScope.launch {
-            val orders = runCatching { repository.loadOrders() }.getOrDefault(emptyList())
-            val products = runCatching { repository.loadProductCatalog() }.getOrDefault(emptyList())
-            val users = runCatching { repository.loadUsers() }.getOrDefault(emptyList())
-            val orderItems = runCatching { repository.loadOrderItems() }.getOrDefault(emptyList())
-
-            val data = DashboardData(
-                orders = orders.mapNotNull { runCatching { it.toModel<Order>() }.getOrNull() },
-                orderItems = orderItems.mapNotNull { runCatching { it.toModel<OrderItem>() }.getOrNull() },
-                products = products.mapNotNull { runCatching { it.toModel<ProductCatalog>() }.getOrNull() },
-                users = users.mapNotNull { runCatching { it.toModel<User>() }.getOrNull() }
-            )
-            val rowsByTable = mapOf(
-                "orders" to orders,
-                "product_catalog" to products,
-                "users" to users,
-                "order_items" to orderItems,
-                "employee" to runCatching { repository.loadEmployees() }.getOrDefault(emptyList()),
-                "outlets" to runCatching { repository.loadOutlets() }.getOrDefault(emptyList()),
-                "attendance" to runCatching { repository.loadAttendance() }.getOrDefault(emptyList())
-            )
-            _uiState.update { it.copy(dashboardData = data, dashboardRows = rowsByTable) }
-        }
     }
 
     private fun loadLookupsFor(table: AdminTable) {
