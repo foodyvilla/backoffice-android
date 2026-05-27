@@ -28,8 +28,11 @@ import com.jp.foodyvilla_backoffice.data.repository.SupabaseOrderWorkflowReposit
 import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingRepository
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingViewModel
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewOrdersManagementRepository
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.UnifiedOrderControlViewModel
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.NewOrdersManagementRepository
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ProductCatalogRepository
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
+
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.AdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.DashboardViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.customers.CustomerViewModel
@@ -172,9 +175,14 @@ val appModule = module{
     singleOf(::NewOrdersManagementRepository)
     viewModelOf(::UnifiedOrderControlViewModel)
 
+
     // 3. Jetpack Architecture ViewModels
-
-
+    single { ProductCatalogRepository(supabase = get()) }
+    viewModel {
+        ProductCatalogViewModel(
+           get()
+        )
+    }
     singleOf(::MarketingRepository)
 
     // 2. Lifecycle-Aware Jetpack Scoped Architecture ViewModel

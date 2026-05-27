@@ -1,6 +1,21 @@
-package com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders
+package com.jp.foodyvilla_backoffice.data.new_backoffice.repo
 
 import android.util.Log
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.EmployeeIdLookupResponse
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewCategoryResponse
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewCategoryUiModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewCustomerResponse
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewCustomerUiModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewDetailedOrderUiModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewOrderType
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewOrderUiModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewOutletMenuResponse
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewOutletMenuUiModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewSelectedMenuItem
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OrderListResponse
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletDropdownUiModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletListResponse
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.toUiModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.from
@@ -11,6 +26,8 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import io.ktor.utils.io.InternalAPI
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -19,6 +36,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
@@ -55,36 +73,45 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
         isOwner: Boolean,
         filterDate: LocalDate = LocalDate.now()
     ): List<NewDetailedOrderUiModel> {
-        // Enforce strict client-side role validation barrier gating
         if (!isOwner && outletId == null) {
-            Log.w(TAG, "Gating boundary triggered: Employee profile lacks assigned branch ID location properties.")
+            Log.w(TAG, "Gating boundary triggered: Employee profile lacks assigned branch ID.")
             return emptyList()
         }
 
         return try {
-            val isoStartOfDayString = filterDate.atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + "Z"
-            val isoEndOfDayString = filterDate.plusDays(1).atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + "Z"
+            // 1. Calculate the start and end of the local day using the system's timezone context
+            val localZoneId = ZoneId.systemDefault() // Resolves to 'Asia/Kolkata' or device default
+
+            // Convert local midnight to an absolute UTC Instant snapshot
+            val startUtcInstant = filterDate.atStartOfDay(localZoneId).toInstant()
+            // Convert the next day's local midnight to an absolute UTC Instant snapshot
+            val endUtcInstant = filterDate.plusDays(1).atStartOfDay(localZoneId).toInstant()
+
+            // 2. Format into true, correctly converted UTC ISO-8601 strings
+            val isoStartInUtcString = DateTimeFormatter.ISO_INSTANT.format(startUtcInstant)
+            val isoEndInUtcString = DateTimeFormatter.ISO_INSTANT.format(endUtcInstant)
+
+            Log.d(TAG, "Querying window: Local Date $filterDate -> UTC Bounds: [$isoStartInUtcString] to [$isoEndInUtcString]")
 
             supabase.from("orders").select(
                 Columns.raw(
                     """
-                    *,
-                    order_items (
-                        menu_item_id, qty, price_per_item, total_price,
-                        outlet_menu_items ( product_catalog ( name ) )
-                    )
-                    """.trimIndent()
+                *,
+                order_items (
+                    menu_item_id, qty, price_per_item, total_price,
+                    outlet_menu_items ( product_catalog ( name ) )
+                )
+                """.trimIndent()
                 )
             ) {
-                // Apply outlet constraint dynamically based on authorization layers
                 if (outletId != null) {
                     filter { eq("outlet_id", outletId) }
                 }
 
-                // Enforce time boundary range parameters
+                // Enforce mathematically correct UTC timestamp range boundaries
                 filter {
-                    gte("created_at", isoStartOfDayString)
-                    lt("created_at", isoEndOfDayString)
+                    gte("created_at", isoStartInUtcString)
+                    lt("created_at", isoEndInUtcString)
                 }
 
                 order("created_at", order = Order.DESCENDING)
@@ -149,7 +176,12 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
         return try {
             supabase.from("outlets").select {
                 filter { eq("is_active", true) }
-            }.decodeList<OutletListResponse>().map { OutletDropdownUiModel(id = it.id, name = it.name) }
+            }.decodeList<OutletListResponse>().map {
+                OutletDropdownUiModel(
+                    id = it.id,
+                    name = it.name
+                )
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error resolving outlets drop down items: ${e.message}")
             emptyList()
@@ -175,7 +207,13 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
         return try {
             supabase.from("categories").select {
                 filter { eq("is_active", true) }
-            }.decodeList<NewCategoryResponse>().map { NewCategoryUiModel(id = it.id, name = it.name, emoji = it.emoji) }
+            }.decodeList<NewCategoryResponse>().map {
+                NewCategoryUiModel(
+                    id = it.id,
+                    name = it.name,
+                    emoji = it.emoji
+                )
+            }
         } catch (e: Exception) {
             emptyList()
         }
@@ -197,7 +235,7 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
     @OptIn(InternalAPI::class)
     suspend fun updateOrderDetails(
         orderId: String, status: String, address: String, instruction: String,
-        orderType: String, outletId: Long, customerPhone: String
+        orderType: String, outletId: Long, customerPhone: String,  internalEmpId: Long?
     ) {
         try {
             val payload = buildJsonObject {
@@ -205,6 +243,8 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
                 put("address", address)
                 put("instruction", instruction)
                 put("order_type", orderType.lowercase().trim())
+                if (internalEmpId != null) put("accepted_by", internalEmpId)
+
             }
 
             // 1. Commit Update payload fields properties changes
@@ -266,49 +306,111 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
     ): NewOrderUiModel {
         val orderId = UUID.randomUUID().toString()
         val total = items.sumOf { it.totalPrice }
+        val scope = CoroutineScope(Dispatchers.Default)
+        Log.d(TAG, "Starting placeOrder sequence for Outlet ID: $outletId, Order ID: $orderId, Items Count: ${items.size}")
 
-        supabase.from("orders").insert(buildJsonObject {
-            put("id", orderId)
-            put("outlet_id", outletId)
-            put("customer_id", customer?.id)
-            put("customer_name", customer?.name ?: "Walk-in Customer")
-            put("phone", phone)
-            put("status", "pending")
-            put("order_type", orderType.name.lowercase())
-            put("address", address)
-            put("instruction", instruction)
-            if (internalEmpId != null) put("accepted_by", internalEmpId)
-        })
-
-        items.forEach { item ->
-            supabase.from("order_items").insert(buildJsonObject {
-                put("order_id", orderId)
-                put("menu_item_id", item.menuItemId)
-                put("qty", item.qty)
-                put("price_per_item", item.price)
-                put("total_price", item.totalPrice)
-                put("total_discount", 0)
+        return try {
+            // ====================================================
+            // STEP 1: INSERT INTO public.orders TABLE
+            // ====================================================
+            Log.d(TAG, "Step 1: Preparing to insert core order structure row metadata...")
+            supabase.from("orders").insert(buildJsonObject {
+                put("id", orderId)
+                put("outlet_id", outletId)
+                put("customer_id", customer?.id)
+                put("customer_name", customer?.name ?: "Walk-in Customer")
+                put("phone", phone)
+                put("status", "placed")
+                put("order_type", orderType.name.lowercase())
+                put("address", address)
+                put("instruction", instruction)
+                if (internalEmpId != null) put("accepted_by", internalEmpId)
             })
+            Log.d(TAG, "Step 1 Success: Core order entry written cleanly into database.")
+
+            // ====================================================
+            // STEP 2: INSERT BATCH ITEMS INTO public.order_items TABLE
+            // ====================================================
+            Log.d(TAG, "Step 2: Preparing to batch insert item allocations into order_items table...")
+            items.forEachIndexed { index, item ->
+                Log.v(TAG, "Batching item index [$index] -> Menu Item ID: ${item.menuItemId}, Qty: ${item.qty}")
+                supabase.from("order_items").insert(buildJsonObject {
+                    put("order_id", orderId)
+                    put("menu_item_id", item.menuItemId)
+                    put("qty", item.qty)
+                    put("price_per_item", item.price)
+                    put("total_price", item.totalPrice)
+                    put("total_discount", 0)
+                })
+            }
+            Log.d(TAG, "Step 2 Success: All batch items registered successfully.")
+
+            // ====================================================
+            // STEP 3: FINANCIAL CALCULATIONS & PAISA CONVERSION
+            // ====================================================
+            Log.d(TAG, "Step 3: Executing itemized invoicing and tax ratio computations...")
+            val packagingFee = 15.0
+            val gstCalculatedTax = total * 0.05 // 5% uniform GST allocation split
+            val riderLogisticsFee = if (orderType == NewOrderType.DELIVERY) 30.0 else 0.0
+            val grandTotalInRupees = total + packagingFee + gstCalculatedTax + riderLogisticsFee
+
+            // FIXED 22P02: Absolute whole numerical Paisa value to match integer BigInt specifications
+            val totalAmountInPaisa = (grandTotalInRupees * 100).toLong()
+            Log.v(TAG, "Calculated Subtotal: ₹$total, Grand Total: ₹$grandTotalInRupees -> Parsed BigInt: $totalAmountInPaisa Paisa")
+
+            // ====================================================
+            // STEP 4: INSERT TRANSACTION INTO public.payments TABLE
+            // ====================================================
+            Log.d(TAG, "Step 4: Compiling transactional record for payments table matrix...")
+            supabase.from("payments").insert(buildJsonObject {
+                put("order_id", orderId)
+                put("customer_id", customer?.id)
+                put("amount", totalAmountInPaisa) // Dispatched as safe bigint numeric payload data structures
+                put("payment_status", "created")
+                put("payment_method", "cash")
+            })
+            Log.d(TAG, "Step 4 Success: Payment transaction row finalized.")
+
+            // ====================================================
+            // STEP 5: TRIGGER MULTI-CHANNEL SERVICE NOTIFICATIONS
+            // ====================================================
+            Log.d(TAG, "Step 5: Invoking remote Edge Functions cloud message brokers pipelines...")
+
+            // Channel A: Notify Kitchen Workspace Instance Terminal
+            scope.launch {
+                runCatching {
+                    triggerOutletEdgeNotification(outletId, orderId, "New counter POS placement receipt recorded.")
+                    Log.i(TAG, "Notification Channel A Success: Outlet terminal alerted.")
+                }.onFailure { err ->
+                    Log.e(TAG, "Notification Channel A Warning: Failed to trigger outlet function: ${err.message}")
+                }
+            }
+
+            // Channel B: Notify Customer Client FCM Instance Token
+            customer?.fcmToken?.let { token ->
+                scope.launch {
+                    runCatching {
+                        triggerFcmUpdateNotification(token, "Order Received! 🍔", "Your counter checkout order has cleared successfully.")
+                        Log.i(TAG, "Notification Channel B Success: Customer client push dispatch completed.")
+                    }.onFailure { err ->
+                        Log.e(TAG, "Notification Channel B Warning: Failed to dispatch customer FCM: ${err.message}")
+                    }
+                }
+            }
+
+            Log.i(TAG, "Checkout workflow finalized smoothly for Order ID: $orderId. Returning response model.")
+            NewOrderUiModel(
+                orderId = orderId,
+                customerName = customer?.name ?: "Walk-in Customer",
+                phone = phone,
+                orderType = orderType.name,
+                items = items,
+                totalAmount = grandTotalInRupees
+            )
+
+        } catch (e: Exception) {
+            Log.e(TAG, "CRITICAL ERROR: Transaction sequence rolled back/failed for Order ID: $orderId. Reason: ${e.message}", e)
+            throw e // Relaunch up to the lifecycle viewModel Scope handler wrapper layers cleanly
         }
-
-        supabase.from("payments").insert(buildJsonObject {
-            put("order_id", orderId)
-            put("customer_id", customer?.id)
-            put("amount", total)
-            put("payment_status", "created")
-            put("payment_method", "cash")
-        })
-
-        // Fire real-time Edge functions pipelines
-        triggerOutletEdgeNotification(outletId, orderId, "New counter POS placement receipt recorded.")
-
-        customer?.fcmToken?.let { token ->
-            triggerFcmUpdateNotification(token, "Order Received! 🍔", "Your counter checkout order has cleared successfully.")
-        }
-
-        return NewOrderUiModel(
-            orderId = orderId, customerName = customer?.name ?: "Walk-in Customer",
-            phone = phone, orderType = orderType.name, items = items, totalAmount = total
-        )
     }
 }

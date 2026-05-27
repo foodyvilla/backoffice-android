@@ -1,6 +1,30 @@
 package com.jp.foodyvilla_backoffice.presentation.new_backoffice
 
-import androidx.compose.foundation.layout.*
+// ==========================================
+// Dashboard Interception Overlay Component 
+// ==========================================
+import android.media.Ringtone
+import android.media.RingtoneManager
+import android.net.Uri
+import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,18 +32,42 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewDetailedOrderUiModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
 
-// ==========================================
-// Dashboard Interception Overlay Component 
-// ==========================================
 
 @Composable
 fun HandleRealTimeInterceptedOrders(
@@ -27,32 +75,190 @@ fun HandleRealTimeInterceptedOrders(
     onViewOrderDetailsAction: (NewDetailedOrderUiModel) -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val androidContext = LocalContext.current
 
-    state.realTimeIncomingInterceptedOrder?.let { incomingOrder ->
-        AlertDialog(
-            onDismissRequest = { viewModel.dismissIncomingInterceptedDialog() },
-            icon = { Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("Incoming Pending Order Received", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Customer: ${incomingOrder.customerName}", fontWeight = FontWeight.SemiBold)
-                    Text("Type: ${incomingOrder.orderType} • Amount: ₹${incomingOrder.totalAmount}")
-                    Text("Destination: ${incomingOrder.address.ifBlank { "Counter / Dine-In" }}", style = MaterialTheme.typography.bodySmall)
-                }
-            },
-            confirmButton = {
-                Button(onClick = { viewModel.acceptInterceptedOrder(incomingOrder.id) }) { Text("Accept Order") }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = { 
-                        viewModel.dismissIncomingInterceptedDialog()
-                        onViewOrderDetailsAction(incomingOrder)
-                    }) { Text("View Order Details") }
-                    TextButton(onClick = { viewModel.dismissIncomingInterceptedDialog() }) { Text("Dismiss", color = MaterialTheme.colorScheme.error) }
+    // 1. Local state persistence tracking IDs skipped by the active supervisor session
+    var dismissedOrderIds by remember { mutableStateOf(setOf<String>()) }
+
+    // 2. Clear out memory maps cleanly if active orders dataset drops to zero (e.g., date shift)
+    LaunchedEffect(state.orders) {
+        if (state.orders.isEmpty()) {
+            dismissedOrderIds = emptySet()
+        }
+    }
+
+    // Isolate active candidates that match alert parameters AND haven't been dismissed locally yet
+    val visibleAlertQueue = remember(state.orders, dismissedOrderIds) {
+        state.orders.filter { order ->
+            val isTargetStatus = order.status.lowercase() == "pending" || order.status.lowercase() == "placed"
+            isTargetStatus && order.id !in dismissedOrderIds
+        }
+    }
+
+    // Select the top item from our filtered queue stream matrices
+    val currentActiveAlert = visibleAlertQueue.firstOrNull()
+
+    // 3. Audio Chime Component management setup
+    val shortNotificationChime: Ringtone? = remember(androidContext) {
+        runCatching {
+            val chimeUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            RingtoneManager.getRingtone(androidContext, chimeUri)
+        }.getOrNull()
+    }
+
+    // Play a single clean chime automatically every time a brand new row advances to the front of the line
+    LaunchedEffect(currentActiveAlert?.id) {
+        currentActiveAlert?.let {
+            runCatching {
+                if (shortNotificationChime != null && !shortNotificationChime.isPlaying) {
+                    shortNotificationChime.play()
                 }
             }
-        )
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (shortNotificationChime != null && shortNotificationChime.isPlaying) {
+                shortNotificationChime.stop()
+            }
+        }
+    }
+
+    // ====================================================
+    // TOP ANCHORED STREAM VIEW TOAST BANNER OVERLAY
+    // ====================================================
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        AnimatedVisibility(
+            visible = currentActiveAlert != null,
+            enter = slideInVertically { -it } + fadeIn(),
+            exit = slideOutVertically { -it } + fadeOut()
+        ) {
+            currentActiveAlert?.let { activeOrder ->
+                // Safely summarize quantitative details directly from domain models arrays
+                val dynamicTotalItemCount = activeOrder.items.sumOf { it.qty }
+
+                ElevatedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 12.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "New Order: ${activeOrder.customerName}",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            Surface(
+                                color = if (activeOrder.status.lowercase() == "placed")
+                                    MaterialTheme.colorScheme.primaryContainer
+                                else
+                                    MaterialTheme.colorScheme.tertiaryContainer,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = activeOrder.status.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = "${activeOrder.orderType} • Items Count: $dynamicTotalItemCount • Total: ₹${activeOrder.totalAmount}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Loc: ${activeOrder.address.ifBlank { "Counter / Dine-In POS" }}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // DISMISS ACTION: Adds active reference to hash filter list -> advances queue instantly
+                            TextButton(
+                                onClick = {
+                                    dismissedOrderIds = dismissedOrderIds + activeOrder.id
+                                },
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                Text("Dismiss", style = MaterialTheme.typography.labelLarge)
+                            }
+
+                            // DETAILS VIEW ACTION
+                            TextButton(
+                                onClick = {
+                                    dismissedOrderIds = dismissedOrderIds + activeOrder.id
+                                    onViewOrderDetailsAction(activeOrder)
+                                },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                Text("Details", style = MaterialTheme.typography.labelLarge)
+                            }
+
+                            Spacer(modifier = Modifier.width(4.dp))
+
+                            // ACCEPT ACTION: Updates PostgreSQL remote record status inline safely
+                            FilledTonalButton(
+                                onClick = {
+                                    viewModel.modifyOrderStatusCardInline(activeOrder.id, "accepted")
+                                    dismissedOrderIds = dismissedOrderIds + activeOrder.id
+                                },
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Accept", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

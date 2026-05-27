@@ -885,29 +885,29 @@ fun MainBackOfficeScreen(
                     val orderId = order.id ?: ""
                     val items = state.orderItemsByOrderId[orderId].orEmpty()
                     
-                    GlobalOrderNotification(
-                        title = "New Order Received!",
-                        orderId = orderId,
-                        customerName = order.customerName ?: "Customer",
-                        itemCount = items.sumOf { it.qty }.toInt().toString(),
-                        amount = "Rs %.0f".format(items.sumOf { it.totalPrice }),
-                        onDismiss = { dismissedOrderIds = dismissedOrderIds + orderId },
-                        onAccept = {
-                            // Find the original JsonObject to update status
-                            state.pendingOrderRows.firstOrNull { it["id"].toDisplayText() == orderId }?.let { row ->
-                                viewModel.updateOrderStatus(row, "accepted")
-
-                                dismissedOrderIds = dismissedOrderIds + orderId
-                            }
-                        },
-                        onView = {
-                            state.pendingOrderRows.firstOrNull { it["id"].toDisplayText() == orderId }?.let { row ->
-                                selectedRow = row
-                                previousListRoute = AdminRoute.Orders
-                                currentRoute = AdminRoute.Details
-                            }
-                        }
-                    )
+//                    GlobalOrderNotification(
+//                        title = "New Order Received!",
+//                        orderId = orderId,
+//                        customerName = order.customerName ?: "Customer",
+//                        itemCount = items.sumOf { it.qty }.toInt().toString(),
+//                        amount = "Rs %.0f".format(items.sumOf { it.totalPrice }),
+//                        onDismiss = { dismissedOrderIds = dismissedOrderIds + orderId },
+//                        onAccept = {
+//                            // Find the original JsonObject to update status
+//                            state.pendingOrderRows.firstOrNull { it["id"].toDisplayText() == orderId }?.let { row ->
+//                                viewModel.updateOrderStatus(row, "accepted")
+//
+//                                dismissedOrderIds = dismissedOrderIds + orderId
+//                            }
+//                        },
+//                        onView = {
+//                            state.pendingOrderRows.firstOrNull { it["id"].toDisplayText() == orderId }?.let { row ->
+//                                selectedRow = row
+//                                previousListRoute = AdminRoute.Orders
+//                                currentRoute = AdminRoute.Details
+//                            }
+//                        }
+//                    )
                 }
             }
         }

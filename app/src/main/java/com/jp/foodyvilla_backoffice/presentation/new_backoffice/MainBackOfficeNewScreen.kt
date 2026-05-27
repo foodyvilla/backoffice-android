@@ -5,13 +5,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -37,12 +38,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingTabsDashboardScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ProductCatalogManagementScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ProductCategoryManagementScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.BackOfficeRoute
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ScreenDestinations
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.chefDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.employeeDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.headDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ownerDrawerItems
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
 
 import kotlinx.coroutines.launch
@@ -51,10 +56,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun NewBackOfficeNavigationScreen(
     loginViewModel: LoginViewModel,
-    marketingViewModel : MarketingViewModel,
+    marketingViewModel: MarketingViewModel,
     unifiedViewModel: UnifiedOrderControlViewModel,
-    navController : NavController
-    ) {
+    navController: NavController,
+    productCatalogViewModel: ProductCatalogViewModel
+) {
     val userSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
 
     val drawerItems = remember(userSession?.role()) {
@@ -87,7 +93,7 @@ fun NewBackOfficeNavigationScreen(
 
             Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.8f).background(MaterialTheme.colorScheme.surface)
+                    .fillMaxWidth(0.8f).fillMaxHeight().background(MaterialTheme.colorScheme.surface)
                     .padding(top = 24.dp)
             ) {
 
@@ -159,7 +165,7 @@ fun NewBackOfficeNavigationScreen(
                         ) {
 
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
                                 contentDescription = null
                             )
                         }
@@ -217,16 +223,12 @@ fun NewBackOfficeNavigationScreen(
 
                     BackOfficeRoute.Products -> {
 
-                        DashboardPlaceholderScreen(
-                            title = "Products"
-                        )
+                        ProductCatalogManagementScreen(viewModel =  productCatalogViewModel)
                     }
 
                     BackOfficeRoute.Categories -> {
 
-                        DashboardPlaceholderScreen(
-                            title = "Categories"
-                        )
+                        ProductCategoryManagementScreen(viewModel = productCatalogViewModel)
                     }
 
                     BackOfficeRoute.Customers -> {
@@ -331,9 +333,17 @@ fun NewBackOfficeNavigationScreen(
                         loginViewModel.logout()
                     }
                 }
+
+                HandleRealTimeInterceptedOrders(viewModel  = unifiedViewModel){order->
+                    navController.navigate(ScreenDestinations.OrderDetails(order.id))
+                }
             }
         }
+
     }
+
+
+
 }
 
 @Composable

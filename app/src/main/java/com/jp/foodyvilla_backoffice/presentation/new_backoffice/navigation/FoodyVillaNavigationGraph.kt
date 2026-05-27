@@ -6,14 +6,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.jp.foodyvilla_backoffice.presentation.navigation.Screen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewBackOfficeNavigationScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewCreateOrderScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewOrderDetailsScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEditBannerFormScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEditOfferFormScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingViewModel
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.UnifiedOrderControlViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.login.BackOfficeLoginScreen
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.splash.SplashScreen
@@ -25,6 +25,7 @@ fun NewFoodyVillaNavGraph() {
     val loginViewModel = koinViewModel<LoginViewModel>()
     val marketingViewModel = koinViewModel<MarketingViewModel>()
     val unifiedViewModel = koinViewModel<UnifiedOrderControlViewModel>()
+    val productCatalogViewModel = koinViewModel<ProductCatalogViewModel>()
     val currentSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
     NavHost(
         navController = navController,
@@ -39,6 +40,19 @@ fun NewFoodyVillaNavGraph() {
             )
         }
 
+        composable<ScreenDestinations.BackOfficeLogin> {
+
+            BackOfficeLoginScreen(
+                loginViewModel = loginViewModel,
+                onLoginSuccess = {
+                    navController.navigate(ScreenDestinations.BackOffice) {
+                        popUpTo(ScreenDestinations.BackOfficeLogin) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
 
 
 
@@ -47,8 +61,8 @@ fun NewFoodyVillaNavGraph() {
                 BackOfficeLoginScreen(
                     loginViewModel = loginViewModel,
                     onLoginSuccess = {
-                        navController.navigate(Screen.BackOffice) {
-                            popUpTo(Screen.BackOfficeLogin) {
+                        navController.navigate(ScreenDestinations.BackOffice) {
+                            popUpTo(ScreenDestinations.BackOfficeLogin) {
                                 inclusive = true
                             }
                         }
@@ -60,6 +74,7 @@ fun NewFoodyVillaNavGraph() {
                     loginViewModel = loginViewModel,
                     marketingViewModel = marketingViewModel,
                     unifiedViewModel = unifiedViewModel,
+                    productCatalogViewModel  = productCatalogViewModel,
                     navController = navController
                 )
 

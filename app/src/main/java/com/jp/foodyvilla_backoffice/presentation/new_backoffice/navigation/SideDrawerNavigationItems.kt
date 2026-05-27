@@ -358,9 +358,21 @@ val employeeDrawerItems = listOf(
     ),
 
     BackOfficeDrawerItem(
+        icon = Icons.Default.RestaurantMenu,
+        route = BackOfficeRoute.OutletMenu,
+        name = "Outlet Menu"
+    ),
+
+    BackOfficeDrawerItem(
         icon = Icons.Default.Fastfood,
         route = BackOfficeRoute.CreateOrder,
         name = "Create Order"
+    ),
+
+    BackOfficeDrawerItem(
+        icon = Icons.Default.Inventory2,
+        route = BackOfficeRoute.Products,
+        name = "Products"
     ),
 
     BackOfficeDrawerItem(

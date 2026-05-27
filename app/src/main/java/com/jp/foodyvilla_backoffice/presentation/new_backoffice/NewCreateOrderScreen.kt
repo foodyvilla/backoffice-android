@@ -1,5 +1,10 @@
 package com.jp.foodyvilla_backoffice.presentation.new_backoffice
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +24,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.NewOrderType
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,10 +36,16 @@ fun NewCreateOrderScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Local variable to safely format national mobile prefixes
     var rawPhoneInput by remember { mutableStateOf("") }
 
-    // Intercept checkout dialog confirmations and navigate back to root dashboard cleanly
+    // Track manually entered names for new customers
+    var customCustomerNameInput by remember { mutableStateOf("") }
+
+    // Synchronize or clear manual text inputs if the phone sequence drops below 10 digits
+    LaunchedEffect(state.resolvedCustomer) {
+        customCustomerNameInput = state.resolvedCustomer?.name ?: ""
+    }
+
     state.summaryPendingDialogOrder?.let { pendingSummary ->
         AlertDialog(
             onDismissRequest = viewModel::dismissSummaryDialog,
@@ -89,30 +101,64 @@ fun NewCreateOrderScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    
-                    OutlinedTextField(
-                        value = rawPhoneInput,
-                        onValueChange = { input ->
-                            // Strip any accidental non-numeric configurations
-                            val cleanDigits = input.filter { it.isDigit() }
-                            if (cleanDigits.length <= 10) {
-                                rawPhoneInput = cleanDigits
-                                // Dispatch formatted +91 backend lookup when exactly 10 digits are written
-                                if (cleanDigits.length == 10) {
-                                    viewModel.updateCustomerPhone("+91$cleanDigits")
-                                } else {
-                                    // Reset customer data if number is cleared or incomplete
-                                    viewModel.updateCustomerPhone("")
+
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = rawPhoneInput,
+                            onValueChange = { input ->
+                                val cleanDigits = input.filter { it.isDigit() }
+                                if (cleanDigits.length <= 10) {
+                                    rawPhoneInput = cleanDigits
+                                    if (cleanDigits.length == 10) {
+                                        viewModel.updateCustomerPhone("+91$cleanDigits")
+                                    } else {
+                                        viewModel.updateCustomerPhone("")
+                                        customCustomerNameInput = ""
+                                    }
                                 }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Mobile Phone Number") },
-                        prefix = { Text("+91 ") },
-                        placeholder = { Text("Enter 10-digit number") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                        singleLine = true
-                    )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Mobile Phone Number") },
+                            prefix = { Text("+91 ") },
+                            placeholder = { Text("Enter 10-digit number") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            singleLine = true
+                        )
+
+                        // DYNAMIC LOGICAL FIELD: Name Input area opens smoothly only when a 10-digit phone is ready
+                        AnimatedVisibility(
+                            visible = rawPhoneInput.length == 10,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            val isExistingCustomer = state.resolvedCustomer != null
+
+                            OutlinedTextField(
+                                value = customCustomerNameInput,
+                                onValueChange = { typedName ->
+                                    if (!isExistingCustomer) {
+                                        customCustomerNameInput = typedName
+                                        // Update local state engine mock model so checkout catches the custom entry string
+                                        viewModel.updateCustomCustomerName(typedName)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = {
+                                    Text(
+                                        if (isExistingCustomer) "Customer Profile Name (Saved)"
+                                        else "Enter Walk-In Customer Name"
+                                    )
+                                },
+                                placeholder = { Text("e.g. Ramesh Kumar") },
+                                readOnly = isExistingCustomer, // Locked if profile already exists in DB
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = if (isExistingCustomer) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = if (isExistingCustomer) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface
+                                )
+                            )
+                        }
+                    }
                 }
 
                 // Customer Info Status Profile Display Card
@@ -132,12 +178,11 @@ fun NewCreateOrderScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Name: ${state.resolvedCustomer?.name ?: "Walk-In Consumer Account"}",
+                                text = "Target Name: ${customCustomerNameInput.ifBlank { "Walk-In Consumer Account" }}",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium
                             )
-                            
-                            // Only force shipping boundary location text fields for Delivery assignments
+
                             if (state.checkoutOrderType == NewOrderType.DELIVERY) {
                                 Spacer(modifier = Modifier.height(12.dp))
                                 OutlinedTextField(
@@ -162,24 +207,18 @@ fun NewCreateOrderScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         NewOrderType.entries.forEach { methodType ->
                             val isSelected = state.checkoutOrderType == methodType
-                            val chipIcon = when (methodType) {
-                                NewOrderType.DELIVERY -> Icons.Default.DeliveryDining
-                                NewOrderType.DINE_IN -> Icons.Default.DinnerDining
-                                NewOrderType.PICKUP -> Icons.Default.LocalMall
-                            }
-                            
+
                             ElevatedFilterChip(
                                 selected = isSelected,
                                 onClick = { viewModel.updateCheckoutOrderType(methodType) },
                                 label = { Text(methodType.name.replace("_", " ")) },
-//                                icon = { Icon(chipIcon, contentDescription = null, modifier = Modifier.size(16.dp)) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -201,7 +240,7 @@ fun NewCreateOrderScreen(
                 }
 
                 // ====================================================
-                // SECTION 4: BASKET BASKET BASKET INVOICE ITEMS LIST
+                // SECTION 4: BASKET INVOICE ITEMS LIST
                 // ====================================================
                 item {
                     Text(
@@ -246,13 +285,12 @@ fun NewCreateOrderScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     val rawCartBaseSum = state.cartSelectedItems.values.sumOf { it.totalPrice }
-                    
-                    // Fixed fee rules matching dynamic retail charges layouts
+
                     val packagingMaterialsFee = if (state.cartSelectedItems.isNotEmpty()) 15.0 else 0.0
-                    val cgstTaxCalculated = rawCartBaseSum * 0.025 // 2.5% CGST
-                    val sgstTaxCalculated = rawCartBaseSum * 0.025 // 2.5% SGST
+                    val cgstTaxCalculated = rawCartBaseSum * 0.025
+                    val sgstTaxCalculated = rawCartBaseSum * 0.025
                     val handlingLogisticsDeliveryFee = if (state.checkoutOrderType == NewOrderType.DELIVERY) 30.0 else 0.0
-                    
+
                     val grandInvoiceTotalSum = rawCartBaseSum + packagingMaterialsFee + cgstTaxCalculated + sgstTaxCalculated + handlingLogisticsDeliveryFee
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -260,13 +298,13 @@ fun NewCreateOrderScreen(
                         InvoiceRow(label = "Restaurant Packaging Materials Fee", amount = packagingMaterialsFee)
                         InvoiceRow(label = "Central CGST (2.5%)", amount = cgstTaxCalculated)
                         InvoiceRow(label = "State SGST (2.5%)", amount = sgstTaxCalculated)
-                        
+
                         if (state.checkoutOrderType == NewOrderType.DELIVERY) {
                             InvoiceRow(label = "Delivery Handling Rider Logistics Fee", amount = handlingLogisticsDeliveryFee, isHighlight = true)
                         }
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), thickness = 1.dp)
-                        
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -284,7 +322,6 @@ fun NewCreateOrderScreen(
                 }
             }
 
-            // Display dynamic temporal context diagnostic logging failures if present
             if (state.globalErrorMessage != null) {
                 Text(
                     text = state.globalErrorMessage.orEmpty(),
@@ -305,7 +342,7 @@ fun NewCreateOrderScreen(
                     .padding(vertical = 16.dp)
                     .imePadding(),
                 shape = RoundedCornerShape(12.dp),
-                enabled = !state.isPlacingOrderState && state.cartSelectedItems.isNotEmpty() && rawPhoneInput.length == 10,
+                enabled = !state.isPlacingOrderState && state.cartSelectedItems.isNotEmpty() && rawPhoneInput.length == 10 && customCustomerNameInput.isNotBlank(),
                 contentPadding = PaddingValues(16.dp)
             ) {
                 if (state.isPlacingOrderState) {
@@ -352,5 +389,4 @@ private fun InvoiceRow(
     }
 }
 
-// Inline fallback extension function to clean up double formats safely
 private fun Int.bindDp(): androidx.compose.ui.unit.Dp = this.dp
