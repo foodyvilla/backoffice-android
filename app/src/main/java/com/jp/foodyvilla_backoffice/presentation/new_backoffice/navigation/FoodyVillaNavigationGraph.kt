@@ -9,9 +9,13 @@ import androidx.navigation.toRoute
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewBackOfficeNavigationScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewCreateOrderScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewOrderDetailsScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.OutletFormWorkspaceScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.SpecificOutletMenuFormScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEditBannerFormScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEditOfferFormScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.SpecificOutletMenuHandlingScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.OutletManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.login.BackOfficeLoginScreen
@@ -26,6 +30,7 @@ fun NewFoodyVillaNavGraph() {
     val marketingViewModel = koinViewModel<MarketingViewModel>()
     val unifiedViewModel = koinViewModel<UnifiedOrderControlViewModel>()
     val productCatalogViewModel = koinViewModel<ProductCatalogViewModel>()
+    val outletMenuManagementViewModel = koinViewModel<OutletManagementViewModel>()
     val currentSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
     NavHost(
         navController = navController,
@@ -74,7 +79,8 @@ fun NewFoodyVillaNavGraph() {
                     loginViewModel = loginViewModel,
                     marketingViewModel = marketingViewModel,
                     unifiedViewModel = unifiedViewModel,
-                    productCatalogViewModel  = productCatalogViewModel,
+                    productCatalogViewModel = productCatalogViewModel,
+                    outletMenuManagementViewModel = outletMenuManagementViewModel,
                     navController = navController
                 )
 
@@ -118,21 +124,81 @@ fun NewFoodyVillaNavGraph() {
             )
         }
 
-        composable < ScreenDestinations.CreateOrder>{
+        composable<ScreenDestinations.CreateOrder> {
 
-            NewCreateOrderScreen(viewModel = unifiedViewModel,{},{
+            NewCreateOrderScreen(viewModel = unifiedViewModel, {}, {
 
 
             })
         }
 
 
-        composable < ScreenDestinations.OrderDetails>{
+        composable<ScreenDestinations.OrderDetails> {
             val id = it.toRoute<ScreenDestinations.OrderDetails>().id
-            NewOrderDetailsScreen(orderId = id, viewModel  = unifiedViewModel) {
+            NewOrderDetailsScreen(orderId = id, viewModel = unifiedViewModel) {
 
 
             }
+        }
+
+
+        composable<ScreenDestinations.OutletMenu> {
+            val args = it.toRoute<ScreenDestinations.OutletMenu>()
+            SpecificOutletMenuHandlingScreen(
+                outletId = args.outletId,
+                outletName = args.outletName,
+                viewModel = outletMenuManagementViewModel,
+                onNavigateToMenuFormAdd = { targetOutletId ->
+                    navController.navigate(ScreenDestinations.AddOutletMenuItem(outletId = targetOutletId))
+                },
+                onNavigateToMenuFormEdit = { targetOutletId, targetMenuId ->
+                    navController.navigate(ScreenDestinations.EditOutletMenuItem(outletId = targetOutletId, id = targetMenuId))
+                }
+            )
+        }
+
+
+        composable<ScreenDestinations.AddOutlet> {
+            OutletFormWorkspaceScreen(
+                editId = null, // Null triggers insertion rules engine inside form layouts
+                viewModel = outletMenuManagementViewModel,
+                onNavigateBackAction = { navController.popBackStack() }
+            )
+        }
+
+        // =====================================================================
+        // ROUTE: EDIT OUTLET (EXTRACTS LONG PARAMETER SECURELY)
+        // =====================================================================
+        composable<ScreenDestinations.EditOutlet> { backStackEntry ->
+            val args = backStackEntry.toRoute<ScreenDestinations.EditOutlet>()
+            OutletFormWorkspaceScreen(
+                editId = args.id, // ID forces viewmodel to load active row specs first
+                viewModel = outletMenuManagementViewModel,
+                onNavigateBackAction = { navController.navigateUp() }
+            )
+        }
+
+        composable<ScreenDestinations.AddOutletMenuItem> { backStackEntry ->
+            val args = backStackEntry.toRoute<ScreenDestinations.AddOutletMenuItem>()
+            SpecificOutletMenuFormScreen(
+                outletId = args.outletId,
+                editId = null, // Null triggers new catalog link layout sheet inside form views
+                viewModel = outletMenuManagementViewModel,
+                onNavigateBackAction = { navController.popBackStack() }
+            )
+        }
+
+        // =====================================================================
+        // ROUTE: EDIT OUTLET MENU ITEM PRICING SPECIFICATIONS
+        // =====================================================================
+        composable<ScreenDestinations.EditOutletMenuItem> { backStackEntry ->
+            val args = backStackEntry.toRoute<ScreenDestinations.EditOutletMenuItem>()
+            SpecificOutletMenuFormScreen(
+                outletId = args.outletId,
+                editId = args.id, // Extracted menu row index points
+                viewModel = outletMenuManagementViewModel,
+                onNavigateBackAction = { navController.popBackStack() }
+            )
         }
 
     }

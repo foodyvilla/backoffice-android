@@ -40,7 +40,7 @@ sealed interface BackOfficeRoute {
     data object OutletMenu : BackOfficeRoute
 
     @Serializable
-    data object CreateOrder : BackOfficeRoute
+    data object Outlet : BackOfficeRoute
 
     @Serializable
     data object Products : BackOfficeRoute
@@ -107,8 +107,8 @@ val ownerDrawerItems = listOf(
 
     BackOfficeDrawerItem(
         icon = Icons.Default.Fastfood,
-        route = BackOfficeRoute.CreateOrder,
-        name = "Create Order"
+        route = BackOfficeRoute.Outlet,
+        name = "Outlets"
     ),
 
     BackOfficeDrawerItem(
@@ -221,8 +221,8 @@ val headDrawerItems = listOf(
 
     BackOfficeDrawerItem(
         icon = Icons.Default.Fastfood,
-        route = BackOfficeRoute.CreateOrder,
-        name = "Create Order"
+        route = BackOfficeRoute.Outlet,
+        name = "Outlets"
     ),
 
     BackOfficeDrawerItem(
@@ -314,8 +314,8 @@ val chefDrawerItems = listOf(
 
     BackOfficeDrawerItem(
         icon = Icons.Default.Fastfood,
-        route = BackOfficeRoute.CreateOrder,
-        name = "Create Order"
+        route = BackOfficeRoute.Outlet,
+        name = "Outlets"
     ),
 
     BackOfficeDrawerItem(
@@ -365,8 +365,8 @@ val employeeDrawerItems = listOf(
 
     BackOfficeDrawerItem(
         icon = Icons.Default.Fastfood,
-        route = BackOfficeRoute.CreateOrder,
-        name = "Create Order"
+        route = BackOfficeRoute.Outlet,
+        name = "Outlets"
     ),
 
     BackOfficeDrawerItem(

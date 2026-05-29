@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 object ScreenDestinations {
 
     @Serializable
-    data class OutletMenu(val outletId: Long)
+    data class OutletMenu(val outletId: Long,val outletName : String)
 
 
     @Serializable
@@ -33,7 +33,12 @@ object ScreenDestinations {
     data object BackOffice
     @Serializable
     data object CreateOrder
+    @Serializable data object AddOutlet
 
+    @Serializable data class AddOutletMenuItem(val outletId: Long)
+    @Serializable data class EditOutletMenuItem(val outletId: Long, val id: Long)
+
+    @Serializable data class EditOutlet(val id: Long)
 
     @Serializable
     data class OrderDetails( val id : String)

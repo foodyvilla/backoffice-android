@@ -24,133 +24,104 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.Outle
 fun SpecificOutletMenuHandlingScreen(
     outletId: Long,
     outletName: String,
-    viewModel: OutletManagementViewModel
+    viewModel: OutletManagementViewModel,
+    onNavigateToMenuFormAdd: (outletId: Long) -> Unit,       // Lambda navigation callback path matching Route Add
+    onNavigateToMenuFormEdit: (outletId: Long, menuId: Long) -> Unit  // Lambda navigation callback path matching Route Edit(id)
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var catalogDropdownOpen by remember { mutableStateOf(false) }
 
+    // Sync menu items list matrix records from target database table on startup
     LaunchedEffect(outletId) {
         viewModel.loadMenuForSpecificOutlet(outletId)
     }
 
+    // Dynamic, reactive local list filtration matching user query string parameters
     val filteredMenu = remember(state.currentOutletMenu, state.menuSearchQuery) {
-        state.currentOutletMenu.filter { 
-            it.productName.contains(state.menuSearchQuery, ignoreCase = true) || 
-                    it.productCategoryName.contains(state.menuSearchQuery, ignoreCase = true) 
+        state.currentOutletMenu.filter { item ->
+            item.productName.contains(state.menuSearchQuery, ignoreCase = true) ||
+                    item.productCategoryName.contains(state.menuSearchQuery, ignoreCase = true)
         }
     }
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = viewModel::openMenuCreationForm, 
+                onClick = { onNavigateToMenuFormAdd(outletId) },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, null)
+                Icon(Icons.Default.Add, contentDescription = "Link New Product Variant")
             }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Text(outletName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Text("Outlet Specific Linked Digital Menu Menu Items", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = outletName,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Outlet Specific Linked Digital Menu Items",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // SEARCH TEXT FIELD WORKSPACE
                 OutlinedTextField(
-                    value = state.menuSearchQuery, 
-                    onValueChange = viewModel::updateMenuSearch, 
+                    value = state.menuSearchQuery,
+                    onValueChange = viewModel::updateMenuSearch,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                    placeholder = { Text("Search menu items by label identifier text titles...") }, 
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
-                    trailingIcon = { 
-                        AnimatedVisibility(state.menuSearchQuery.isNotBlank()) { 
-                            IconButton(onClick = { viewModel.updateMenuSearch("") }) { 
-                                Icon(Icons.Default.Clear, null) 
-                            } 
-                        } 
+                    placeholder = { Text("Search menu items by label title or section...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon") },
+                    trailingIcon = {
+                        AnimatedVisibility(visible = state.menuSearchQuery.isNotBlank()) {
+                            IconButton(onClick = { viewModel.updateMenuSearch("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear Input")
+                            }
+                        }
                     },
-                    shape = RoundedCornerShape(12.dp), 
+                    shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
 
+                if (state.errorText != null) {
+                    Text(
+                        text = state.errorText.orEmpty(),
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // DATA VISIBILITY RENDERING CHANNELS
                 if (state.isLoading && state.currentOutletMenu.isEmpty()) {
-                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { 
-                        CircularProgressIndicator() 
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else if (filteredMenu.isEmpty()) {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (state.currentOutletMenu.isEmpty()) "No menu items mapped onto this branch database records index node."
+                            else "No products match your custom search keyword context.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                         items(filteredMenu, key = { it.id }) { item ->
                             OutletMenuItemRow(
-                                item = item, 
-                                onEditClick = { viewModel.openMenuEditionForm(item) }, 
+                                item = item,
+                                onEditClick = { onNavigateToMenuFormEdit(outletId, item.id) }, // Safely pipes out ids to trigger edit routes
                                 onDeleteClick = { viewModel.removeProductFromMenu(item.id, outletId) }
                             )
                         }
                     }
                 }
-            }
-
-            // FIXED: MENU FORM WORKSPACE DIALOG VARIANCE MAPPED TO ITS PROPER STATE POINTERS
-            if (state.isMenuFormOpen) {
-                AlertDialog(
-                    onDismissRequest = viewModel::closeMenuForm,
-                    title = { 
-                        Text(
-                            text = if (state.targetMenuItem == null) "Link Core Catalog Item to Outlet" else "Modify Unit Price Document Rules", 
-                            fontWeight = FontWeight.Bold
-                        ) 
-                    },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                OutlinedTextField(
-                                    value = state.mSelectedProduct?.name ?: "Link Central Master Product Reference Row", 
-                                    onValueChange = {}, 
-                                    readOnly = true, 
-                                    modifier = Modifier.fillMaxWidth(), 
-                                    label = { Text("Product Node") },
-                                    trailingIcon = { 
-                                        IconButton(onClick = { if (state.targetMenuItem == null) catalogDropdownOpen = true }) { 
-                                            Icon(Icons.Default.Add, null) 
-                                        } 
-                                    }
-                                )
-                                DropdownMenu(expanded = catalogDropdownOpen, onDismissRequest = { catalogDropdownOpen = false }) {
-                                    state.globalProductCatalogOptions.forEach { prod -> 
-                                        DropdownMenuItem(
-                                            text = { Text(prod.name) }, 
-                                            onClick = { 
-                                                viewModel.onMProductSelected(prod)
-                                                catalogDropdownOpen = false 
-                                            }
-                                        ) 
-                                    }
-                                }
-                            }
-                            OutlinedTextField(value = state.mPrice, onValueChange = viewModel::onMPriceChanged, label = { Text("Outlet Price Point Rate (₹)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                            OutlinedTextField(value = state.mDiscount, onValueChange = viewModel::onMDiscountChanged, label = { Text("Franchise Flat Discount Value Amount (₹)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                            
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { 
-                                Text("Expose Availability inside Client UI Channels")
-                                Switch(checked = state.mIsAvailable, onCheckedChange = viewModel::onMAvailableToggled) 
-                            }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) { 
-                                Text("Mark Item Out of Stock / Kitchen Shortage")
-                                Switch(checked = state.mIsOutOfStock, onCheckedChange = viewModel::onMStockToggled) 
-                            }
-                        }
-                    },
-                    confirmButton = { 
-                        Button(onClick = { viewModel.commitOutletMenuAction(outletId) }) { 
-                            Text("Save Document Entry") 
-                        } 
-                    },
-                    dismissButton = { 
-                        TextButton(onClick = viewModel::closeMenuForm) { 
-                            Text("Cancel") 
-                        } 
-                    }
-                )
             }
         }
     }

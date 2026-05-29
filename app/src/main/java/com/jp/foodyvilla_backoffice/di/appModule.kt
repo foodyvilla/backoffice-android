@@ -29,7 +29,9 @@ import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingRepository
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingViewModel
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.NewOrdersManagementRepository
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.OutletManagementRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ProductCatalogRepository
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.OutletManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
 
@@ -187,4 +189,8 @@ val appModule = module{
 
     // 2. Lifecycle-Aware Jetpack Scoped Architecture ViewModel
     viewModelOf(::MarketingViewModel)
+    singleOf(::OutletManagementRepository)
+
+    // 2. Lifecycle-Aware Jetpack Scoped Architecture ViewModel
+    viewModelOf(::OutletManagementViewModel)
 }

@@ -46,6 +46,8 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.chefD
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.employeeDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.headDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ownerDrawerItems
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OutletListDirectoryScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.OutletManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
@@ -58,6 +60,7 @@ fun NewBackOfficeNavigationScreen(
     loginViewModel: LoginViewModel,
     marketingViewModel: MarketingViewModel,
     unifiedViewModel: UnifiedOrderControlViewModel,
+    outletMenuManagementViewModel : OutletManagementViewModel,
     navController: NavController,
     productCatalogViewModel: ProductCatalogViewModel
 ) {
@@ -93,7 +96,9 @@ fun NewBackOfficeNavigationScreen(
 
             Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.8f).fillMaxHeight().background(MaterialTheme.colorScheme.surface)
+                    .fillMaxWidth(0.8f)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(top = 24.dp)
             ) {
 
@@ -204,7 +209,7 @@ fun NewBackOfficeNavigationScreen(
                         }
                     }
 
-                    BackOfficeRoute.CreateOrder -> {
+                    BackOfficeRoute.Outlet -> {
 
 //                        NewCreateOrderScreen(
 //                            outletId = outletId,
@@ -216,8 +221,18 @@ fun NewBackOfficeNavigationScreen(
 //                            onOrderFinished = TODO(),
 //                            viewModel = TODO()
 //                        )
-
-
+                        OutletListDirectoryScreen(
+                            viewModel = outletMenuManagementViewModel,
+                            onNavigateToOutletFormAdd = {
+                                navController.navigate(ScreenDestinations.AddOutlet)
+                            },
+                            onNavigateToOutletFormEdit = { targetId ->
+                                navController.navigate(ScreenDestinations.EditOutlet(id = targetId))
+                            },
+                            onOutletNavigateLambda = { activeId, branchName ->
+                                navController.navigate(ScreenDestinations.OutletMenu(outletId = activeId, outletName = branchName))
+                            }
+                        )
 
                     }
 
@@ -381,7 +396,7 @@ private fun BackOfficeRoute.title(): String {
         BackOfficeRoute.Dashboard -> "Dashboard"
         BackOfficeRoute.Orders -> "Orders"
         BackOfficeRoute.OutletMenu -> "Outlet Menu"
-        BackOfficeRoute.CreateOrder -> "Create Order"
+        BackOfficeRoute.Outlet -> "Outlets"
         BackOfficeRoute.Products -> "Products"
         BackOfficeRoute.Categories -> "Categories"
         BackOfficeRoute.Customers -> "Customers"

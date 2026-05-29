@@ -1,4 +1,4 @@
-package com.jp.foodyvilla_backoffice.presentation.new_backoffice.outlets
+package com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
@@ -23,24 +23,33 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.Outle
 @Composable
 fun OutletListDirectoryScreen(
     viewModel: OutletManagementViewModel,
+    onNavigateToOutletFormAdd: () -> Unit,             // Lambda navigation callback matching Route Add
+    onNavigateToOutletFormEdit: (outletId: Long) -> Unit,   // Lambda navigation callback matching Route Edit(id)
     onOutletNavigateLambda: (outletId: Long, name: String) -> Unit
 ) {
+
+    // Refresh and sync active list rows from the PostgREST server table when screen mounts
+    LaunchedEffect(Unit) {
+        viewModel.loadAllOutletsData()
+    }
+
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    // Real-time local database filtration engine operating inside state updates
     val filteredOutlets = remember(state.outletsList, state.outletSearchQuery) {
-        state.outletsList.filter {
-            it.name.contains(state.outletSearchQuery, ignoreCase = true) ||
-                    it.city.contains(state.outletSearchQuery, ignoreCase = true)
+        state.outletsList.filter { outlet ->
+            outlet.name.contains(state.outletSearchQuery, ignoreCase = true) ||
+                    outlet.city.contains(state.outletSearchQuery, ignoreCase = true)
         }
     }
 
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = viewModel::openOutletCreationForm,
+                onClick = onNavigateToOutletFormAdd, // Fires off clean destination changes
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, null)
+                Icon(Icons.Default.Add, contentDescription = "Open New Franchise Branch")
             }
         }
     ) { padding ->
@@ -49,16 +58,17 @@ fun OutletListDirectoryScreen(
                 Text("Franchise Outlets Registry", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // DIRECTORY FILTRATION INPUT FIELD
                 OutlinedTextField(
                     value = state.outletSearchQuery,
                     onValueChange = viewModel::updateOutletSearch,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                     placeholder = { Text("Search branches by name or city location...") },
-                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon") },
                     trailingIcon = {
                         AnimatedVisibility(state.outletSearchQuery.isNotBlank()) {
                             IconButton(onClick = { viewModel.updateOutletSearch("") }) {
-                                Icon(Icons.Default.Clear, null)
+                                Icon(Icons.Default.Clear, contentDescription = "Clear Inputs")
                             }
                         }
                     },
@@ -66,59 +76,34 @@ fun OutletListDirectoryScreen(
                     singleLine = true
                 )
 
+                // VISIBILITY STATE EMISSION RENDER PATHS
                 if (state.isLoading && state.outletsList.isEmpty()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
+                } else if (filteredOutlets.isEmpty()) {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = if (state.outletsList.isEmpty()) "No branch listings indexed in table."
+                            else "No registry matches found for your filter text.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 } else {
-                    LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         items(filteredOutlets, key = { it.id }) { outlet ->
                             OutletRowCard(
                                 outlet = outlet,
-                                onEditClick = { viewModel.openOutletEditionForm(outlet) },
+                                onEditClick = { onNavigateToOutletFormEdit(outlet.id) }, // Routes out cleanly to the dynamic edit screen workspace
                                 onRowNavigateClick = { onOutletNavigateLambda(outlet.id, outlet.name) }
                             )
                         }
                     }
                 }
-            }
-
-            // FIXED: TARGET DIALOG VARIANCE MAPPED TO THE CORRECT UI STATE PROPERTIES
-            if (state.isOutletFormOpen) {
-                AlertDialog(
-                    onDismissRequest = viewModel::closeOutletForm,
-                    title = {
-                        Text(
-                            text = if (state.targetOutlet == null) "Open New Branch Unit" else "Update Branch Parameters Layout",
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    text = {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                            OutlinedTextField(value = state.oName, onValueChange = viewModel::onONameChanged, label = { Text("Outlet Brand Unit Label Title") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                            OutlinedTextField(value = state.oCity, onValueChange = viewModel::onOCityChanged, label = { Text("City Node") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                            OutlinedTextField(value = state.oPhone, onValueChange = viewModel::onOPhoneChanged, label = { Text("Operational Contact Phone") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                            OutlinedTextField(value = state.oEmail, onValueChange = viewModel::onOEmailChanged, label = { Text("Corporate Billing Email Address") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                            OutlinedTextField(value = state.oRadius, onValueChange = viewModel::onORadiusChanged, label = { Text("Logistics Geofencing Radius (KM)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                            OutlinedTextField(value = state.oAddress, onValueChange = viewModel::onOAddressChanged, label = { Text("Physical Mailing Address Location Description") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("Set Branch Active Open Operational Status")
-                                Switch(checked = state.oIsActive, onCheckedChange = viewModel::onOActiveToggled)
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        Button(onClick = viewModel::commitOutletAction) {
-                            Text("Save Layout Settings Document")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = viewModel::closeOutletForm) {
-                            Text("Cancel")
-                        }
-                    }
-                )
             }
         }
     }
