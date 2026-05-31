@@ -128,7 +128,11 @@ val ownerDrawerItems = listOf(
         route = BackOfficeRoute.Customers,
         name = "Customers"
     ),
-
+    BackOfficeDrawerItem(
+        icon = Icons.Default.LocalOffer,
+        route = BackOfficeRoute.Offers,
+        name = "Offers"
+    ),
     BackOfficeDrawerItem(
         icon = Icons.Default.Payments,
         route = BackOfficeRoute.Payments,
@@ -159,11 +163,7 @@ val ownerDrawerItems = listOf(
         name = "Analytics"
     ),
 
-    BackOfficeDrawerItem(
-        icon = Icons.Default.LocalOffer,
-        route = BackOfficeRoute.Offers,
-        name = "Offers"
-    ),
+
 
     BackOfficeDrawerItem(
         icon = Icons.Default.RateReview,
@@ -238,6 +238,11 @@ val headDrawerItems = listOf(
     ),
 
     BackOfficeDrawerItem(
+        icon = Icons.Default.LocalOffer,
+        route = BackOfficeRoute.Offers,
+        name = "Offers"
+    ),
+    BackOfficeDrawerItem(
         icon = Icons.Default.People,
         route = BackOfficeRoute.Customers,
         name = "Customers"
@@ -261,11 +266,6 @@ val headDrawerItems = listOf(
         name = "Attendance"
     ),
 
-    BackOfficeDrawerItem(
-        icon = Icons.Default.LocalOffer,
-        route = BackOfficeRoute.Offers,
-        name = "Offers"
-    ),
 
     BackOfficeDrawerItem(
         icon = Icons.Default.RateReview,

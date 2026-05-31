@@ -6,6 +6,9 @@ import com.jp.foodyvilla_backoffice.data.domain.usecase.AcceptOrderUseCase
 import com.jp.foodyvilla_backoffice.data.domain.usecase.MoveOrderStatusUseCase
 import com.jp.foodyvilla_backoffice.data.domain.usecase.ObserveIncomingOrdersUseCase
 import com.jp.foodyvilla_backoffice.data.domain.usecase.RejectOrderUseCase
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.AttendanceRepository
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.CustomerManagementRepository
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.MarketingRepository
 import com.jp.foodyvilla_backoffice.data.repo.AdminRepository
 import com.jp.foodyvilla_backoffice.data.repo.AuthRepo
 import com.jp.foodyvilla_backoffice.data.repo.CartRepository
@@ -26,11 +29,14 @@ import com.jp.foodyvilla_backoffice.data.repo.backoffice.MarketingBackOfficeRepo
 import com.jp.foodyvilla_backoffice.data.repo.backoffice.TeamBackOfficeRepository
 import com.jp.foodyvilla_backoffice.data.repository.SupabaseOrderWorkflowRepository
 import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingRepository
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingViewModel
+
+
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.NewOrdersManagementRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.OutletManagementRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ProductCatalogRepository
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.MarketingViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.OutletManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
@@ -193,4 +199,10 @@ val appModule = module{
 
     // 2. Lifecycle-Aware Jetpack Scoped Architecture ViewModel
     viewModelOf(::OutletManagementViewModel)
+
+    singleOf(::CustomerManagementRepository)
+    viewModelOf(::CustomerManagementViewModel)
+
+    singleOf(::AttendanceRepository)
+    viewModelOf(::AttendanceViewModel)
 }

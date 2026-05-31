@@ -59,13 +59,16 @@ class SupabaseOrderWorkflowRepository(
     }
 
     override suspend fun transitionOrder(orderId: String, status: OrderStatus): Result<Unit> = runCatching {
-        supabase.from(BackOfficeSchema.Tables.Orders).update(
+        val result = supabase.from(BackOfficeSchema.Tables.Orders).update(
             buildJsonObject {
                 put(BackOfficeSchema.Orders.Status, status.dbValue)
             }
         ) {
             filter { eq(BackOfficeSchema.Orders.Id, orderId) }
-        }
+            select()
+        }.decodeSingleOrNull<kotlinx.serialization.json.JsonObject>()
+        
+        if (result == null) throw IllegalStateException("Order status transition failed. No row found for $orderId")
     }
 
     override suspend fun rejectOrder(orderId: String, reason: String): Result<Unit> {

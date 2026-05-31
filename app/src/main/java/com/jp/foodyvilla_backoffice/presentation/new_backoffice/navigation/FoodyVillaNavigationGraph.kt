@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.CustomerDetailsScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewBackOfficeNavigationScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewCreateOrderScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewOrderDetailsScreen
@@ -13,8 +14,11 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.OutletFormWorksp
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.SpecificOutletMenuFormScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEditBannerFormScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEditOfferFormScreen
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingViewModel
+
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.SpecificOutletMenuHandlingScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.MarketingViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.OutletManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
@@ -31,6 +35,8 @@ fun NewFoodyVillaNavGraph() {
     val unifiedViewModel = koinViewModel<UnifiedOrderControlViewModel>()
     val productCatalogViewModel = koinViewModel<ProductCatalogViewModel>()
     val outletMenuManagementViewModel = koinViewModel<OutletManagementViewModel>()
+    val customerManagementViewModel  = koinViewModel<CustomerManagementViewModel>()
+    val attendanceViewModel = koinViewModel<AttendanceViewModel>()
     val currentSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
     NavHost(
         navController = navController,
@@ -81,6 +87,8 @@ fun NewFoodyVillaNavGraph() {
                     unifiedViewModel = unifiedViewModel,
                     productCatalogViewModel = productCatalogViewModel,
                     outletMenuManagementViewModel = outletMenuManagementViewModel,
+                    customerManagementViewModel   = customerManagementViewModel,
+                    attendanceViewModel = attendanceViewModel,
                     navController = navController
                 )
 
@@ -139,6 +147,14 @@ fun NewFoodyVillaNavGraph() {
 
 
             }
+        }
+
+        composable<ScreenDestinations.Customer> {
+            val data = it.toRoute<ScreenDestinations.Customer>()
+
+            CustomerDetailsScreen(customerId = data.id, viewModel = customerManagementViewModel)
+
+
         }
 
 

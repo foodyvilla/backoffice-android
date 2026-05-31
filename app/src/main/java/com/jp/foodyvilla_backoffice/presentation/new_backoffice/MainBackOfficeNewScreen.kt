@@ -36,8 +36,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.CustomerDirectoryScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.EmployeePunchReportScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingTabsDashboardScreen
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingViewModel
+
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ProductCatalogManagementScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ProductCategoryManagementScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.BackOfficeRoute
@@ -47,6 +49,9 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.emplo
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.headDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ownerDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OutletListDirectoryScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.MarketingViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.OutletManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
@@ -60,9 +65,11 @@ fun NewBackOfficeNavigationScreen(
     loginViewModel: LoginViewModel,
     marketingViewModel: MarketingViewModel,
     unifiedViewModel: UnifiedOrderControlViewModel,
-    outletMenuManagementViewModel : OutletManagementViewModel,
+    outletMenuManagementViewModel: OutletManagementViewModel,
     navController: NavController,
-    productCatalogViewModel: ProductCatalogViewModel
+    productCatalogViewModel: ProductCatalogViewModel,
+    customerManagementViewModel: CustomerManagementViewModel,
+    attendanceViewModel: AttendanceViewModel
 ) {
     val userSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
 
@@ -248,9 +255,13 @@ fun NewBackOfficeNavigationScreen(
 
                     BackOfficeRoute.Customers -> {
 
-                        DashboardPlaceholderScreen(
-                            title = "Customers"
-                        )
+//                        DashboardPlaceholderScreen(
+//                            title = "Customers"
+//                        )
+
+                        CustomerDirectoryScreen(viewModel = customerManagementViewModel) {id, phone->
+                            navController.navigate(ScreenDestinations.Customer(id = id, phone = phone))
+                        }
                     }
 
                     BackOfficeRoute.Payments -> {
@@ -269,16 +280,20 @@ fun NewBackOfficeNavigationScreen(
 
                     BackOfficeRoute.Attendance -> {
 
-                        DashboardPlaceholderScreen(
-                            title = "Attendance"
-                        )
+
+                        EmployeePunchReportScreen(viewModel = attendanceViewModel, onNavigateBack = {
+                            scope.launch {
+                                drawerState.open()
+                            }
+                        } )
+
                     }
 
                     BackOfficeRoute.PunchReports -> {
-
                         DashboardPlaceholderScreen(
                             title = "Punch Reports"
                         )
+
                     }
 
                     BackOfficeRoute.Analytics -> {

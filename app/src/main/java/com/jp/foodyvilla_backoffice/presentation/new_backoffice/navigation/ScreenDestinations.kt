@@ -38,6 +38,8 @@ object ScreenDestinations {
     @Serializable data class AddOutletMenuItem(val outletId: Long)
     @Serializable data class EditOutletMenuItem(val outletId: Long, val id: Long)
 
+
+    @Serializable data class Customer(val id : Long, val phone : String)
     @Serializable data class EditOutlet(val id: Long)
 
     @Serializable

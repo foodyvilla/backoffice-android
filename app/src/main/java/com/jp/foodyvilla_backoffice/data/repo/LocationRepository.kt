@@ -14,7 +14,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.Locale
+data class LocationUiState(
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val reverseGeocodedAddress: String = "",
+    val isFetchingLocation: Boolean = false,
+    val locationErrorMessage: String? = null,
 
+    // Dialog Triggers
+    val showPermissionRationaleDialog: Boolean = false,
+    val showGpsDisabledDialog: Boolean = false
+)
 class LocationRepository(private val context: Context) {
 
     private val fusedClient = LocationServices.getFusedLocationProviderClient(context)

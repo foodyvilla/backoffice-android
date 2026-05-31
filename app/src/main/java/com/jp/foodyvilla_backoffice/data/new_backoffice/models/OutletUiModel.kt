@@ -16,6 +16,7 @@ data class OutletUiModel(
     val lat: Double = 21.1983,
     val lng: Double = 81.9614,
     val radiusKm: Double = 5.0,
+    val attendanceRadius : Int = 50,
     val isActive: Boolean = true,
     val opensAt: String? = null,  // Format: "HH:MM:SS"
     val closesAt: String? = null, // Format: "HH:MM:SS"
@@ -36,6 +37,7 @@ data class OutletResponse(
     val lng: Double = 81.9614,
     val radius_km: Double = 5.0,
     val is_active: Boolean = true,
+    val attendance_radius_meters : Int = 50,
     val opens_at: String? = null,
     val closes_at: String? = null,
     val razor_pay_key: String? = null
@@ -46,6 +48,7 @@ fun OutletResponse.toUiModel() = OutletUiModel(
     phone = phone.orEmpty(), email = email.orEmpty(), logoUrl = logo_url,
     bannerUrl = banner_url, lat = lat, lng = lng, radiusKm = radius_km,
     isActive = is_active, opensAt = opens_at, closesAt = closes_at,
+    attendanceRadius = attendance_radius_meters,
     razorPayKey = razor_pay_key ?: "rzp_test_ShBw7mlCM6gT6y"
 )
 

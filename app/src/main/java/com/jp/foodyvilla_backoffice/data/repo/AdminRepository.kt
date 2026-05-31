@@ -576,7 +576,7 @@ class AdminRepository(
     private suspend fun performUpdate(table: AdminTable, row: JsonObject, values: Map<String, String>) {
         val id = row[table.primaryKey]?.asFilterValue(table.primaryKeyType)
             ?: throw IllegalArgumentException("Missing ${table.primaryKey}")
-        
+
         val convertedValues = values.toMutableMap()
         if (table.name == "orders" && values.containsKey("status")) {
             convertedValues["status"] = values["status"]!!.toOrderDbStatus()

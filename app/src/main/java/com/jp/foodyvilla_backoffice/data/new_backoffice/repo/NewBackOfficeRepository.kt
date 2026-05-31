@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.time.LocalDate
@@ -237,29 +238,68 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
         orderId: String, status: String, address: String, instruction: String,
         orderType: String, outletId: Long, customerPhone: String,  internalEmpId: Long?
     ) {
+        val trimmedId = orderId.trim()
+        val dbStatus = when (val s = status.trim().lowercase().replace(" ", "_")) {
+            "placed" -> "pending"
+            "delivered" -> "completed"
+            else -> s
+        }
+
         try {
+            Log.d(TAG, "Initiating order update for ID: $trimmedId, Target Status: $dbStatus (orig: $status)")
             val payload = buildJsonObject {
-                put("status", status.lowercase().trim())
+                put("status", dbStatus)
                 put("address", address)
                 put("instruction", instruction)
-                put("order_type", orderType.lowercase().trim())
+                put("order_type", orderType.lowercase().trim().replace(" ", "_"))
                 if (internalEmpId != null) put("accepted_by", internalEmpId)
-
             }
 
-            // 1. Commit Update payload fields properties changes
-            supabase.from("orders").update(payload) {
-                filter { eq("id", orderId) }
+            // 1. Commit Update payload fields properties changes and verify
+            val result = supabase.from("orders").update(payload) {
+                filter {
+                    eq("id", trimmedId)
+                    eq("outlet_id", outletId)
+                }
+                select()
+            }.decodeSingleOrNull<JsonObject>()
+
+            if (result == null) {
+                // Diagnostic check to see if the order exists at all or if outletId mismatched
+                val actualOrder = supabase.from("orders").select(columns = Columns.raw("id, outlet_id")) {
+                    filter { eq("id", trimmedId) }
+                }.decodeSingleOrNull<JsonObject>()
+
+                val diagnosticMsg = when {
+                    actualOrder == null -> "Order ID $trimmedId not found in database."
+                    else -> {
+                        val actualOutletIdStr = actualOrder["outlet_id"]?.toString()
+                        "Order found but belongs to outlet $actualOutletIdStr, not $outletId. Permission denied or mismatch."
+                    }
+                }
+
+                Log.e(TAG, "Order update failed for ID $trimmedId: $diagnosticMsg")
+                throw IllegalStateException("Order update failed in database: $diagnosticMsg")
             }
+
+            Log.d(TAG, "Database update successful for Order ID: $trimmedId. Proceeding to notifications.")
 
             // 2. Broadcast updates across the corporate micro-service edge routes channels
-            triggerOutletEdgeNotification(outletId, orderId, "Administrative override changes saved. Status: ${status.uppercase()}")
+            runCatching {
+                triggerOutletEdgeNotification(outletId, trimmedId, "Administrative override changes saved. Status: ${dbStatus.uppercase()}")
+            }.onFailure { e ->
+                Log.e(TAG, "Outlet notification failed but database update was successful: ${e.message}")
+            }
 
             // 3. Resolve customer profile token boundaries in the background to shoot FCM alerts
-            launchEdgeCustomerNotificationPipeline(customerPhone, "Order Profile Updates 📦", "Your Order #${orderId.take(8)} configuration shifts to: ${status.uppercase()}")
+            runCatching {
+                launchEdgeCustomerNotificationPipeline(customerPhone, "Order Profile Updates 📦", "Your Order #${trimmedId.take(8)} configuration shifts to: ${dbStatus.uppercase()}")
+            }.onFailure { e ->
+                Log.e(TAG, "Customer FCM notification failed but database update was successful: ${e.message}")
+            }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error executing mutations overrides: ${e.message}")
+            Log.e(TAG, "Error executing mutations overrides for Order ID $orderId: ${e.message}", e)
             throw e
         }
     }
