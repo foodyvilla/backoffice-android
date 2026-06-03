@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AttendanceAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.CustomerDirectoryScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.EmployeePunchReportScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingTabsDashboardScreen
@@ -49,6 +50,9 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.emplo
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.headDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ownerDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OutletListDirectoryScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.PaymentAdminConsoleScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ReviewAdminConsoleScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.MarketingViewModel
@@ -69,7 +73,8 @@ fun NewBackOfficeNavigationScreen(
     navController: NavController,
     productCatalogViewModel: ProductCatalogViewModel,
     customerManagementViewModel: CustomerManagementViewModel,
-    attendanceViewModel: AttendanceViewModel
+    attendanceViewModel: AttendanceViewModel,
+    attendanceAdminViewModel: AttendanceAdminViewModel
 ) {
     val userSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
 
@@ -265,10 +270,7 @@ fun NewBackOfficeNavigationScreen(
                     }
 
                     BackOfficeRoute.Payments -> {
-
-                        DashboardPlaceholderScreen(
-                            title = "Payments"
-                        )
+                        PaymentAdminConsoleScreen()
                     }
 
                     BackOfficeRoute.Employees -> {
@@ -290,9 +292,7 @@ fun NewBackOfficeNavigationScreen(
                     }
 
                     BackOfficeRoute.PunchReports -> {
-                        DashboardPlaceholderScreen(
-                            title = "Punch Reports"
-                        )
+                        AttendanceAdminConsoleScreen(viewModel = attendanceAdminViewModel)
 
                     }
 
@@ -331,10 +331,7 @@ fun NewBackOfficeNavigationScreen(
                     }
 
                     BackOfficeRoute.Reviews -> {
-
-                        DashboardPlaceholderScreen(
-                            title = "Reviews"
-                        )
+                        ReviewAdminConsoleScreen()
                     }
 
                     BackOfficeRoute.Notifications -> {

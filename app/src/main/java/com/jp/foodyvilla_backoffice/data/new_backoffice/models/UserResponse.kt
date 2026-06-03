@@ -5,11 +5,16 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class UserResponse(
     val id: Long = 0L,
+    val created_at: String? = null,
+    val updated_at: String? = null,
     val name: String? = null,
     val email: String? = null,
     val phone: String? = null,
-    val address: String? = null,
     val fcm_token: String? = null,
+    val address: String? = null,
+    val lat: Double? = null,
+    val long: Double? = null,
+    val auth_user_id: String? = null,
     val is_verified: Boolean = false
 )
 

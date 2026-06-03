@@ -6,6 +6,7 @@ import com.jp.foodyvilla_backoffice.data.domain.usecase.AcceptOrderUseCase
 import com.jp.foodyvilla_backoffice.data.domain.usecase.MoveOrderStatusUseCase
 import com.jp.foodyvilla_backoffice.data.domain.usecase.ObserveIncomingOrdersUseCase
 import com.jp.foodyvilla_backoffice.data.domain.usecase.RejectOrderUseCase
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.AttendanceAdminRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.AttendanceRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.CustomerManagementRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.MarketingRepository
@@ -33,12 +34,17 @@ import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.NewOrdersManagementRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.OutletManagementRepository
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.PaymentAdminRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ProductCatalogRepository
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ReviewAdminRepository
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.MarketingViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.OutletManagementViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.PaymentAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ReviewAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
 
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.AdminViewModel
@@ -205,4 +211,13 @@ val appModule = module{
 
     singleOf(::AttendanceRepository)
     viewModelOf(::AttendanceViewModel)
+
+    singleOf(::AttendanceAdminRepository)
+    viewModelOf(::AttendanceAdminViewModel)
+
+    singleOf(::ReviewAdminRepository)
+    viewModelOf(::ReviewAdminViewModel)
+
+    singleOf(::PaymentAdminRepository)
+    viewModelOf(::PaymentAdminViewModel)
 }

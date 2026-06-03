@@ -16,6 +16,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEditBann
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEditOfferFormScreen
 
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.SpecificOutletMenuHandlingScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.MarketingViewModel
@@ -37,6 +38,7 @@ fun NewFoodyVillaNavGraph() {
     val outletMenuManagementViewModel = koinViewModel<OutletManagementViewModel>()
     val customerManagementViewModel  = koinViewModel<CustomerManagementViewModel>()
     val attendanceViewModel = koinViewModel<AttendanceViewModel>()
+    val attendanceAdminViewModel = koinViewModel<AttendanceAdminViewModel>()
     val currentSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
     NavHost(
         navController = navController,
@@ -89,6 +91,7 @@ fun NewFoodyVillaNavGraph() {
                     outletMenuManagementViewModel = outletMenuManagementViewModel,
                     customerManagementViewModel   = customerManagementViewModel,
                     attendanceViewModel = attendanceViewModel,
+                    attendanceAdminViewModel  = attendanceAdminViewModel,
                     navController = navController
                 )
 
