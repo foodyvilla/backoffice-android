@@ -15,14 +15,14 @@ data class EmployeeAdminResponse(
     val name: String,
     val address: String? = null,
     val contact: String? = null,
-    val aadhar_no: String? = null, // Handled carefully down to UI forms
+    val aadhar_no: String? = null,
     val emergency_contact: String? = null,
     val salary: Long? = null,
     val profile_img: String? = null,
-    val joining_date: String? = null, // Date format mapped string format
+    val joining_date: String? = null,
     val role: String,
-    val is_active: Boolean = true,
-    val auth_user_id: String? = null
+    val password_hash: String? = null,
+    val is_active: Boolean = true
 )
 
 data class EmployeeAdminUiModel(
@@ -32,14 +32,14 @@ data class EmployeeAdminUiModel(
     val name: String = "",
     val address: String = "",
     val contact: String = "",
-    val aadharMaskedPlaceholder: String = "", // Protected locally
+    val aadharNo: String = "",
     val emergencyContact: String = "",
     val salary: String = "",
-    val profileImg: String = "",
+    val profileImgUrl: String = "",
     val joiningDate: String = "",
+    val passwordText: String = "",
     val role: EmployeeRole = EmployeeRole.EMPLOYEE,
-    val isActive: Boolean = true,
-    val authUserId: String = ""
+    val isActive: Boolean = true
 )
 
 fun EmployeeAdminResponse.toUiModel(outletName: String) = EmployeeAdminUiModel(
@@ -49,18 +49,17 @@ fun EmployeeAdminResponse.toUiModel(outletName: String) = EmployeeAdminUiModel(
     name = name,
     address = address.orEmpty(),
     contact = contact.orEmpty(),
-    // Ensures sensitive identifiers are redacted out of local view buffers
-    aadharMaskedPlaceholder = if (!aadhar_no.isNullOrBlank()) "[Aadhaar Redacted]" else "",
+    aadharNo = aadhar_no.orEmpty(),
     emergencyContact = emergency_contact.orEmpty(),
     salary = salary?.toString().orEmpty(),
-    profileImg = profile_img.orEmpty(),
+    profileImgUrl = profile_img.orEmpty(),
     joiningDate = joining_date.orEmpty(),
+    passwordText = password_hash.orEmpty(),
     role = when (role.lowercase()) {
         "head" -> EmployeeRole.HEAD
         "owner" -> EmployeeRole.OWNER
         "chef" -> EmployeeRole.CHEF
         else -> EmployeeRole.EMPLOYEE
     },
-    isActive = is_active,
-    authUserId = auth_user_id.orEmpty()
+    isActive = is_active
 )

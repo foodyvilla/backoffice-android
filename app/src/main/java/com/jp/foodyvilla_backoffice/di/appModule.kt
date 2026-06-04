@@ -9,6 +9,7 @@ import com.jp.foodyvilla_backoffice.data.domain.usecase.RejectOrderUseCase
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.AttendanceAdminRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.AttendanceRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.CustomerManagementRepository
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.EmployeeAdminRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.MarketingRepository
 import com.jp.foodyvilla_backoffice.data.repo.AdminRepository
 import com.jp.foodyvilla_backoffice.data.repo.AuthRepo
@@ -40,6 +41,7 @@ import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ReviewAdminReposito
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.EmployeeAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.MarketingViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.OutletManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.PaymentAdminViewModel
@@ -220,4 +222,7 @@ val appModule = module{
 
     singleOf(::PaymentAdminRepository)
     viewModelOf(::PaymentAdminViewModel)
+
+    singleOf(::EmployeeAdminRepository)
+    viewModelOf(::EmployeeAdminViewModel)
 }

@@ -36,8 +36,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.attendance.EmployeeAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AttendanceAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.CustomerDirectoryScreen
+
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.EmployeePunchReportScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingTabsDashboardScreen
 
@@ -275,9 +277,11 @@ fun NewBackOfficeNavigationScreen(
 
                     BackOfficeRoute.Employees -> {
 
-                        DashboardPlaceholderScreen(
-                            title = "Employees"
-                        )
+//                        DashboardPlaceholderScreen(
+//                            title = "Employees"
+//                        )
+
+                        EmployeeAdminConsoleScreen()
                     }
 
                     BackOfficeRoute.Attendance -> {

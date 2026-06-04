@@ -10,6 +10,7 @@ import com.jp.foodyvilla_backoffice.domain.security.OutletRole
 import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.user.UserSession as SupabaseUserSession
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +54,49 @@ class SupabaseAuthRepository(
     init {
         // Restore Supabase session on startup if tokens were persisted
         restoreSupabaseSession()
+
+        // Listen for auth state changes to keep SharedPreferences and StateFlow in sync
+        kotlinx.coroutines.CoroutineScope(ioDispatcher).launch {
+            supabase.auth.sessionStatus.collect { status ->
+                Log.d(TAG, "Auth status changed: $status")
+                when (status) {
+                    is SessionStatus.Authenticated -> {
+                        // Update stored tokens whenever session is refreshed or changed
+                        val session = status.session
+                        updateStoredTokens(session.accessToken, session.refreshToken ?: "")
+                    }
+                    is SessionStatus.NotAuthenticated -> {
+                        // If we have an active session in our StateFlow but Supabase says we aren't authenticated,
+                        // it might mean the session expired or the refresh token is invalid.
+                        if (_currentSession.value != null) {
+                            Log.w(TAG, "Session invalidated by Supabase; clearing local session.")
+                            logout()
+                        }
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    private fun updateStoredTokens(accessToken: String, refreshToken: String) {
+        val raw = prefs.getString(KEY_SESSION, null) ?: return
+        try {
+            val obj = json.parseToJsonElement(raw) as? JsonObject ?: return
+            val newObj = buildJsonObject {
+                obj.forEach { (key, value) ->
+                    if (key != "access_token" && key != "refresh_token") {
+                        put(key, value)
+                    }
+                }
+                put("access_token", accessToken)
+                put("refresh_token", refreshToken)
+            }
+            prefs.edit().putString(KEY_SESSION, newObj.toString()).apply()
+            Log.d(TAG, "Stored tokens updated in SharedPreferences")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update stored tokens: ${e.message}")
+        }
     }
 
     private fun restoreSupabaseSession() {
@@ -329,17 +373,23 @@ class SupabaseAuthRepository(
             return
         }
 
-        supabase.auth.importSession(
-            SupabaseUserSession(
-                accessToken = accessToken,
-                refreshToken = refreshToken,
-                expiresIn = 3600L,
-                tokenType = "bearer",
-                user = null
+        try {
+            supabase.auth.importSession(
+                SupabaseUserSession(
+                    accessToken = accessToken,
+                    refreshToken = refreshToken,
+                    expiresIn = 10L, // Short duration to ensure refresh logic checks it soon
+                    tokenType = "bearer",
+                    user = null
+                )
             )
-        )
-        runCatching { supabase.auth.refreshCurrentSession() }
-            .onFailure { Log.w(TAG, "Could not refresh imported session: ${it.message}") }
+            // Explicitly refresh to ensure we have a valid non-expired JWT immediately
+            supabase.auth.refreshCurrentSession()
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not refresh imported session: ${e.message}")
+            // If refresh fails (e.g. refresh token expired), clear the local session
+            logout()
+        }
     }
 
     private fun defaultPermissionsFor(role: String?): List<String> {
