@@ -1,85 +1,86 @@
 package com.jp.foodyvilla_backoffice.data.new_backoffice.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 // ---------- Supabase DTOs (mirror table columns 1:1) ----------
 
 @Serializable
 data class RestaurantTableDto(
-    val id: Long = 0,
-    val outlet_id: Long = 0,
-    val table_number: String = "",
-    val capacity: Int = 4,
-    val status: String = "available" // available | occupied | reserved
+    @SerialName("id") val id: Long = 0,
+    @SerialName("outlet_id") val outlet_id: Long = 0,
+    @SerialName("table_number") val table_number: String = "",
+    @SerialName("capacity") val capacity: Int = 4,
+    @SerialName("status") val status: String = "available" // available | occupied | reserved
 )
 
 @Serializable
 data class OrderDto(
-    val id: String = "",
-    val outlet_id: Long = 0,
-    val table_id: Long? = null,
-    val customer_name: String? = null,
-    val phone: String? = null,
-    val status: String = "pending", // pending | preparing | served | paid | cancelled
-    val order_type: String? = "dine_in"
+    @SerialName("id") val id: String = "",
+    @SerialName("outlet_id") val outlet_id: Long = 0,
+    @SerialName("table_id") val table_id: Long? = null,
+    @SerialName("customer_name") val customer_name: String? = null,
+    @SerialName("phone") val phone: String? = null,
+    @SerialName("status") val status: String = "pending", // pending | preparing | served | paid | cancelled | completed
+    @SerialName("order_type") val order_type: String? = "dine_in"
 )
 
 @Serializable
 data class OrderItemInsertDto(
-    val order_id: String,
-    val menu_item_id: Long,
-    val qty: Long,
-    val price_per_item: Double,
-    val total_price: Double,
-    val total_discount: Float = 0f
+    @SerialName("order_id") val order_id: String,
+    @SerialName("menu_item_id") val menu_item_id: Long,
+    @SerialName("qty") val qty: Long,
+    @SerialName("price_per_item") val price_per_item: Double,
+    @SerialName("total_price") val total_price: Double,
+    @SerialName("total_discount") val total_discount: Float = 0f
 )
 
 @Serializable
 data class ProductCatalogDto(
-    val id: Long = 0,
-    val name: String = "",
-    val category_id: Long? = null
+    @SerialName("id") val id: Long = 0,
+    @SerialName("name") val name: String = "",
+    @SerialName("category_id") val category_id: Long? = null
 )
 
 @Serializable
 data class CategoryDto(
-    val id: Long = 0,
-    val name: String = "",
-    val emoji: String = "",
-    val is_active: Boolean = true
+    @SerialName("id") val id: Long = 0,
+    @SerialName("name") val name: String = "",
+    @SerialName("emoji") val emoji: String = "",
+    @SerialName("is_active") val is_active: Boolean = true
 )
 
 // outlet_menu_items row with its parent product embedded via FK join
 @Serializable
 data class OutletMenuItemWithProductDto(
-    val id: Long = 0,
-    val outlet_id: Long = 0,
-    val product_id: Long = 0,
-    val price: Double = 0.0,
-    val discount: Long = 0,
-    val is_available: Boolean = true,
-    val is_out_of_stock: Boolean = false,
-    val product_catalog: ProductCatalogDto? = null
+    @SerialName("id") val id: Long = 0,
+    @SerialName("outlet_id") val outlet_id: Long = 0,
+    @SerialName("product_id") val product_id: Long = 0,
+    @SerialName("price") val price: Double = 0.0,
+    @SerialName("discount") val discount: Long = 0,
+    @SerialName("is_available") val is_available: Boolean = true,
+    @SerialName("is_out_of_stock") val is_out_of_stock: Boolean = false,
+    @SerialName("product_catalog") val product_catalog: ProductCatalogDto? = null
 )
 
 // nested join used only to pull the product name onto a bill line
 @Serializable
 data class OutletMenuItemJoinDto(
-    val id: Long = 0,
-    val product_catalog: ProductCatalogDto? = null
+    @SerialName("id") val id: Long = 0,
+    @SerialName("product_catalog") val product_catalog: ProductCatalogDto? = null
 )
 
 @Serializable
 data class OrderItemWithMenuDto(
-    val id: Long = 0,
-    val order_id: String = "",
-    val menu_item_id: Long = 0,
-    val qty: Long = 1,
-    val price_per_item: Double = 0.0,
-    val total_price: Double = 0.0,
-    val total_discount: Float = 0f,
-    val kot_printed: Boolean = false,
-    val outlet_menu_items: OutletMenuItemJoinDto? = null
+    @SerialName("id") val id: Long = 0,
+    @SerialName("order_id") val order_id: String = "",
+    @SerialName("menu_item_id") val menu_item_id: Long = 0,
+    @SerialName("qty") val qty: Long = 1,
+    @SerialName("price_per_item") val price_per_item: Double = 0.0,
+    @SerialName("total_price") val total_price: Double = 0.0,
+    @SerialName("total_discount") val total_discount: Float = 0f,
+    @SerialName("kot_printed") val kot_printed: Boolean = false,
+    @SerialName("outlet_menu_items") val outlet_menu_items: OutletMenuItemJoinDto? = null
 )
 
 // ---------- UI models ----------

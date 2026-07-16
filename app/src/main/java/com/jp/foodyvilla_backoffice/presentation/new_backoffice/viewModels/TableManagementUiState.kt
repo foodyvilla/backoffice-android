@@ -60,7 +60,10 @@ class TableManagementViewModel(
     private val _state = MutableStateFlow(TableManagementUiState())
     val state = _state.asStateFlow()
 
-    fun loadOutlet(outletId: Long) {
+    fun loadOutlet(outletId: Long, force: Boolean = false) {
+        // Prevent redundant loads unless forced (e.g. after a session update)
+        if (!force && _state.value.outletId == outletId && _state.value.tables.isNotEmpty()) return
+
         _state.update { it.copy(outletId = outletId, isLoading = true, errorText = null) }
         viewModelScope.launch {
             runCatching {
@@ -80,29 +83,38 @@ class TableManagementViewModel(
                     )
                 }
 
-                // Restore active orders and bill lines for all occupied tables
-                val orders = mutableMapOf<Long, String>()
-                val lines = mutableMapOf<Long, List<BillLineUiModel>>()
+                // Bulk restore active orders for the outlet to maintain persistent sessions
+                val activeOrders = repository.getActiveOrdersForOutlet(outletId)
+                val ordersMap = mutableMapOf<Long, String>()
+                val linesMap = mutableMapOf<Long, List<BillLineUiModel>>()
 
-                tables.filter { it.status == "occupied" }.forEach { table ->
-                    repository.getActiveOrderForTable(table.id)?.let { order ->
-                        orders[table.id] = order.id
-                        val items = repository.getOrderItemsWithMenu(order.id).map { i ->
-                            BillLineUiModel(
-                                orderItemId = i.id,
-                                menuItemId = i.menu_item_id,
-                                name = i.outlet_menu_items?.product_catalog?.name ?: "Item #${i.menu_item_id}",
-                                qty = i.qty,
-                                pricePerItem = i.price_per_item,
-                                totalPrice = i.total_price,
-                                kotPrinted = i.kot_printed
-                            )
-                        }
-                        lines[table.id] = items
+                activeOrders.forEach { order ->
+                    val tableId = order.table_id ?: return@forEach
+                    ordersMap[tableId] = order.id
+                    
+                    // Note: In a large system, we might want to fetch items on-demand, 
+                    // but for a table management session, pre-loading ensures immediate UI response.
+                    val items = repository.getOrderItemsWithMenu(order.id).map { i ->
+                        BillLineUiModel(
+                            orderItemId = i.id,
+                            menuItemId = i.menu_item_id,
+                            name = i.outlet_menu_items?.product_catalog?.name ?: "Item #${i.menu_item_id}",
+                            qty = i.qty,
+                            pricePerItem = i.price_per_item,
+                            totalPrice = i.total_price,
+                            kotPrinted = i.kot_printed
+                        )
                     }
+                    linesMap[tableId] = items
                 }
 
-                Triple(tables, categories, menu) to (orders to lines)
+                // Determine table occupancy based on active orders (reconcile with status column)
+                val updatedTables = tables.map { t ->
+                    if (ordersMap.containsKey(t.id)) t.copy(status = "occupied")
+                    else t.copy(status = "available")
+                }
+
+                Triple(updatedTables, categories, menu) to (ordersMap to linesMap)
             }.onSuccess { (data, session) ->
                 val (tables, categories, menu) = data
                 val (orders, lines) = session
@@ -263,43 +275,61 @@ class TableManagementViewModel(
         }
     }
 
-    // "Mark as Done" — food has been served, doesn't touch payment or free the table
-    fun markOrderServed() {
+    // "Mark as Done" — food has been served OR session ended; marks order completed and frees the table
+    fun completeOrderSession() {
+        val table = _state.value.selectedTable ?: return
         val orderId = _state.value.currentOrderId ?: return
+        val outletId = _state.value.outletId
+
         viewModelScope.launch {
-            runCatching { repository.setOrderStatus(orderId, "served") }
-                .onSuccess {
-                    _state.update { it.copy(errorText = null) }
+            _state.update { it.copy(isLoading = true) }
+            runCatching {
+                repository.setOrderStatus(orderId, "completed")
+                repository.setTableStatus(table.id, "available")
+            }.onSuccess {
+                // Clear state and force a full reload to ensure UI is in sync with DB
+                _state.update { 
+                    it.copy(
+                        selectedTableId = null,
+                        ordersByTable = emptyMap(),
+                        billLinesByTable = emptyMap(),
+                        cartsByTable = emptyMap(),
+                        tables = emptyList() 
+                    )
                 }
-                .onFailure { err -> _state.update { it.copy(errorText = err.localizedMessage) } }
+                loadOutlet(outletId, force = true)
+            }.onFailure { err ->
+                _state.update { it.copy(isLoading = false, errorText = err.localizedMessage) }
+            }
         }
     }
 
-    // "Print Invoice" — final settle: prints the bill, marks the order paid, frees the table
+    // "Print Invoice" — final settle: prints the bill, marks the order completed, frees the table
     fun printInvoiceAndSettle(context: android.content.Context) {
         val table = _state.value.selectedTable ?: return
         val orderId = _state.value.currentOrderId ?: return
         val grandTotal = _state.value.currentGrandTotal
+        val outletId = _state.value.outletId
 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             runCatching {
                 printerBridge.printInvoice(context, table.tableNumber, _state.value.currentBillLines, grandTotal)
-                repository.setOrderStatus(orderId, "paid")
+                repository.setOrderStatus(orderId, "completed")
                 repository.setTableStatus(table.id, "available")
             }.onSuccess {
+                // Clear state and force a full reload
                 _state.update {
                     it.copy(
-                        isLoading = false,
                         selectedTableId = null,
-                        ordersByTable = it.ordersByTable - table.id,
-                        billLinesByTable = it.billLinesByTable - table.id,
-                        cartsByTable = it.cartsByTable - table.id,
-                        tables = it.tables.map { t -> if (t.id == table.id) t.copy(status = "available") else t },
-                        lastInvoice = table.tableNumber to grandTotal,
-                        errorText = null
+                        ordersByTable = emptyMap(),
+                        billLinesByTable = emptyMap(),
+                        cartsByTable = emptyMap(),
+                        tables = emptyList(),
+                        lastInvoice = table.tableNumber to grandTotal
                     )
                 }
+                loadOutlet(outletId, force = true)
             }.onFailure { err ->
                 _state.update { it.copy(isLoading = false, errorText = "Settlement failed: ${err.localizedMessage}") }
             }

@@ -160,9 +160,9 @@ fun OrderHistoryCard(order: OrderDto) {
 fun StatusChip(status: String) {
     val color = when (status.lowercase()) {
         "pending" -> Color(0xFFFFA000)
+        "accepted" -> Color(0xFF1976D2)
         "preparing" -> Color(0xFF1976D2)
-        "served" -> Color(0xFF43A047)
-        "paid" -> Color(0xFF7B1FA2)
+        "completed" -> Color(0xFF43A047)
         "cancelled" -> Color(0xFFD32F2F)
         else -> Color.Gray
     }

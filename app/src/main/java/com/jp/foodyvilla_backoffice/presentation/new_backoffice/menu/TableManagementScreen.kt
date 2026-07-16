@@ -63,7 +63,7 @@ fun TableManagementScreen(
                     hasUnprintedKot = state.currentBillLines.any { !it.kotPrinted },
                     hasAnyItems = state.currentBillLines.isNotEmpty() || state.currentCartLines.isNotEmpty(),
                     onPrintKot = { viewModel.printKot(context) },
-                    onMarkDone = viewModel::markOrderServed,
+                    onMarkDone = viewModel::completeOrderSession,
                     onPrintInvoice = { viewModel.printInvoiceAndSettle(context) }
                 )
             }

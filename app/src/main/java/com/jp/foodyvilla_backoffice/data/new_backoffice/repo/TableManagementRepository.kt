@@ -44,7 +44,7 @@ class TableManagementRepository(
 
     suspend fun getMenuForOutlet(outletId: Long): List<OutletMenuItemWithProductDto> {
         return supabase.from("outlet_menu_items")
-            .select(Columns.raw("*, product_catalog(*)")) {
+            .select(Columns.raw("*, product_catalog(id, name, category_id)")) {
                 filter {
                     eq("outlet_id", outletId)
                     eq("is_available", true)
@@ -62,7 +62,7 @@ class TableManagementRepository(
                 filter {
                     eq("table_id", tableId)
                     eq("order_type", "dine_in")
-                    neq("status", "paid")
+                    neq("status", "completed")
                     neq("status", "cancelled")
                 }
                 order("created_at", SupabaseOrder.DESCENDING)
@@ -70,6 +70,20 @@ class TableManagementRepository(
             }
             .decodeList<OrderDto>()
             .firstOrNull()
+    }
+
+    suspend fun getActiveOrdersForOutlet(outletId: Long): List<OrderDto> {
+        return supabase.from("orders")
+            .select {
+                filter {
+                    eq("outlet_id", outletId)
+                    eq("order_type", "dine_in")
+                    neq("status", "completed")
+                    neq("status", "cancelled")
+                }
+                order("created_at", SupabaseOrder.DESCENDING)
+            }
+            .decodeList<OrderDto>()
     }
 
     suspend fun createDineInOrder(outletId: Long, tableId: Long, customerName: String?): OrderDto {
