@@ -42,6 +42,7 @@ import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ProductCatalogRepos
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ReviewAdminRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.TableManagementRepository
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OrderHistoryViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AnalyticsViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
@@ -236,5 +237,6 @@ val appModule = module{
 
     singleOf(::TableManagementRepository)
     viewModelOf(::OrderHistoryViewModel)
+    viewModelOf(::AnalyticsViewModel)
     viewModelOf(::TableManagementViewModel)
 }

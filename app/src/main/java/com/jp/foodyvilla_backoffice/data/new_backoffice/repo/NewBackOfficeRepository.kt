@@ -25,6 +25,7 @@ import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
+import io.ktor.client.call.body
 import io.ktor.utils.io.InternalAPI
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -451,6 +452,26 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
         } catch (e: Exception) {
             Log.e(TAG, "CRITICAL ERROR: Transaction sequence rolled back/failed for Order ID: $orderId. Reason: ${e.message}", e)
             throw e // Relaunch up to the lifecycle viewModel Scope handler wrapper layers cleanly
+        }
+    }
+
+    /**
+     * Invokes the 'get_analytics' edge function to fetch summary metrics for a given date range.
+     */
+    @OptIn(InternalAPI::class)
+    suspend fun getAnalyticsSummary(startDate: LocalDate, endDate: LocalDate): com.jp.foodyvilla_backoffice.data.new_backoffice.models.AnalyticsResponse {
+        return try {
+            val response = supabase.functions.invoke(function = "get_analytics") {
+                this.body = buildJsonObject {
+                    put("start_date", startDate.toString())
+                    put("end_date", endDate.toString())
+                }.toString()
+            }
+            // The edge function returns a JSON object matching AnalyticsResponse
+            response.body<com.jp.foodyvilla_backoffice.data.new_backoffice.models.AnalyticsResponse>()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching analytics from edge function: ${e.message}")
+            com.jp.foodyvilla_backoffice.data.new_backoffice.models.AnalyticsResponse(success = false, error = e.localizedMessage)
         }
     }
 }

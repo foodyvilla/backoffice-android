@@ -51,6 +51,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.chefD
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.employeeDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.headDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ownerDrawerItems
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AnalyticsDashboardScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OrderHistoryScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OutletListDirectoryScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.PaymentAdminConsoleScreen
@@ -304,10 +305,7 @@ fun NewBackOfficeNavigationScreen(
                     }
 
                     BackOfficeRoute.Analytics -> {
-
-                        DashboardPlaceholderScreen(
-                            title = "Analytics"
-                        )
+                        AnalyticsDashboardScreen()
                     }
 
                     BackOfficeRoute.Offers -> {
