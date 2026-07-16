@@ -86,7 +86,7 @@ internal data class OrderListResponse(
     val customer_name: String? = null,
     val phone: String? = null,
     val status: String,
-    val order_type: String,
+    val order_type: String? = null,
     val address: String? = null,
     val instruction: String? = null,
     val created_at: String,
@@ -179,7 +179,7 @@ internal fun OrderListResponse.toUiModel(): NewDetailedOrderUiModel {
     return NewDetailedOrderUiModel(
         id = id, outletId = outlet_id, customerId = customer_id,
         customerName = customer_name ?: "Walk-in Customer", phone = phone.orEmpty(),
-        status = status, orderType = order_type.uppercase(), address = address.orEmpty(),
+        status = status, orderType = (order_type ?: "dine_in").uppercase(), address = address.orEmpty(),
         instruction = instruction.orEmpty(), createdAt = created_at, acceptedBy = accepted_by,
         items = itemsList, totalAmount = itemsList.sumOf { it.totalPrice }
     )

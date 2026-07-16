@@ -51,9 +51,11 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.chefD
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.employeeDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.headDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ownerDrawerItems
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OrderHistoryScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OutletListDirectoryScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.PaymentAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ReviewAdminConsoleScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.TableManagementScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
@@ -64,6 +66,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.Unifi
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
 
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -363,6 +366,14 @@ fun NewBackOfficeNavigationScreen(
 
                         loginViewModel.logout()
                     }
+
+                    BackOfficeRoute.TableOrder -> TableManagementScreen()
+
+                    BackOfficeRoute.OrderHistory -> {
+                        userSession?.outletId?.let { outletId ->
+                            OrderHistoryScreen(outletId = outletId)
+                        }
+                    }
                 }
 
                 HandleRealTimeInterceptedOrders(viewModel  = unifiedViewModel){order->
@@ -427,5 +438,7 @@ private fun BackOfficeRoute.title(): String {
         BackOfficeRoute.Settings -> "Settings"
         BackOfficeRoute.Profile -> "Profile"
         BackOfficeRoute.Logout -> "Logout"
+        BackOfficeRoute.TableOrder -> "Table Order"
+        BackOfficeRoute.OrderHistory -> "Order History"
     }
 }

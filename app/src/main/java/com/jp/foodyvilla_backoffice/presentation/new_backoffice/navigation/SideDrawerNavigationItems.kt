@@ -37,6 +37,9 @@ sealed interface BackOfficeRoute {
     data object Orders : BackOfficeRoute
 
     @Serializable
+    data object TableOrder : BackOfficeRoute
+
+    @Serializable
     data object OutletMenu : BackOfficeRoute
 
     @Serializable
@@ -83,6 +86,11 @@ sealed interface BackOfficeRoute {
 
     @Serializable
     data object Logout : BackOfficeRoute
+
+    @Serializable
+    data object OrderHistory : BackOfficeRoute
+
+
 }
 
 val ownerDrawerItems = listOf(
@@ -190,6 +198,12 @@ val ownerDrawerItems = listOf(
     ),
 
     BackOfficeDrawerItem(
+        icon = Icons.Default.Assignment,
+        route = BackOfficeRoute.OrderHistory,
+        name = "Order History"
+    ),
+
+    BackOfficeDrawerItem(
         icon = Icons.Default.Logout,
         route = BackOfficeRoute.Logout,
         name = "Logout"
@@ -286,6 +300,12 @@ val headDrawerItems = listOf(
     ),
 
     BackOfficeDrawerItem(
+        icon = Icons.Default.Assignment,
+        route = BackOfficeRoute.OrderHistory,
+        name = "Order History"
+    ),
+
+    BackOfficeDrawerItem(
         icon = Icons.Default.Logout,
         route = BackOfficeRoute.Logout,
         name = "Logout"
@@ -337,6 +357,12 @@ val chefDrawerItems = listOf(
     ),
 
     BackOfficeDrawerItem(
+        icon = Icons.Default.Assignment,
+        route = BackOfficeRoute.OrderHistory,
+        name = "Order History"
+    ),
+
+    BackOfficeDrawerItem(
         icon = Icons.Default.Logout,
         route = BackOfficeRoute.Logout,
         name = "Logout"
@@ -355,6 +381,11 @@ val employeeDrawerItems = listOf(
         icon = Icons.Default.Assignment,
         route = BackOfficeRoute.Orders,
         name = "Orders"
+    ),
+    BackOfficeDrawerItem(
+        icon = Icons.Default.Assignment,
+        route = BackOfficeRoute.TableOrder,
+        name = "Table Orders"
     ),
 
     BackOfficeDrawerItem(

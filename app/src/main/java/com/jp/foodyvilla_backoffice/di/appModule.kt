@@ -33,11 +33,15 @@ import com.jp.foodyvilla_backoffice.data.repository.SupabaseOrderWorkflowReposit
 import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 
 
+import com.jp.foodyvilla_backoffice.data.new_backoffice.models.ThermalPrinterBridge
+import com.jp.foodyvilla_backoffice.data.printer.AndroidPrintBridge
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.NewOrdersManagementRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.OutletManagementRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.PaymentAdminRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ProductCatalogRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ReviewAdminRepository
+import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.TableManagementRepository
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OrderHistoryViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
@@ -47,6 +51,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.Outle
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.PaymentAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ReviewAdminViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.TableManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
 
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.AdminViewModel
@@ -60,6 +65,7 @@ import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.products.Pro
 import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.reviews.ReviewViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.task_category.TaskCategoryViewModel
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.functions.Functions
@@ -78,7 +84,7 @@ val appModule = module{
     val supabaseUrl = "https://qxqnwfcljizyscrqkntd.supabase.co"
     val supabaseKey = "sb_publishable_P2vCR3YTVxyHShA8Gbb0RQ_HxXAGqZ-"
 
-    single {
+    single<SupabaseClient> {
         createSupabaseClient(
 //            supabaseUrl = "https://mzeajzfhjovwyuotiywx.supabase.co",
 //            supabaseKey = "sb_publishable_C0Dz4fVE-_YjQIHLHqMbQQ_EWWuskzq"
@@ -225,4 +231,10 @@ val appModule = module{
 
     singleOf(::EmployeeAdminRepository)
     viewModelOf(::EmployeeAdminViewModel)
+
+    single<ThermalPrinterBridge> { AndroidPrintBridge() }
+
+    singleOf(::TableManagementRepository)
+    viewModelOf(::OrderHistoryViewModel)
+    viewModelOf(::TableManagementViewModel)
 }
