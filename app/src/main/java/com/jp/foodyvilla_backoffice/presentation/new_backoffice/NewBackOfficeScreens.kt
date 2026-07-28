@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ScreenDestinations
+import com.jp.foodyvilla_backoffice.ui.theme.AppTheme
 
 // ==========================================
 // ViewModels Implementations
@@ -309,11 +310,34 @@ fun NewOrdersListScreen(
 
                                         // Inline Dropdown status update controller chip
                                         var inlineMenuShow by remember { mutableStateOf(false) }
+                                        val extendedColors = AppTheme.colors
+                                        val statusColor = when (order.status.lowercase()) {
+                                            "pending", "accepted" -> extendedColors.info
+                                            "preparing" -> extendedColors.warning
+                                            "completed" -> extendedColors.success
+                                            "cancelled" -> MaterialTheme.colorScheme.error
+                                            else -> MaterialTheme.colorScheme.outline
+                                        }
+                                        val statusContainer = when (order.status.lowercase()) {
+                                            "pending", "accepted" -> extendedColors.infoContainer
+                                            "preparing" -> extendedColors.warningContainer
+                                            "completed" -> extendedColors.successContainer
+                                            "cancelled" -> MaterialTheme.colorScheme.errorContainer
+                                            else -> MaterialTheme.colorScheme.surfaceVariant
+                                        }
+                                        
                                         Box {
-                                            FilterChip(
-                                                selected = true,
+                                            AssistChip(
                                                 onClick = { inlineMenuShow = true },
-                                                label = { Text(order.status.uppercase()) }
+                                                label = { Text(order.status.uppercase()) },
+                                                colors = AssistChipDefaults.assistChipColors(
+                                                    labelColor = statusColor,
+                                                    containerColor = statusContainer
+                                                ),
+                                                border = AssistChipDefaults.assistChipBorder(
+                                                    borderColor = statusColor.copy(alpha = 0.5f),
+                                                    enabled = true
+                                                )
                                             )
                                             DropdownMenu(
                                                 expanded = inlineMenuShow,

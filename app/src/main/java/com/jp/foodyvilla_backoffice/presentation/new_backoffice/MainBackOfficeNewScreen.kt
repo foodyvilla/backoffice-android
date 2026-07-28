@@ -2,40 +2,22 @@ package com.jp.foodyvilla_backoffice.presentation.new_backoffice
 
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.attendance.EmployeeAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.attendance.EmployeeAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AttendanceAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.CustomerDirectoryScreen
@@ -47,10 +29,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ProductCata
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ProductCategoryManagementScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.BackOfficeRoute
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ScreenDestinations
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.chefDrawerItems
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.employeeDrawerItems
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.headDrawerItems
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ownerDrawerItems
+
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.SpecificOutletMenuHandlingScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AnalyticsDashboardScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OrderHistoryScreen
@@ -107,56 +86,109 @@ fun NewBackOfficeNavigationScreen(
         drawerState = drawerState,
 
         drawerContent = {
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(top = 24.dp)
+            ModalDrawerSheet(
+                modifier = Modifier.fillMaxWidth(0.85f),
+                drawerContainerColor = MaterialTheme.colorScheme.surface,
             ) {
+                // Drawer Header with User Info
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(vertical = 32.dp, horizontal = 20.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "FoodyVilla",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Back Office Portal",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        userSession?.let { session ->
+                            val name = when (val s = session) {
+                                is UserSession.EmployeeSession -> s.name ?: "Staff Member"
+                                is UserSession.OutletSession -> s.username
+                            }
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = MaterialTheme.shapes.extraSmall
+                            ) {
+                                Text(
+                                    text = session.role().uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                    }
+                }
 
-                Text(
-                    text = "FoodyVilla Backoffice",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(16.dp)
-                )
+                Spacer(modifier = Modifier.height(12.dp))
 
-                LazyColumn {
-
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     items(drawerItems) { item ->
-
                         NavigationDrawerItem(
                             selected = currentRoute == item.route,
-
                             onClick = {
-
-                                currentRoute = item.route
-
-                                scope.launch {
-                                    drawerState.close()
+                                if (item.route == BackOfficeRoute.Logout) {
+                                    loginViewModel.logout()
+                                } else {
+                                    currentRoute = item.route
                                 }
+                                scope.launch { drawerState.close() }
                             },
-
                             label = {
-                                Text(item.name)
+                                Text(
+                                    text = item.name,
+                                    fontWeight = if (currentRoute == item.route) FontWeight.Bold else FontWeight.Normal
+                                )
                             },
-
                             icon = {
                                 Icon(
                                     imageVector = item.icon,
-                                    contentDescription = item.name
+                                    contentDescription = item.name,
+                                    tint = if (currentRoute == item.route) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             },
-
-                            modifier = Modifier.padding(
-                                horizontal = 12.dp,
-                                vertical = 4.dp
+                            shape = MaterialTheme.shapes.medium,
+                            colors = NavigationDrawerItemDefaults.colors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                                unselectedContainerColor = Color.Transparent,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                     }
                 }
+                
+                Text(
+                    text = "v1.0.4-stable",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally)
+                )
             }
         }
     ) {

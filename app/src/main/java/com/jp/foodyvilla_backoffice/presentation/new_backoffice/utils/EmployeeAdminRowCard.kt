@@ -3,17 +3,23 @@ package com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Engineering
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.EmployeeAdminUiModel
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.EmployeeRole
+import com.jp.foodyvilla_backoffice.ui.theme.AppTheme
 
 @Composable
 fun EmployeeAdminRowCard(
@@ -42,11 +48,11 @@ fun EmployeeAdminRowCard(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text(text = "CONTACT INFO", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(text = "CONTACT INFO", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     Text(text = record.contact, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(text = "MONTHLY BASE PAY", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(text = "MONTHLY BASE PAY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
                     Text(text = if(record.salary.isNotBlank()) "₹${record.salary}" else "Unset", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                 }
             }
@@ -56,9 +62,12 @@ fun EmployeeAdminRowCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     val statusText = if (record.isActive) "ACTIVE STAFF" else "INACTIVE / DEACTIVATED"
-                    val statusColor = if (record.isActive) Color(0xFF2E7D32) else Color(0xFFC62828)
+                    val statusColor = if (record.isActive) AppTheme.colors.success else MaterialTheme.colorScheme.error
+                    val icon = if (record.isActive) Icons.Default.Badge else Icons.Default.Block
+                    
+                    Icon(imageVector = icon, contentDescription = null, tint = statusColor, modifier = Modifier.size(14.dp))
                     Text(text = statusText, color = statusColor, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                 }
 
@@ -77,24 +86,25 @@ fun EmployeeAdminRowCard(
 
 @Composable
 private fun RoleIndicatorBadge(role: EmployeeRole) {
-    val containerColor = when (role) {
-        EmployeeRole.OWNER -> Color(0xFFE3F2FD)
-        EmployeeRole.HEAD -> Color(0xFFFFE0B2)
-        EmployeeRole.CHEF -> Color(0xFFE1BEE7)
-        EmployeeRole.EMPLOYEE -> Color(0xFFF5F5F5)
-    }
-    val contentColor = when (role) {
-        EmployeeRole.OWNER -> Color(0xFF0D47A1)
-        EmployeeRole.HEAD -> Color(0xFFE65100)
-        EmployeeRole.CHEF -> Color(0xFF4A148C)
-        EmployeeRole.EMPLOYEE -> Color(0xFF212121)
+    val extendedColors = AppTheme.colors
+    val (contentColor, containerColor, icon) = when (role) {
+        EmployeeRole.OWNER -> Triple(extendedColors.info, extendedColors.infoContainer, Icons.Default.Security)
+        EmployeeRole.HEAD -> Triple(extendedColors.warning, extendedColors.warningContainer, Icons.Default.Engineering)
+        EmployeeRole.CHEF -> Triple(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer, Icons.Default.Restaurant)
+        EmployeeRole.EMPLOYEE -> Triple(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.secondaryContainer, Icons.Default.Person)
     }
 
-    Surface(color = containerColor, shape = RoundedCornerShape(6.dp)) {
-        Text(
-            text = role.name, color = contentColor,
-            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
+    Surface(color = containerColor, shape = RoundedCornerShape(8.dp)) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(14.dp))
+            Text(
+                text = role.name, color = contentColor,
+                style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold
+            )
+        }
     }
 }

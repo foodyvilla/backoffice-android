@@ -421,11 +421,12 @@ class AdminRepository(
 
         val canWrite = when (role) {
             OutletRole.OWNER -> true
-            OutletRole.HEAD, OutletRole.MANAGER -> {
+            OutletRole.HEAD, OutletRole.MANAGER, OutletRole.HEAD_CHEF -> {
                 // Heads have CRUD for own outlet tables except categories and employee
                 table.name != "categories" && table.name != "employee"
             }
-            OutletRole.CHEF, OutletRole.EMPLOYEE, OutletRole.KITCHEN, OutletRole.WAITER, OutletRole.CASHIER -> {
+            OutletRole.CHEF, OutletRole.EMPLOYEE, OutletRole.KITCHEN, OutletRole.WAITER, OutletRole.CASHIER,
+            OutletRole.HELPER, OutletRole.STORE_SUPERVISOR, OutletRole.DELIVERY_BOY -> {
                 // Employees only have CRU for orders and order items
                 if (action == "delete") false
                 else table.name == "orders" || table.name == "order_items" || table.name == "attendance"

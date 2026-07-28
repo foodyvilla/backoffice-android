@@ -7,6 +7,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.AdminReviewType
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.ReviewAdminUiModel
+import com.jp.foodyvilla_backoffice.ui.theme.AppTheme
 
 @Composable
 fun ReviewAdminRowCard(
@@ -92,22 +96,24 @@ fun ReviewAdminRowCard(
 
 @Composable
 private fun ReviewTypeBadge(type: AdminReviewType) {
-    val containerColor = when (type) {
-        AdminReviewType.ORDER -> Color(0xFFE3F2FD)
-        AdminReviewType.OUTLET -> Color(0xFFE8F5E9)
-        AdminReviewType.PRODUCT -> Color(0xFFFFF3E0)
-    }
-    val contentColor = when (type) {
-        AdminReviewType.ORDER -> Color(0xFF1565C0)
-        AdminReviewType.OUTLET -> Color(0xFF2E7D32)
-        AdminReviewType.PRODUCT -> Color(0xFFEF6C00)
+    val extendedColors = AppTheme.colors
+    val (containerColor, contentColor, icon) = when (type) {
+        AdminReviewType.ORDER -> Triple(extendedColors.infoContainer, extendedColors.info, Icons.Default.ShoppingCart)
+        AdminReviewType.OUTLET -> Triple(extendedColors.successContainer, extendedColors.success, Icons.Default.Storefront)
+        AdminReviewType.PRODUCT -> Triple(extendedColors.warningContainer, extendedColors.warning, Icons.Default.Fastfood)
     }
 
-    Surface(color = containerColor, shape = RoundedCornerShape(6.dp)) {
-        Text(
-            text = type.name, color = contentColor,
-            style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
+    Surface(color = containerColor, shape = RoundedCornerShape(8.dp)) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(14.dp))
+            Text(
+                text = type.name, color = contentColor,
+                style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
