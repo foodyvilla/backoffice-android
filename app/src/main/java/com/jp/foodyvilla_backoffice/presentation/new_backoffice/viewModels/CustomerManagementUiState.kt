@@ -62,15 +62,19 @@ class CustomerManagementViewModel(private val repository: CustomerManagementRepo
         val s = _state.value
         val payload = CustomerUiModel(id = s.targetCustomerId ?: 0L, name = s.cName, phone = s.cPhone, email = s.cEmail, address = s.cAddress, isVerified = s.cIsVerified)
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
             runCatching {
                 if (s.targetCustomerId == null) repository.insertCustomer(payload) else repository.updateCustomer(payload)
             }.onSuccess { loadAllCustomers(); onSuccess() }
+             .onFailure { e -> _state.update { it.copy(errorText = e.localizedMessage, isLoading = false) } }
         }
     }
 
     fun removeCustomerRecord(id: Long) {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
             runCatching { repository.deleteCustomer(id) }.onSuccess { loadAllCustomers() }
+                .onFailure { e -> _state.update { it.copy(errorText = e.localizedMessage, isLoading = false) } }
         }
     }
 
@@ -88,12 +92,18 @@ class CustomerManagementViewModel(private val repository: CustomerManagementRepo
     fun sendFcmPushNotification(token: String, title: String, desc: String, url: String, onDone: () -> Unit) {
         println("Token $token")
         viewModelScope.launch {
-            try{
-                runCatching { repository.invokeFcmNotificationEdgeFunction(token, title, desc, url) }.onSuccess { onDone() }
-            }catch (e : Exception){
+            _state.update { it.copy(isLoading = true) }
+            try {
+                runCatching { repository.invokeFcmNotificationEdgeFunction(token, title, desc, url) }
+                    .onSuccess { 
+                        _state.update { it.copy(isLoading = false) }
+                        onDone() 
+                    }
+                    .onFailure { e -> _state.update { it.copy(errorText = e.localizedMessage, isLoading = false) } }
+            } catch (e : Exception) {
+                _state.update { it.copy(errorText = e.localizedMessage, isLoading = false) }
                 print(e.toString())
             }
-
         }
     }
 

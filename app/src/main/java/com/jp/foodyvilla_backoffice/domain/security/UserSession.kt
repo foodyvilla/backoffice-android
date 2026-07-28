@@ -12,11 +12,53 @@ sealed interface UserSession {
     fun role() : String{
         if (isHead()) return "head"
         if (isOwner()) return "owner"
-        else return "employee"
+        val role = when (this) {
+            is OutletSession -> role
+            is EmployeeSession -> role
+        }
+        return role?.dbValue ?: "employee"
     }
+
     fun isHead(): Boolean = when (this) {
-        is OutletSession -> role == OutletRole.HEAD || role == OutletRole.MANAGER
-        is EmployeeSession -> role == OutletRole.HEAD || role == OutletRole.MANAGER
+        is OutletSession -> role == OutletRole.HEAD || role == OutletRole.MANAGER || role == OutletRole.STORE_SUPERVISOR
+        is EmployeeSession -> role == OutletRole.HEAD || role == OutletRole.MANAGER || role == OutletRole.STORE_SUPERVISOR
+    }
+
+    fun canAcceptOrders(): Boolean {
+        if (isOwner()) return true
+        val role = when (this) {
+            is OutletSession -> role
+            is EmployeeSession -> role
+        } ?: return false
+        return role == OutletRole.MANAGER || role == OutletRole.STORE_SUPERVISOR
+    }
+
+    fun canManageMenu(): Boolean {
+        if (isOwner()) return true
+        val role = when (this) {
+            is OutletSession -> role
+            is EmployeeSession -> role
+        } ?: return false
+        return role == OutletRole.MANAGER || role == OutletRole.STORE_SUPERVISOR
+    }
+
+    fun canUpdateOrderStatus(status: String): Boolean {
+        if (isOwner()) return true
+        val role = when (this) {
+            is OutletSession -> role
+            is EmployeeSession -> role
+        } ?: return false
+        
+        if (role == OutletRole.DELIVERY_BOY) {
+            return status.lowercase() == "completed" || status.lowercase() == "delivered" || status.lowercase() == "cancelled"
+        }
+        
+        // Managers/Supervisors can do anything. 
+        // Others might have limited access depending on app flow, 
+        // but for now let's focus on the Delivery Boy restriction.
+        if (role == OutletRole.MANAGER || role == OutletRole.STORE_SUPERVISOR) return true
+        
+        return true // Default allowed for others? Or maybe restricted to "accepted/preparing" for chefs?
     }
 
     fun canManageEmployees(): Boolean = isOwner()

@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
@@ -34,7 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProductCatalogManagementScreen(viewModel: ProductCatalogViewModel) {
+fun ProductCatalogManagementScreen(viewModel: ProductCatalogViewModel, onMenuClick: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var dropdownExpanded by remember { mutableStateOf(false) }
 
@@ -52,6 +53,16 @@ fun ProductCatalogManagementScreen(viewModel: ProductCatalogViewModel) {
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Product Catalog", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = viewModel::openProductCreationForm,
@@ -61,11 +72,11 @@ fun ProductCatalogManagementScreen(viewModel: ProductCatalogViewModel) {
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = "Master Menu Product Catalog",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+//                Text(
+//                    text = "Master Menu Product Catalog",
+//                    style = MaterialTheme.typography.headlineMedium,
+//                    fontWeight = FontWeight.Bold
+//                )
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // SEARCH BAR MAPPED TO THE CORRECT PRODUCT SEARCH STATE

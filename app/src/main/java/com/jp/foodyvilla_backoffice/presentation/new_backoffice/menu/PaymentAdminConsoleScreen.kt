@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Search
@@ -31,7 +32,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PaymentAdminConsoleScreen(viewModel: PaymentAdminViewModel = koinViewModel()) {
+fun PaymentAdminConsoleScreen(viewModel: PaymentAdminViewModel = koinViewModel(), onMenuClick: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var monthMenuExpanded by remember { mutableStateOf(false) }
     var yearMenuExpanded by remember { mutableStateOf(false) }
@@ -56,7 +57,16 @@ fun PaymentAdminConsoleScreen(viewModel: PaymentAdminViewModel = koinViewModel()
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Payments Accounting Desk", fontWeight = FontWeight.Bold) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Payments Accounting Desk", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.initFormWorkspace(null) }) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Insert Manual Log Payload")

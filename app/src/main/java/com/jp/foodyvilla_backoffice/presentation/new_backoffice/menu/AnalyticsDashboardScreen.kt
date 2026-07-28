@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.RestaurantMenu
@@ -27,6 +28,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun AnalyticsDashboardScreen(
     viewModel: AnalyticsViewModel = koinViewModel(),
+    onMenuClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showDatePickerRange by remember { mutableStateOf(value = false) }
@@ -48,6 +50,11 @@ fun AnalyticsDashboardScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Analytics Dashboard") },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                },
                 actions = {
                     IconButton(onClick = { showDatePickerRange = true }) {
                         Icon(Icons.Default.CalendarToday, contentDescription = "Filter Date")

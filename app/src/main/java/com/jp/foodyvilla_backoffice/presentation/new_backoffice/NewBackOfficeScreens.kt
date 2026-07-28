@@ -1,5 +1,6 @@
 package com.jp.foodyvilla_backoffice.presentation.new_backoffice
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.NotificationsActive
 
@@ -34,10 +35,18 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.Scree
 fun NewOrdersListScreen(
     viewModel: UnifiedOrderControlViewModel,
     navController: NavController,
+    onMenuClick: () -> Unit,
     onNavigateToCreateOrderMenuSelection: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val availableFulfillmentStatuses = listOf("pending", "accepted", "preparing", "completed", "cancelled")
+    
+    val availableFulfillmentStatuses = remember(state.userRole) {
+        if (state.userRole == "delivery_boy") {
+            listOf("completed", "cancelled")
+        } else {
+            listOf("pending", "accepted", "preparing", "completed", "cancelled")
+        }
+    }
 
     var dropdownScopeExpanded by remember { mutableStateOf(false) }
     var showDatePickerDialog by remember { mutableStateOf(false) }
@@ -118,19 +127,30 @@ fun NewOrdersListScreen(
     // ====================================================
     // CORE SCREEN MAIN INTERFACE
     // ====================================================
-    Scaffold { padding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Orders Management", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            Text(
-                text = "Orders Dashboard Management",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+//            Text(
+//                text = "Orders Dashboard Management",
+//                style = MaterialTheme.typography.headlineMedium,
+//                fontWeight = FontWeight.Bold
+//            )
+//            Spacer(modifier = Modifier.height(16.dp))
 
             // 1. DYNAMIC OUTLET CONTROL FILTERS DROP-DOWN FOR OWNER USERS
             if (state.isOwnerUser) {
@@ -218,13 +238,15 @@ fun NewOrdersListScreen(
                     }
                 }
             } else {
-                Button(
-                    onClick = onNavigateToCreateOrderMenuSelection,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp)
-                ) {
-                    Text("Place New Counter Sale Placement Order")
+                if (state.userRole != "delivery_boy") {
+                    Button(
+                        onClick = onNavigateToCreateOrderMenuSelection,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        Text("Place New Counter Sale Placement Order")
+                    }
                 }
 
                 if (state.isLoading) {

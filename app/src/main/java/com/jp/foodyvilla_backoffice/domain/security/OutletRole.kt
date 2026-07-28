@@ -2,13 +2,17 @@ package com.jp.foodyvilla_backoffice.domain.security
 
 enum class OutletRole(val dbValue: String) {
     OWNER("owner"),
-    HEAD("head"),
-    MANAGER("manager"),
+    HEAD_CHEF("head_chef"),
     CHEF("chef"),
+    HELPER("helper"),
+    WAITER("waiter"),
+    MANAGER("manager"),
+    STORE_SUPERVISOR("store_supervisor"),
+    DELIVERY_BOY("delivery_boy"),
     KITCHEN("kitchen"),
     EMPLOYEE("employee"),
-    WAITER("waiter"),
-    CASHIER("cashier");
+    CASHIER("cashier"),
+    HEAD("head");
 
     companion object {
         fun fromDbValue(value: String): OutletRole? {
@@ -20,7 +24,9 @@ enum class OutletRole(val dbValue: String) {
                 "head_manager" to HEAD,
                 "cook" to CHEF,
                 "kitchen_staff" to CHEF,
-                "staff" to EMPLOYEE
+                "staff" to EMPLOYEE,
+                "supervisor" to STORE_SUPERVISOR,
+                "delivery" to DELIVERY_BOY
             )
             aliases[normalized]?.let { return it }
             return entries.firstOrNull { role ->

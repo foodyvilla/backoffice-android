@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,7 +58,8 @@ data class OrderHistoryUiState(
 @Composable
 fun OrderHistoryScreen(
     outletId: Long,
-    viewModel: OrderHistoryViewModel = koinViewModel()
+    viewModel: OrderHistoryViewModel = koinViewModel(),
+    onMenuClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showDatePicker by remember { mutableStateOf(value = false) }
@@ -92,6 +94,11 @@ fun OrderHistoryScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Order History") },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                },
                 actions = {
                     IconButton(onClick = { showDatePicker = true }) {
                         Icon(Icons.Default.DateRange, contentDescription = "Select Date")

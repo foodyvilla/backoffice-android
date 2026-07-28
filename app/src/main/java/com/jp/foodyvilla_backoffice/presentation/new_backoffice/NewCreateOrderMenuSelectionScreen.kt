@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Storefront
@@ -26,6 +27,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.Unifi
 @Composable
 fun NewCreateOrderMenuSelectionScreen(
     viewModel: UnifiedOrderControlViewModel,
+    onMenuClick: () -> Unit,
     onNavigateToCheckout: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -42,6 +44,16 @@ fun NewCreateOrderMenuSelectionScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Menu Selector", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
         bottomBar = {
             // Only show the checkout bar if an outlet is active and items are selected
             if (state.isOperationAllowed && state.cartSelectedItems.isNotEmpty()) {
@@ -92,12 +104,12 @@ fun NewCreateOrderMenuSelectionScreen(
                 .padding(innerPadding)
                 .padding(16.dp)
         ) {
-            Text(
-                text = "Counter POS Menu Selector",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+//            Text(
+//                text = "Counter POS Menu Selector",
+//                style = MaterialTheme.typography.headlineMedium,
+//                fontWeight = FontWeight.Bold
+//            )
+//            Spacer(modifier = Modifier.height(16.dp))
 
             // 1. DYNAMIC DROP-DOWN SELECTOR FOR OWNER PROFILES
             if (state.isOwnerUser) {

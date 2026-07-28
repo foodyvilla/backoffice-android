@@ -42,6 +42,9 @@ data class UnifiedOrderSystemUiState(
 
     // Permissions & Visibility
     val isOwnerUser: Boolean = false,
+    val canAcceptOrders: Boolean = false,
+    val canManageMenu: Boolean = false,
+    val userRole: String = "employee",
     val activeSelectedOutlet: OutletDropdownUiModel? = null,
     val isOperationAllowed: Boolean = false,
 
@@ -81,22 +84,27 @@ class UnifiedOrderControlViewModel(
     init {
         viewModelScope.launch {
             backOfficeAuthRepository.currentSession.collectLatest { session ->
-                val empSession = session as? UserSession.EmployeeSession
-                userDesignationRole = empSession?.role()?.lowercase()?.trim() ?: "employee"
-                internalEmployeeRowId = empSession?.empId?.toLongOrNull() ?: empSession?.empId?.replace(Regex("[^0-9]"), "")?.toLongOrNull()
-                sessionOutletId = empSession?.outletId
-
-                val isOwner = userDesignationRole == "owner"
-                val operationalGating = isOwner || (sessionOutletId != null)
+                if (session == null) return@collectLatest
+                
+                val isOwner = session.isOwner()
+                val operationalGating = isOwner || (session.outletId != 0L)
+                
+                userDesignationRole = session.role()
+                sessionOutletId = session.outletId
 
                 _state.update {
-                    it.copy(isOwnerUser = isOwner, isOperationAllowed = operationalGating)
+                    it.copy(
+                        isOwnerUser = isOwner,
+                        isOperationAllowed = operationalGating,
+                        canAcceptOrders = session.canAcceptOrders(),
+                        canManageMenu = session.canManageMenu(),
+                        userRole = userDesignationRole!!
+                    )
                 }
 
                 if (isOwner) {
                     val list = repository.fetchActiveOutletsList()
                     _state.update { it.copy(outlets = list, activeSelectedOutlet = null) }
-                    // Start global listener right away to intercept orders across all channels
                     restartRealtimeSubscriptionChannel()
                 } else if (sessionOutletId != null) {
                     val branch = OutletDropdownUiModel(sessionOutletId!!, "Assigned Branch Profile")
@@ -192,7 +200,13 @@ class UnifiedOrderControlViewModel(
                         }
 
                         val targetPendingRow = targetedItemsGroup.find {
-                            it.status.lowercase() == "pending" || it.status.lowercase() == "placed"
+                            val s = it.status.lowercase()
+                            if (userDesignationRole == "delivery_boy") {
+                                // Notify Delivery Boy when order is prepared/ready for pickup
+                                s == "ready" || s == "prepared" || s == "out_for_delivery"
+                            } else {
+                                s == "pending" || s == "placed"
+                            }
                         }
 
                         if (targetPendingRow != null) {
@@ -201,8 +215,18 @@ class UnifiedOrderControlViewModel(
                     }
 
                     previousOrdersChecksum = freshOrdersList
+
+                    val finalDisplayList = if (userDesignationRole == "delivery_boy") {
+                        freshOrdersList.filter { 
+                            val s = it.status.lowercase()
+                            s == "out_for_delivery" || s == "dispatched"
+                        }
+                    } else {
+                        freshOrdersList
+                    }
+
                     // Turn loading to false directly inside the hot update callback flow sequence to stop infinite spins
-                    _state.update { it.copy(orders = freshOrdersList, isLoading = false) }
+                    _state.update { it.copy(orders = finalDisplayList, isLoading = false) }
                 }
         }
     }
@@ -216,6 +240,10 @@ class UnifiedOrderControlViewModel(
     }
 
     fun acceptInterceptedOrder(orderId: String) {
+        if (!_state.value.canAcceptOrders && !_state.value.isOwnerUser) {
+            emitTemporaryError("Permission Denied: You cannot accept online orders.")
+            return
+        }
         viewModelScope.launch {
             _state.update { it.copy(realTimeIncomingInterceptedOrder = null) }
             modifyOrderStatusCardInline(orderId, "accepted")
@@ -317,8 +345,13 @@ class UnifiedOrderControlViewModel(
     fun modifyOrderStatusCardInline(orderId: String, nextStatus: String) {
         val targetOrder = _state.value.orders.find { it.id == orderId } ?: return
         viewModelScope.launch {
-            // FIXED: Removed the local manually triggered isLoading loop block toggle.
-            // The asynchronous WebSocket flow handles resetting state visibility cleanly.
+            val currentSession = backOfficeAuthRepository.currentSession.value
+            if (currentSession != null && !currentSession.canUpdateOrderStatus(nextStatus)) {
+                emitTemporaryError("Permission Denied: Your role cannot mark order as $nextStatus.")
+                return@launch
+            }
+
+            _state.update { it.copy(isLoading = true) }
             runCatching {
                 repository.updateOrderDetails(
                     orderId = orderId,
@@ -331,6 +364,7 @@ class UnifiedOrderControlViewModel(
                     internalEmpId = internalEmployeeRowId
                 )
             }.onFailure { err ->
+                _state.update { it.copy(isLoading = false) }
                 emitTemporaryError(err.localizedMessage ?: "Failed to update status changes.")
             }
         }
@@ -361,7 +395,14 @@ class UnifiedOrderControlViewModel(
     fun commitDetailedFormModifications() {
         val activeFormOrder = _state.value.targetedEditingOrder ?: return
         viewModelScope.launch {
-            // FIXED: Avoid setting manual isLoading parameters here as the hot WebSocket channel captures database overrides.
+            val currentSession = backOfficeAuthRepository.currentSession.value
+            val nextStatus = _state.value.formEditStatus
+            if (currentSession != null && !currentSession.canUpdateOrderStatus(nextStatus)) {
+                emitTemporaryError("Permission Denied: Your role cannot mark order as $nextStatus.")
+                return@launch
+            }
+
+            _state.update { it.copy(isLoading = true) }
             runCatching {
                 repository.updateOrderDetails(
                     orderId = activeFormOrder.id,
@@ -374,8 +415,9 @@ class UnifiedOrderControlViewModel(
                     internalEmpId = internalEmployeeRowId
                 )
             }.onSuccess {
-                _state.update { it.copy(targetedEditingOrder = null) }
+                _state.update { it.copy(targetedEditingOrder = null, isLoading = false) }
             }.onFailure { err ->
+                _state.update { it.copy(isLoading = false) }
                 emitTemporaryError(err.localizedMessage ?: "Failed to write modifications to data layer.")
             }
         }

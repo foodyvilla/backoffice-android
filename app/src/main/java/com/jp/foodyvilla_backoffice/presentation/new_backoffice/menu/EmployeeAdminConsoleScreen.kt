@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CameraAlt
@@ -38,7 +39,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EmployeeAdminConsoleScreen(viewModel: EmployeeAdminViewModel = koinViewModel()) {
+fun EmployeeAdminConsoleScreen(viewModel: EmployeeAdminViewModel = koinViewModel(), onMenuClick: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var outletSelectionMenuOpen by remember { mutableStateOf(false) }
     var roleSelectionMenuOpen by remember { mutableStateOf(false) }
@@ -60,7 +61,16 @@ fun EmployeeAdminConsoleScreen(viewModel: EmployeeAdminViewModel = koinViewModel
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Staff Roster Desk", fontWeight = FontWeight.Bold) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Staff Roster Desk", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { localImageUri = null; viewModel.initFormWorkspace(null) }) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Insert Row")

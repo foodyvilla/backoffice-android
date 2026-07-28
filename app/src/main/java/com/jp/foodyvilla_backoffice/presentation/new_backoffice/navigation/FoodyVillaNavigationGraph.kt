@@ -136,28 +136,31 @@ fun NewFoodyVillaNavGraph() {
         }
 
         composable<ScreenDestinations.CreateOrder> {
-
-            NewCreateOrderScreen(viewModel = unifiedViewModel, {}, {
-
-
-            })
+            NewCreateOrderScreen(
+                viewModel = unifiedViewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onOrderFinishedSuccess = {
+                    navController.popBackStack(ScreenDestinations.BackOffice, inclusive = false)
+                }
+            )
         }
-
 
         composable<ScreenDestinations.OrderDetails> {
             val id = it.toRoute<ScreenDestinations.OrderDetails>().id
-            NewOrderDetailsScreen(orderId = id, viewModel = unifiedViewModel) {
-
-
-            }
+            NewOrderDetailsScreen(
+                orderId = id,
+                viewModel = unifiedViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable<ScreenDestinations.Customer> {
             val data = it.toRoute<ScreenDestinations.Customer>()
-
-            CustomerDetailsScreen(customerId = data.id, viewModel = customerManagementViewModel)
-
-
+            CustomerDetailsScreen(
+                customerId = data.id,
+                viewModel = customerManagementViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
 
@@ -172,7 +175,8 @@ fun NewFoodyVillaNavGraph() {
                 },
                 onNavigateToMenuFormEdit = { targetOutletId, targetMenuId ->
                     navController.navigate(ScreenDestinations.EditOutletMenuItem(outletId = targetOutletId, id = targetMenuId))
-                }
+                },
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

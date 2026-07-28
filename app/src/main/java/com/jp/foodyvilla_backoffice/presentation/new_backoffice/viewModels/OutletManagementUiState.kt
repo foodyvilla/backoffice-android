@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.OutletMenuItemUiModel
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.OutletUiModel
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.ProductCatalogUiModel
@@ -57,17 +58,33 @@ data class OutletManagementUiState(
     val mMenuImagesList: List<String> = emptyList(),
 
 
-    val locationUiState: LocationUiState = LocationUiState()
+    val locationUiState: LocationUiState = LocationUiState(),
+    val canManageMenu: Boolean = false,
+    val isOwner: Boolean = false
 )
 
 class OutletManagementViewModel(
     private val repository: OutletManagementRepository,
     private val catalogRepository: ProductCatalogRepository,
-    private val locationRepository: LocationRepository
+    private val locationRepository: LocationRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(OutletManagementUiState())
     val state = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            authRepository.currentSession.collect { session ->
+                _state.update { 
+                    it.copy(
+                        canManageMenu = session?.canManageMenu() ?: false,
+                        isOwner = session?.isOwner() ?: false
+                    )
+                }
+            }
+        }
+    }
 
     fun updateOutletSearch(q: String) {
         _state.update { it.copy(outletSearchQuery = q) }
@@ -188,7 +205,8 @@ class OutletManagementViewModel(
                         oClosesAt = "23:00:00",
                         oRazorPayKey = "",
                         oUploadedLogoUrl = null,
-                        oUploadedBannerUrl = null
+                        oUploadedBannerUrl = null,
+                        isLoading = false
                     )
                 }
             } else {
@@ -215,7 +233,7 @@ class OutletManagementViewModel(
                             isLoading = false
                         )
                     }
-                }
+                }.onFailure { err -> emitError(err.localizedMessage ?: "Failed to fetch outlet details") }
             }
         }
     }

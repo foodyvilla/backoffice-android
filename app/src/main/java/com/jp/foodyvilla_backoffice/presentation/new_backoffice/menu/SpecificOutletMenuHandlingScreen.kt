@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -26,7 +27,8 @@ fun SpecificOutletMenuHandlingScreen(
     outletName: String,
     viewModel: OutletManagementViewModel,
     onNavigateToMenuFormAdd: (outletId: Long) -> Unit,       // Lambda navigation callback path matching Route Add
-    onNavigateToMenuFormEdit: (outletId: Long, menuId: Long) -> Unit  // Lambda navigation callback path matching Route Edit(id)
+    onNavigateToMenuFormEdit: (outletId: Long, menuId: Long) -> Unit,  // Lambda navigation callback path matching Route Edit(id)
+    onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -44,22 +46,34 @@ fun SpecificOutletMenuHandlingScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(outletName, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { onNavigateToMenuFormAdd(outletId) },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Link New Product Variant")
+            if (state.canManageMenu) {
+                FloatingActionButton(
+                    onClick = { onNavigateToMenuFormAdd(outletId) },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Link New Product Variant")
+                }
             }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = outletName,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+//                Text(
+//                    text = outletName,
+//                    style = MaterialTheme.typography.headlineMedium,
+//                    fontWeight = FontWeight.Bold
+//                )
                 Text(
                     text = "Outlet Specific Linked Digital Menu Items",
                     style = MaterialTheme.typography.bodyMedium,
@@ -117,7 +131,8 @@ fun SpecificOutletMenuHandlingScreen(
                             OutletMenuItemRow(
                                 item = item,
                                 onEditClick = { onNavigateToMenuFormEdit(outletId, item.id) }, // Safely pipes out ids to trigger edit routes
-                                onDeleteClick = { viewModel.removeProductFromMenu(item.id, outletId) }
+                                onDeleteClick = { viewModel.removeProductFromMenu(item.id, outletId) },
+                                canManage = state.canManageMenu
                             )
                         }
                     }

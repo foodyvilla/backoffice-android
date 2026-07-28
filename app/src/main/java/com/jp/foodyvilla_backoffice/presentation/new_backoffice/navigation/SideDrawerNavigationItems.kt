@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.jp.foodyvilla_backoffice.domain.security.OutletRole
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import kotlinx.serialization.Serializable
 
 data class BackOfficeDrawerItem(
@@ -90,7 +92,31 @@ sealed interface BackOfficeRoute {
     @Serializable
     data object OrderHistory : BackOfficeRoute
 
+    @Serializable
+    data object MenuManagement : BackOfficeRoute
 
+
+}
+
+fun getDrawerItemsForSession(session: UserSession?): List<BackOfficeDrawerItem> {
+    if (session == null) return emptyList()
+
+    val role = when (session) {
+        is UserSession.OutletSession -> session.role
+        is UserSession.EmployeeSession -> session.role ?: OutletRole.EMPLOYEE
+    }
+
+    return when (role) {
+        OutletRole.OWNER -> ownerDrawerItems
+
+        OutletRole.MANAGER, OutletRole.STORE_SUPERVISOR, OutletRole.HEAD -> managerDrawerItems
+
+        OutletRole.HEAD_CHEF, OutletRole.CHEF, OutletRole.KITCHEN, OutletRole.HELPER -> chefDrawerItems
+
+        OutletRole.DELIVERY_BOY -> deliveryDrawerItems
+
+        OutletRole.WAITER, OutletRole.CASHIER, OutletRole.EMPLOYEE -> employeeDrawerItems
+    }
 }
 
 val ownerDrawerItems = listOf(
@@ -211,100 +237,52 @@ val ownerDrawerItems = listOf(
 )
 
 
-
-
-val headDrawerItems = listOf(
-
+val managerDrawerItems = listOf(
     BackOfficeDrawerItem(
         icon = Icons.Default.Dashboard,
         route = BackOfficeRoute.Dashboard,
         name = "Dashboard"
     ),
-
     BackOfficeDrawerItem(
         icon = Icons.Default.Assignment,
         route = BackOfficeRoute.Orders,
         name = "Orders"
     ),
-
+    BackOfficeDrawerItem(
+        icon = Icons.Default.RestaurantMenu,
+        route = BackOfficeRoute.MenuManagement,
+        name = "Manage Menu"
+    ),
     BackOfficeDrawerItem(
         icon = Icons.Default.RestaurantMenu,
         route = BackOfficeRoute.OutletMenu,
-        name = "Outlet Menu"
+        name = "POS Menu"
     ),
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.Fastfood,
-        route = BackOfficeRoute.Outlet,
-        name = "Outlets"
-    ),
-
     BackOfficeDrawerItem(
         icon = Icons.Default.Inventory2,
         route = BackOfficeRoute.Products,
         name = "Products"
     ),
-
     BackOfficeDrawerItem(
         icon = Icons.Default.Category,
         route = BackOfficeRoute.Categories,
         name = "Categories"
-    ),
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.LocalOffer,
-        route = BackOfficeRoute.Offers,
-        name = "Offers"
     ),
     BackOfficeDrawerItem(
         icon = Icons.Default.People,
         route = BackOfficeRoute.Customers,
         name = "Customers"
     ),
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.Payments,
-        route = BackOfficeRoute.Payments,
-        name = "Payments"
-    ),
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.Person,
-        route = BackOfficeRoute.Employees,
-        name = "Employees"
-    ),
-
     BackOfficeDrawerItem(
         icon = Icons.Default.PunchClock,
         route = BackOfficeRoute.Attendance,
         name = "Attendance"
     ),
-
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.RateReview,
-        route = BackOfficeRoute.Reviews,
-        name = "Reviews"
-    ),
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.Notifications,
-        route = BackOfficeRoute.Notifications,
-        name = "Notifications"
-    ),
-
     BackOfficeDrawerItem(
         icon = Icons.Default.Person,
         route = BackOfficeRoute.Profile,
         name = "Profile"
     ),
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.Assignment,
-        route = BackOfficeRoute.OrderHistory,
-        name = "Order History"
-    ),
-
     BackOfficeDrawerItem(
         icon = Icons.Default.Logout,
         route = BackOfficeRoute.Logout,
@@ -317,31 +295,19 @@ val chefDrawerItems = listOf(
     BackOfficeDrawerItem(
         icon = Icons.Default.Dashboard,
         route = BackOfficeRoute.Dashboard,
-        name = "Dashboard"
+        name = "Kitchen View"
     ),
 
     BackOfficeDrawerItem(
         icon = Icons.Default.Assignment,
         route = BackOfficeRoute.Orders,
-        name = "Orders"
+        name = "Active KOTs"
     ),
 
     BackOfficeDrawerItem(
         icon = Icons.Default.RestaurantMenu,
         route = BackOfficeRoute.OutletMenu,
-        name = "Outlet Menu"
-    ),
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.Fastfood,
-        route = BackOfficeRoute.Outlet,
-        name = "Outlets"
-    ),
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.Inventory2,
-        route = BackOfficeRoute.Products,
-        name = "Products"
+        name = "View Menu"
     ),
 
     BackOfficeDrawerItem(
@@ -357,11 +323,28 @@ val chefDrawerItems = listOf(
     ),
 
     BackOfficeDrawerItem(
-        icon = Icons.Default.Assignment,
-        route = BackOfficeRoute.OrderHistory,
-        name = "Order History"
-    ),
+        icon = Icons.Default.Logout,
+        route = BackOfficeRoute.Logout,
+        name = "Logout"
+    )
+)
 
+val deliveryDrawerItems = listOf(
+    BackOfficeDrawerItem(
+        icon = Icons.Default.Assignment,
+        route = BackOfficeRoute.Orders,
+        name = "My Deliveries"
+    ),
+    BackOfficeDrawerItem(
+        icon = Icons.Default.PunchClock,
+        route = BackOfficeRoute.Attendance,
+        name = "Attendance"
+    ),
+    BackOfficeDrawerItem(
+        icon = Icons.Default.Person,
+        route = BackOfficeRoute.Profile,
+        name = "Profile"
+    ),
     BackOfficeDrawerItem(
         icon = Icons.Default.Logout,
         route = BackOfficeRoute.Logout,
@@ -392,18 +375,6 @@ val employeeDrawerItems = listOf(
         icon = Icons.Default.RestaurantMenu,
         route = BackOfficeRoute.OutletMenu,
         name = "Outlet Menu"
-    ),
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.Fastfood,
-        route = BackOfficeRoute.Outlet,
-        name = "Outlets"
-    ),
-
-    BackOfficeDrawerItem(
-        icon = Icons.Default.Inventory2,
-        route = BackOfficeRoute.Products,
-        name = "Products"
     ),
 
     BackOfficeDrawerItem(

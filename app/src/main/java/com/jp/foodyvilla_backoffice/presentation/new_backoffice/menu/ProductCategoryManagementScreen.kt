@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
@@ -26,7 +27,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.Produ
 @Composable
 fun ProductCategoryManagementScreen(
     viewModel: ProductCatalogViewModel,
-    onNavigateBack: (() -> Unit)? = null
+    onMenuClick: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var targetDeleteCandidate by remember { mutableStateOf<ProductCategoryUiModel?>(null) }
@@ -39,6 +40,16 @@ fun ProductCategoryManagementScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Categories", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = viewModel::openCategoryCreationForm,
@@ -48,11 +59,11 @@ fun ProductCategoryManagementScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = "Menu Category Parameters Layout",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+//                Text(
+//                    text = "Menu Category Parameters Layout",
+//                    style = MaterialTheme.typography.headlineMedium,
+//                    fontWeight = FontWeight.Bold
+//                )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // SEARCH BAR WORKSPACE

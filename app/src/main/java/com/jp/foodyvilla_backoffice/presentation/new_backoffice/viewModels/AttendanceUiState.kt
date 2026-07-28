@@ -122,7 +122,7 @@ class AttendanceViewModel(
         }
 
         viewModelScope.launch {
-            _state.update { it.copy(locationUiState = it.locationUiState.copy(isFetchingLocation = true), dynamicExecutionErrorMessage = null) }
+            _state.update { it.copy(isLoading = true, locationUiState = it.locationUiState.copy(isFetchingLocation = true), dynamicExecutionErrorMessage = null) }
             locationRepository.fetchLocation()
                 .onSuccess { fixedCoordinates ->
                     _state.update { it.copy(locationUiState = it.locationUiState.copy(isFetchingLocation = false, latitude = fixedCoordinates.first, longitude = fixedCoordinates.second)) }
@@ -130,20 +130,20 @@ class AttendanceViewModel(
                     if (!isPunchOut) {
                         repository.recordPunchIn(empId, fixedCoordinates.first, fixedCoordinates.second, LocalDateTime.now())
                             .onSuccess { loadEmployeeContext(empId) }
-                            .onFailure { e -> _state.update { it.copy(dynamicExecutionErrorMessage = e.localizedMessage) } }
+                            .onFailure { e -> _state.update { it.copy(dynamicExecutionErrorMessage = e.localizedMessage, isLoading = false) } }
                     } else {
                         val todaysRecord = _state.value.attendanceMap[LocalDate.now()]
                         if (todaysRecord != null && todaysRecord.id != -1L) {
                             repository.recordPunchOut(todaysRecord.id, fixedCoordinates.first, fixedCoordinates.second, LocalDateTime.now())
                                 .onSuccess { loadEmployeeContext(empId) }
-                                .onFailure { e -> _state.update { it.copy(dynamicExecutionErrorMessage = e.localizedMessage) } }
+                                .onFailure { e -> _state.update { it.copy(dynamicExecutionErrorMessage = e.localizedMessage, isLoading = false) } }
                         } else {
-                            _state.update { it.copy(dynamicExecutionErrorMessage = "No active valid clock-in session found to sign out.") }
+                            _state.update { it.copy(dynamicExecutionErrorMessage = "No active valid clock-in session found to sign out.", isLoading = false) }
                         }
                     }
                 }
                 .onFailure { err ->
-                    _state.update { it.copy(locationUiState = it.locationUiState.copy(isFetchingLocation = false, locationErrorMessage = err.localizedMessage)) }
+                    _state.update { it.copy(isLoading = false, locationUiState = it.locationUiState.copy(isFetchingLocation = false, locationErrorMessage = err.localizedMessage)) }
                 }
         }
     }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
@@ -25,7 +26,8 @@ fun OutletListDirectoryScreen(
     viewModel: OutletManagementViewModel,
     onNavigateToOutletFormAdd: () -> Unit,             // Lambda navigation callback matching Route Add
     onNavigateToOutletFormEdit: (outletId: Long) -> Unit,   // Lambda navigation callback matching Route Edit(id)
-    onOutletNavigateLambda: (outletId: Long, name: String) -> Unit
+    onOutletNavigateLambda: (outletId: Long, name: String) -> Unit,
+    onMenuClick: () -> Unit
 ) {
 
     // Refresh and sync active list rows from the PostgREST server table when screen mounts
@@ -44,12 +46,24 @@ fun OutletListDirectoryScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Outlets Directory", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToOutletFormAdd, // Fires off clean destination changes
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Open New Franchise Branch")
+            if (state.isOwner) {
+                FloatingActionButton(
+                    onClick = onNavigateToOutletFormAdd, // Fires off clean destination changes
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Open New Franchise Branch")
+                }
             }
         }
     ) { padding ->
@@ -57,6 +71,12 @@ fun OutletListDirectoryScreen(
             Column(modifier = Modifier.fillMaxSize()) {
                 Text("Franchise Outlets Registry", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(12.dp))
+
+                // Filter the list if not owner? 
+                // User said "access of all outlet will be under the owner only"
+                val displayList = remember(filteredOutlets, state.isOwner) {
+                    if (state.isOwner) filteredOutlets else emptyList() // Or maybe filter by assigned outlet?
+                }
 
                 // DIRECTORY FILTRATION INPUT FIELD
                 OutlinedTextField(
@@ -81,11 +101,11 @@ fun OutletListDirectoryScreen(
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                } else if (filteredOutlets.isEmpty()) {
+                } else if (displayList.isEmpty()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Text(
                             text = if (state.outletsList.isEmpty()) "No branch listings indexed in table."
-                            else "No registry matches found for your filter text.",
+                            else "Access Restricted or No records match your criteria.",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -95,7 +115,7 @@ fun OutletListDirectoryScreen(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(filteredOutlets, key = { it.id }) { outlet ->
+                        items(displayList, key = { it.id }) { outlet ->
                             OutletRowCard(
                                 outlet = outlet,
                                 onEditClick = { onNavigateToOutletFormEdit(outlet.id) }, // Routes out cleanly to the dynamic edit screen workspace

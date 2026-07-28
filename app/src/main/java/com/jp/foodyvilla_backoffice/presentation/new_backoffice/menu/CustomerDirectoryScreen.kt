@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +23,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.Custo
 @Composable
 fun CustomerDirectoryScreen(
     viewModel: CustomerManagementViewModel,
+    onMenuClick: () -> Unit,
     onNavigateToDetails: (customerId: Long, phone :String) -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -34,7 +36,16 @@ fun CustomerDirectoryScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Customer Base Directory", fontWeight = FontWeight.Bold) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Customer Base Directory", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.setupForm(null); crudFormOpen = true }) {
                 Icon(Icons.Default.Add, "Add Customer")

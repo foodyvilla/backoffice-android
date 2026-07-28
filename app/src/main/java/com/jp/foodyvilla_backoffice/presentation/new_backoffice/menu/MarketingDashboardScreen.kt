@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -84,7 +85,8 @@ import java.time.format.DateTimeFormatter
 fun MarketingTabsDashboardScreen(
     viewModel: MarketingViewModel,
     onNavigateToBannerForm: (Long?) -> Unit,
-    onNavigateToOfferForm: (String?) -> Unit
+    onNavigateToOfferForm: (String?) -> Unit,
+    onMenuClick: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTabIdx by remember { mutableStateOf(0) }
@@ -94,6 +96,16 @@ fun MarketingTabsDashboardScreen(
     LaunchedEffect(Unit) { viewModel.refreshDashboardData() }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Marketing Dashboard", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             if (state.isWriteAllowed) {
                 FloatingActionButton(onClick = {

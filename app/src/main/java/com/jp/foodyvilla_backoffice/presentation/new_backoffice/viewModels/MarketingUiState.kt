@@ -222,12 +222,14 @@ class MarketingViewModel(
 
     fun removeBanner(id: Long) {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             runCatching { repository.deleteBanner(id) }.onSuccess { refreshDashboardData() }.onFailure { emitTemporaryError(it.localizedMessage ?: "Delete failed") }
         }
     }
 
     fun removeOffer(id: String) {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
             runCatching { repository.deleteOffer(id) }.onSuccess { refreshDashboardData() }.onFailure { emitTemporaryError(it.localizedMessage ?: "Delete failed") }
         }
     }

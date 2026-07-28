@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.*
@@ -24,7 +25,8 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.Custo
 @Composable
 fun CustomerDetailsScreen(
     customerId: Long,
-    viewModel: CustomerManagementViewModel
+    viewModel: CustomerManagementViewModel,
+    onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -52,7 +54,16 @@ fun CustomerDetailsScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(selectedCustomer?.name ?: "Customer Insights Summary", fontWeight = FontWeight.Bold) }) }
+        topBar = {
+            TopAppBar(
+                title = { Text(selectedCustomer?.name ?: "Customer Insights Summary", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
     ) { padding ->
         if (state.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }

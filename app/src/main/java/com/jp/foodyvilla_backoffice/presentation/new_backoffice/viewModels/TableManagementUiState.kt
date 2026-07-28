@@ -234,6 +234,7 @@ class TableManagementViewModel(
     fun updateSavedLineQty(line: BillLineUiModel, newQty: Long) {
         val tableId = _state.value.selectedTableId ?: return
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
             runCatching {
                 if (newQty <= 0) repository.deleteOrderItem(line.orderItemId)
                 else repository.updateOrderItemQty(line.orderItemId, newQty, line.pricePerItem)
@@ -246,9 +247,9 @@ class TableManagementViewModel(
                             if (l.orderItemId == line.orderItemId) l.copy(qty = newQty, totalPrice = l.pricePerItem * newQty) else l
                         }
                     }
-                    it.copy(billLinesByTable = it.billLinesByTable + (tableId to updated))
+                    it.copy(billLinesByTable = it.billLinesByTable + (tableId to updated), isLoading = false)
                 }
-            }.onFailure { err -> _state.update { it.copy(errorText = err.localizedMessage) } }
+            }.onFailure { err -> _state.update { it.copy(errorText = err.localizedMessage, isLoading = false) } }
         }
     }
 
@@ -260,6 +261,7 @@ class TableManagementViewModel(
         if (unprinted.isEmpty()) return
 
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
             runCatching {
                 printerBridge.printKot(context, table.tableNumber, unprinted)
                 repository.markOrderItemsKotPrinted(orderId)
@@ -268,10 +270,11 @@ class TableManagementViewModel(
                     val updated = it.currentBillLines.map { l -> l.copy(kotPrinted = true) }
                     it.copy(
                         billLinesByTable = it.billLinesByTable + (table.id to updated),
-                        errorText = null
+                        errorText = null,
+                        isLoading = false
                     )
                 }
-            }.onFailure { err -> _state.update { it.copy(errorText = "Printing failed: ${err.localizedMessage}") } }
+            }.onFailure { err -> _state.update { it.copy(errorText = "Printing failed: ${err.localizedMessage}", isLoading = false) } }
         }
     }
 

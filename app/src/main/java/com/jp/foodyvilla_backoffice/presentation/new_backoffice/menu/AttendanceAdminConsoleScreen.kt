@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
@@ -35,7 +36,7 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AttendanceAdminConsoleScreen(viewModel: AttendanceAdminViewModel) {
+fun AttendanceAdminConsoleScreen(viewModel: AttendanceAdminViewModel, onMenuClick: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var staffFilterDropdownOpen by remember { mutableStateOf(false) }
     var statusFilterDropdownOpen by remember { mutableStateOf(false) }
@@ -130,7 +131,16 @@ fun AttendanceAdminConsoleScreen(viewModel: AttendanceAdminViewModel) {
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Attendance Admin Workspace", fontWeight = FontWeight.Bold) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Attendance Admin Workspace", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.initFormWorkspace(null) }) {
                 Icon(imageVector = Icons.Default.Add, contentDescription = "Manual Override Log Insert")

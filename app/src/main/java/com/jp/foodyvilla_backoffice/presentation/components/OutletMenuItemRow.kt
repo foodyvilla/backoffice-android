@@ -19,7 +19,8 @@ import com.jp.foodyvilla_backoffice.data.new_backoffice.models.OutletMenuItemUiM
 fun OutletMenuItemRow(
     item: OutletMenuItemUiModel,
     onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    canManage: Boolean = true
 ) {
     ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -35,9 +36,11 @@ fun OutletMenuItemRow(
                 Text("Catalog Category Context: ${item.productCategoryName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
                 Text(text = if (item.isOutOfStock) "❌ OUT OF STOCK" else if (!item.isAvailable) "⚠️ HIDDEN" else "✅ ACTIVE LIVE ON TERMINALS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
             }
-            Row {
-                IconButton(onClick = onEditClick) { Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary) }
-                IconButton(onClick = onDeleteClick) { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
+            if (canManage) {
+                Row {
+                    IconButton(onClick = onEditClick) { Icon(Icons.Default.Edit, null, tint = MaterialTheme.colorScheme.primary) }
+                    IconButton(onClick = onDeleteClick) { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
+                }
             }
         }
     }

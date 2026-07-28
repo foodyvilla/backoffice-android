@@ -51,6 +51,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.chefD
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.employeeDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.headDrawerItems
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.ownerDrawerItems
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.SpecificOutletMenuHandlingScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AnalyticsDashboardScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OrderHistoryScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OutletListDirectoryScreen
@@ -69,6 +70,8 @@ import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.getDrawerItemsForSession
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewBackOfficeNavigationScreen(
@@ -84,15 +87,8 @@ fun NewBackOfficeNavigationScreen(
 ) {
     val userSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
 
-    val drawerItems = remember(userSession?.role()) {
-
-        when ((userSession?.role() ?: "employee").lowercase()) {
-
-            "owner" -> ownerDrawerItems
-            "head" -> headDrawerItems
-            "chef" -> chefDrawerItems
-            else -> employeeDrawerItems
-        }
+    val drawerItems = remember(userSession) {
+        getDrawerItemsForSession(userSession)
     }
 
     var currentRoute by remember {
@@ -165,43 +161,19 @@ fun NewBackOfficeNavigationScreen(
         }
     ) {
 
-        Scaffold(
-            topBar = {
-
-                TopAppBar(
-                    title = {
-
-                        Text(
-                            text = currentRoute.title()
-                        )
-                    },
-
-                    navigationIcon = {
-
-                        IconButton(
-                            onClick = {
-
-                                scope.launch {
-                                    drawerState.open()
-                                }
-                            }
-                        ) {
-
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                                contentDescription = null
-                            )
-                        }
-                    }
-                )
-            }
-        ) { padding ->
+        Scaffold { padding ->
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
             ) {
+                val onMenuClick = {
+                    scope.launch {
+                        drawerState.open()
+                    }
+                    Unit
+                }
 
                 when (currentRoute) {
 
@@ -213,32 +185,28 @@ fun NewBackOfficeNavigationScreen(
                     }
 
                     BackOfficeRoute.Orders -> {
-                        NewOrdersListScreen(viewModel = unifiedViewModel, navController = navController){
-
+                        NewOrdersListScreen(
+                            viewModel = unifiedViewModel,
+                            navController = navController,
+                            onMenuClick = onMenuClick
+                        ) {
+                            currentRoute = BackOfficeRoute.OutletMenu
                         }
-//                        OrderScreen()
                     }
 
                     BackOfficeRoute.OutletMenu -> {
 
-                        NewCreateOrderMenuSelectionScreen(viewModel = unifiedViewModel){
-                           navController.navigate(ScreenDestinations.CreateOrder)
+                        NewCreateOrderMenuSelectionScreen(
+                            viewModel = unifiedViewModel,
+                            onMenuClick = onMenuClick
+                        ) {
+                            navController.navigate(ScreenDestinations.CreateOrder)
 
                         }
                     }
 
                     BackOfficeRoute.Outlet -> {
 
-//                        NewCreateOrderScreen(
-//                            outletId = outletId,
-//                            items = emptyList(),
-//                            onOrderPlaced = {
-//
-//                            },
-//                            selectedItems = TODO(),
-//                            onOrderFinished = TODO(),
-//                            viewModel = TODO()
-//                        )
                         OutletListDirectoryScreen(
                             viewModel = outletMenuManagementViewModel,
                             onNavigateToOutletFormAdd = {
@@ -249,43 +217,45 @@ fun NewBackOfficeNavigationScreen(
                             },
                             onOutletNavigateLambda = { activeId, branchName ->
                                 navController.navigate(ScreenDestinations.OutletMenu(outletId = activeId, outletName = branchName))
-                            }
+                            },
+                            onMenuClick = onMenuClick
                         )
 
                     }
 
                     BackOfficeRoute.Products -> {
 
-                        ProductCatalogManagementScreen(viewModel =  productCatalogViewModel)
+                        ProductCatalogManagementScreen(
+                            viewModel = productCatalogViewModel,
+                            onMenuClick = onMenuClick
+                        )
                     }
 
                     BackOfficeRoute.Categories -> {
 
-                        ProductCategoryManagementScreen(viewModel = productCatalogViewModel)
+                        ProductCategoryManagementScreen(
+                            viewModel = productCatalogViewModel,
+                            onMenuClick = onMenuClick
+                        )
                     }
 
                     BackOfficeRoute.Customers -> {
 
-//                        DashboardPlaceholderScreen(
-//                            title = "Customers"
-//                        )
-
-                        CustomerDirectoryScreen(viewModel = customerManagementViewModel) {id, phone->
+                        CustomerDirectoryScreen(
+                            viewModel = customerManagementViewModel,
+                            onMenuClick = onMenuClick
+                        ) { id, phone ->
                             navController.navigate(ScreenDestinations.Customer(id = id, phone = phone))
                         }
                     }
 
                     BackOfficeRoute.Payments -> {
-                        PaymentAdminConsoleScreen()
+                        PaymentAdminConsoleScreen(onMenuClick = onMenuClick)
                     }
 
                     BackOfficeRoute.Employees -> {
 
-//                        DashboardPlaceholderScreen(
-//                            title = "Employees"
-//                        )
-
-                        EmployeeAdminConsoleScreen()
+                        EmployeeAdminConsoleScreen(onMenuClick = onMenuClick)
                     }
 
                     BackOfficeRoute.Attendance -> {
@@ -295,48 +265,49 @@ fun NewBackOfficeNavigationScreen(
                             scope.launch {
                                 drawerState.open()
                             }
-                        } )
+                        })
 
                     }
 
                     BackOfficeRoute.PunchReports -> {
-                        AttendanceAdminConsoleScreen(viewModel = attendanceAdminViewModel)
+                        AttendanceAdminConsoleScreen(
+                            viewModel = attendanceAdminViewModel,
+                            onMenuClick = onMenuClick
+                        )
 
                     }
 
                     BackOfficeRoute.Analytics -> {
-                        AnalyticsDashboardScreen()
+                        AnalyticsDashboardScreen(onMenuClick = onMenuClick)
                     }
 
                     BackOfficeRoute.Offers -> {
 
-//                        DashboardPlaceholderScreen(
-//                            title = "Offers"
-//                        )
-
                         MarketingTabsDashboardScreen(
                             viewModel = marketingViewModel,
-                            onNavigateToBannerForm ={
-                                if( it == null){
+                            onNavigateToBannerForm = {
+                                if (it == null) {
                                     navController.navigate(ScreenDestinations.AddBanner)
 
-                                }else{
+                                } else {
                                     navController.navigate(ScreenDestinations.EditBanner(it))
                                 }
                             },
                             onNavigateToOfferForm = {
-                                if( it == null){
+                                if (it == null) {
                                     navController.navigate(ScreenDestinations.AddOffer)
 
-                                }else{
+                                } else {
                                     navController.navigate(ScreenDestinations.EditOffer(it))
-                                }                            }
+                                }
+                            },
+                            onMenuClick = onMenuClick
                         )
 
                     }
 
                     BackOfficeRoute.Reviews -> {
-                        ReviewAdminConsoleScreen()
+                        ReviewAdminConsoleScreen(onMenuClick = onMenuClick)
                     }
 
                     BackOfficeRoute.Notifications -> {
@@ -369,7 +340,26 @@ fun NewBackOfficeNavigationScreen(
 
                     BackOfficeRoute.OrderHistory -> {
                         userSession?.outletId?.let { outletId ->
-                            OrderHistoryScreen(outletId = outletId)
+                            OrderHistoryScreen(outletId = outletId, onMenuClick = onMenuClick)
+                        }
+                    }
+
+                    BackOfficeRoute.MenuManagement -> {
+                        userSession?.outletId?.let { outletId ->
+                            SpecificOutletMenuHandlingScreen(
+                                outletId = outletId,
+                                outletName = "My Outlet Menu",
+                                viewModel = outletMenuManagementViewModel,
+                                onNavigateToMenuFormAdd = { targetOutletId: Long ->
+                                    navController.navigate(ScreenDestinations.AddOutletMenuItem(outletId = targetOutletId))
+                                },
+                                onNavigateToMenuFormEdit = { targetOutletId: Long, targetMenuId: Long ->
+                                    navController.navigate(ScreenDestinations.EditOutletMenuItem(outletId = targetOutletId, id = targetMenuId))
+                                },
+                                onNavigateBack = {
+                                    scope.launch { drawerState.open() }
+                                }
+                            )
                         }
                     }
                 }
@@ -438,5 +428,6 @@ private fun BackOfficeRoute.title(): String {
         BackOfficeRoute.Logout -> "Logout"
         BackOfficeRoute.TableOrder -> "Table Order"
         BackOfficeRoute.OrderHistory -> "Order History"
+        BackOfficeRoute.MenuManagement -> "Menu Management"
     }
 }
