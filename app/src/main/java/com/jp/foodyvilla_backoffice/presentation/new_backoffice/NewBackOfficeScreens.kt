@@ -301,7 +301,7 @@ fun NewOrdersListScreen(
                                             )
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
-                                                text = "Fulfillment Type Logistics: ${order.orderType} • Total: ₹${order.totalAmount}",
+                                                text = "Fulfillment Type Logistics: ${order.orderType}${if (order.tableNumber != null) " • Table: ${order.tableNumber}" else ""} • Total: ₹${order.totalAmount}",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.SemiBold,
                                                 color = MaterialTheme.colorScheme.primary

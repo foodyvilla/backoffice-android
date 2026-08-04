@@ -93,6 +93,7 @@ val adminTables = listOf(
             AdminColumn("order_type", helper = "delivery, pickup, dine_in"),
             AdminColumn("transaction_id", editable = false),
             AdminColumn("accepted_by", type = AdminColumnType.LongNumber, editable = false, reference = AdminReference("employee", labelColumns = listOf("name"))),
+            AdminColumn("table_id", type = AdminColumnType.LongNumber, reference = AdminReference("restaurant_tables", labelColumns = listOf("table_number"))),
             AdminColumn("accepted_at", type = AdminColumnType.Timestamp, editable = false)
         )
     ),
@@ -341,6 +342,21 @@ val adminTables = listOf(
             AdminColumn("name", required = true),
             AdminColumn("emoji"),
             AdminColumn("is_active", type = AdminColumnType.Boolean)
+        )
+    ),
+    AdminTable(
+        name = "restaurant_tables",
+        title = "Tables",
+        description = "Outlet restaurant tables, capacity and status.",
+        displayColumns = listOf("table_number", "capacity", "status", "created_at"),
+        createLabel = "New table",
+        columns = listOf(
+            AdminColumn("id", type = AdminColumnType.LongNumber, editable = false),
+            AdminColumn("created_at", type = AdminColumnType.Timestamp, editable = false),
+            AdminColumn("outlet_id", type = AdminColumnType.LongNumber, required = true, reference = AdminReference("outlets", labelColumns = listOf("name", "city"))),
+            AdminColumn("table_number", required = true),
+            AdminColumn("capacity", type = AdminColumnType.LongNumber, required = true),
+            AdminColumn("status", helper = "available, occupied, reserved")
         )
     )
 )

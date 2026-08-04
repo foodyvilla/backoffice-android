@@ -46,6 +46,7 @@ sealed interface BackOfficeRoute {
     @Serializable data object Outlet : BackOfficeRoute
     @Serializable data object Products : BackOfficeRoute
     @Serializable data object Categories : BackOfficeRoute
+    @Serializable data object Tables : BackOfficeRoute
     @Serializable data object Customers : BackOfficeRoute
     @Serializable data object Payments : BackOfficeRoute
     @Serializable data object Employees : BackOfficeRoute
@@ -82,10 +83,12 @@ fun getDrawerItemsForSession(session: UserSession?): List<BackOfficeDrawerItem> 
 val ownerDrawerItems = listOf(
     BackOfficeDrawerItem(Icons.Default.Dashboard, BackOfficeRoute.Dashboard, "Dashboard"),
     BackOfficeDrawerItem(Icons.Default.ReceiptLong, BackOfficeRoute.Orders, "Orders"),
+    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrder, "Table Orders"),
     BackOfficeDrawerItem(Icons.Default.MenuBook, BackOfficeRoute.OutletMenu, "Outlet Menu"),
     BackOfficeDrawerItem(Icons.Default.Storefront, BackOfficeRoute.Outlet, "Outlets"),
     BackOfficeDrawerItem(Icons.Default.Inventory, BackOfficeRoute.Products, "Products"),
     BackOfficeDrawerItem(Icons.Default.Category, BackOfficeRoute.Categories, "Categories"),
+    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.Tables, "Tables Management"),
     BackOfficeDrawerItem(Icons.Default.Groups, BackOfficeRoute.Customers, "Customers"),
     BackOfficeDrawerItem(Icons.Default.LocalOffer, BackOfficeRoute.Offers, "Offers"),
     BackOfficeDrawerItem(Icons.Default.Payments, BackOfficeRoute.Payments, "Payments"),
@@ -104,10 +107,12 @@ val ownerDrawerItems = listOf(
 val managerDrawerItems = listOf(
     BackOfficeDrawerItem(Icons.Default.Dashboard, BackOfficeRoute.Dashboard, "Dashboard"),
     BackOfficeDrawerItem(Icons.Default.ReceiptLong, BackOfficeRoute.Orders, "Orders"),
+    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrder, "Table Orders"),
     BackOfficeDrawerItem(Icons.Default.MenuBook, BackOfficeRoute.MenuManagement, "Manage Menu"),
     BackOfficeDrawerItem(Icons.Default.RestaurantMenu, BackOfficeRoute.OutletMenu, "POS Menu"),
     BackOfficeDrawerItem(Icons.Default.Inventory, BackOfficeRoute.Products, "Products"),
     BackOfficeDrawerItem(Icons.Default.Category, BackOfficeRoute.Categories, "Categories"),
+    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.Tables, "Tables Management"),
     BackOfficeDrawerItem(Icons.Default.Groups, BackOfficeRoute.Customers, "Customers"),
     BackOfficeDrawerItem(Icons.Default.CoPresent, BackOfficeRoute.Attendance, "Attendance"),
     BackOfficeDrawerItem(Icons.Default.Person, BackOfficeRoute.Profile, "Profile"),

@@ -1,50 +1,42 @@
 package com.jp.foodyvilla_backoffice.presentation.screens.backoffice
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.ContactEmergency
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Work
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.jp.foodyvilla_backoffice.data.model.backoffice.*
 import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import kotlinx.serialization.json.JsonObject
+
+// Utility function to clean image URL (local copy to avoid visibility issues)
+fun String?.cleanImageUrl(): String? {
+    if (this == null) return null
+    return if (this.startsWith("http")) this else "https://jpfoodyvilla.com/storage/v1/object/public/$this"
+}
 
 @Composable
 internal fun EmployeeProfileScreen(
@@ -75,160 +67,320 @@ internal fun EmployeeProfileScreen(
             .sortedByDescending { it.createdAt ?: "" }
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            EmployeeProfileHeader(session = session, employee = employee)
-        }
-
-        item {
-            ProfileSection(title = "Employee Details", icon = Icons.Default.Work) {
-                DetailLine("Employee ID", employee?.id?.toString() ?: (session as? UserSession.EmployeeSession)?.empId?.toString() ?: "-")
-                DetailLine("Name", employee?.name ?: (session as? UserSession.EmployeeSession)?.name ?: "-")
-                DetailLine("Role", employee?.role ?: (session as? UserSession.EmployeeSession)?.role?.name ?: "-")
-                DetailLine("Contact", employee?.contact ?: (session as? UserSession.EmployeeSession)?.contact ?: "-")
-                DetailLine("Joining date", employee?.joiningDate?.formatDate() ?: "-")
-                DetailLine("Status", if (employee?.isActive == true) "Active" else "Inactive")
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(bottom = 24.dp)
+        ) {
+            item {
+                ModernProfileHeader(session, employee)
             }
-        }
 
-        item {
-            ProfileSection(title = "Personal Information", icon = Icons.Default.ContactEmergency) {
-                DetailLine("Address", employee?.address ?: "-")
-                DetailLine("Aadhar no", employee?.aadharNo ?: "-")
-                DetailLine("Emergency contact", employee?.emergencyContact ?: "-")
-                DetailLine("Salary", employee?.salary?.toString() ?: "-")
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val latest = attendance.firstOrNull()
+                    QuickStatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Last Status",
+                        value = latest?.status ?: "No record",
+                        icon = Icons.Default.Timer,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    QuickStatCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Shifts",
+                        value = attendance.size.toString(),
+                        icon = Icons.Default.EventAvailable,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                }
             }
-        }
 
-        item {
-            ProfileSection(title = "Outlet Details", icon = Icons.Default.Business) {
-                DetailLine("Outlet ID", outlet?.id?.toString() ?: session?.outletId?.toString() ?: "-")
-                DetailLine("Outlet", outlet?.name ?: "Foody Villa")
-                DetailLine("City", outlet?.city ?: "-")
-                DetailLine("Phone", outlet?.phone ?: "-")
-                DetailLine("Email", outlet?.email ?: "-")
-                DetailLine("Address", outlet?.address ?: "-")
-                DetailLine("Hours", "${outlet?.opensAt ?: "-"} - ${outlet?.closesAt ?: "-"}")
+            item {
+                ModernProfileSection(
+                    title = "Professional Info",
+                    icon = Icons.Default.WorkOutline
+                ) {
+                    ModernDetailLine("Employee ID", employee?.id?.toString() ?: (session as? UserSession.EmployeeSession)?.empId?.toString() ?: "-", Icons.Default.Badge)
+                    ModernDetailLine("Designation", employee?.role?.replaceFirstChar { it.uppercase() } ?: (session as? UserSession.EmployeeSession)?.role?.name ?: "-", Icons.Default.AssignmentInd)
+                    ModernDetailLine("Joining Date", employee?.joiningDate?.formatDate() ?: "-", Icons.Default.CalendarToday)
+                    ModernDetailLine("Employment", if (employee?.isActive == true) "Full Time" else "Inactive", Icons.Default.VerifiedUser)
+                }
             }
-        }
 
-        item {
-            ProfileSection(title = "Attendance", icon = Icons.Default.CalendarMonth) {
-                val latest = attendance.firstOrNull()
-                DetailLine("Last status", latest?.status ?: "-")
-                DetailLine("Punch in", latest?.inTime?.formatTimestamp() ?: "-")
-                DetailLine("Punch out", latest?.outTime?.formatTimestamp() ?: "-")
-                DetailLine("Punch location", employeePunchLocation(employee))
-                DetailLine("Visible records", attendance.size.toString())
+            item {
+                ModernProfileSection(
+                    title = "Personal & Contact",
+                    icon = Icons.Default.PersonOutline
+                ) {
+                    ModernDetailLine("Phone", employee?.contact ?: (session as? UserSession.EmployeeSession)?.contact ?: "-", Icons.Default.Phone)
+                    ModernDetailLine("Aadhar", employee?.aadharNo?.let { "**** **** ${it.takeLast(4)}" } ?: "-", Icons.Default.CreditCard)
+                    ModernDetailLine("Emergency", employee?.emergencyContact ?: "-", Icons.Default.ContactEmergency)
+                    ModernDetailLine("Address", employee?.address ?: "-", Icons.Default.HomeWork)
+                }
             }
-        }
 
-        item {
-            ProfileSection(title = "Access", icon = Icons.Default.Key) {
-                when (session) {
-                    is UserSession.EmployeeSession -> {
-                        DetailLine("Designation ID", session.designationId?.toString() ?: "-")
-                        DetailLine("Role type", session.role?.dbValue ?: "-")
-                        DetailLine("Permissions", session.permissions.size.toString())
-                        if (session.permissions.isNotEmpty()) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                session.permissions.sorted().forEach { permission ->
-                                    StatusPill(permission, MaterialTheme.colorScheme.primary)
-                                }
+            item {
+                ModernProfileSection(
+                    title = "Workplace",
+                    icon = Icons.Default.Storefront
+                ) {
+                    ModernDetailLine("Outlet Name", outlet?.name ?: "Foody Villa", Icons.Default.Store)
+                    ModernDetailLine("Location", outlet?.city ?: "-", Icons.Default.LocationOn)
+                    ModernDetailLine("Work Hours", "${outlet?.opensAt ?: "-"} to ${outlet?.closesAt ?: "-"}", Icons.Default.Schedule)
+                    ModernDetailLine("Punch Location", employeePunchLocation(employee), Icons.Default.GpsFixed)
+                }
+            }
+
+            item {
+                if (session is UserSession.EmployeeSession && session.permissions.isNotEmpty()) {
+                    ModernProfileSection(
+                        title = "System Access",
+                        icon = Icons.Default.Security
+                    ) {
+                        Text(
+                            "Granted Permissions",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        FlowRow(
+                            mainAxisSpacing = 8.dp,
+                            crossAxisSpacing = 8.dp
+                        ) {
+                            session.permissions.forEach { perm ->
+                                SuggestionChip(
+                                    onClick = {},
+                                    label = { Text(perm) },
+                                    border = null,
+                                    colors = SuggestionChipDefaults.suggestionChipColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                                    )
+                                )
                             }
                         }
                     }
-
-                    is UserSession.OutletSession -> {
-                        DetailLine("Account", session.username)
-                        DetailLine("Role type", session.role.dbValue)
-                    }
-
-                    null -> DetailLine("Session", "Not available")
                 }
             }
         }
-
-        item { Spacer(Modifier.height(8.dp)) }
     }
 }
 
 @Composable
-private fun EmployeeProfileHeader(session: UserSession?, employee: Employee?) {
+private fun ModernProfileHeader(session: UserSession?, employee: Employee?) {
     val name = employee?.name ?: (session as? UserSession.EmployeeSession)?.name ?: "Employee"
-    val role = employee?.role ?: (session as? UserSession.EmployeeSession)?.role?.dbValue ?: "Backoffice"
-    val contact = employee?.contact ?: (session as? UserSession.EmployeeSession)?.contact ?: "-"
+    val role = (employee?.role ?: (session as? UserSession.EmployeeSession)?.role?.dbValue ?: "Staff").uppercase()
+    val context = LocalContext.current
 
-    PremiumCard {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(280.dp)
+    ) {
+        // Background Gradient & Shape
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer)))
-                .padding(18.dp)
+                .fillMaxHeight(0.75f)
+                .clip(RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+                )
+        )
+
+        // Profile Content
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Bottom
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val image = employee?.profileImg
-                if (image.isNullOrBlank()) {
-                    Surface(shape = CircleShape, color = Color.White.copy(alpha = .18f), modifier = Modifier.size(78.dp)) {
+            Box(contentAlignment = Alignment.BottomEnd) {
+                Surface(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .border(4.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = 4.dp
+                ) {
+                    if (employee?.profileImg.isNullOrBlank()) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = name.take(1).uppercase().ifBlank { "E" },
-                                color = Color.White,
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 28.sp
+                                text = name.take(1).uppercase(),
+                                style = MaterialTheme.typography.displaySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
+                    } else {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(employee?.profileImg?.cleanImageUrl())
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
                     }
-                } else {
-                    RecordImage(image, name, 78)
                 }
-
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    StatusPill(role.replaceFirstChar { it.uppercase() }, Color.White)
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White.copy(alpha = .82f), modifier = Modifier.size(16.dp))
-                        Text(contact, color = Color.White.copy(alpha = .86f), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
+                
+                Surface(
+                    modifier = Modifier.size(32.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    tonalElevation = 2.dp
+                ) {
+                    Icon(
+                        Icons.Default.Verified,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(6.dp)
+                    )
                 }
             }
+
+            Spacer(Modifier.height(12.dp))
+            
+            Text(
+                name,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Text(
+                role,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 1.sp
+            )
+            
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-private fun ProfileSection(
+private fun QuickStatCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    value: String,
+    icon: ImageVector,
+    color: Color
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.height(8.dp))
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun ModernProfileSection(
     title: String,
     icon: ImageVector,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    PremiumCard {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 24.dp, start = 20.dp, end = 20.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(38.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                    }
-                }
-                Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.ExtraBold, fontSize = 17.sp)
+            Icon(icon, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                content()
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            content()
         }
     }
 }
+
+@Composable
+private fun ModernDetailLine(label: String, value: String, icon: ImageVector) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        
+        Spacer(Modifier.width(16.dp))
+        
+        Column {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+// Simple FlowRow equivalent if not using foundation layout
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FlowRow(
+    mainAxisSpacing: androidx.compose.ui.unit.Dp,
+    crossAxisSpacing: androidx.compose.ui.unit.Dp,
+    content: @Composable () -> Unit
+) {
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(mainAxisSpacing),
+        verticalArrangement = Arrangement.spacedBy(crossAxisSpacing),
+        content = { content() }
+    )
+}
+
 
 private fun employeePunchLocation(employee: Employee?): String {
     val lat = employee?.punchLat

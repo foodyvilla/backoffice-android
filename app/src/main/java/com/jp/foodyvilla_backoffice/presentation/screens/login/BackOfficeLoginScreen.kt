@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -32,6 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jp.foodyvilla_backoffice.R
 
@@ -69,7 +72,9 @@ fun BackOfficeLoginScreen(
         }
     }
 
-    Scaffold(containerColor = Color(0xFFF7F8FC)) { padding ->
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -78,61 +83,86 @@ fun BackOfficeLoginScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Updated Header with new Gradient and Layout
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp)
+                    .height(280.dp)
                     .background(
                         Brush.verticalGradient(
-                            listOf(Color(0xFFB7131A), Color(0xFFE23744))
+                            listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                            )
                         ),
-                        RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+                        RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Image(
                         painter = painterResource(R.drawable.logo_new),
                         contentDescription = "FoodyVilla",
-                        modifier = Modifier.size(132.dp)
+                        modifier = Modifier.size(120.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "FoodyVilla",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-1).sp
                     )
                     Text(
-                        text = "Back Office",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Text(
-                        text = "Sign in to manage your outlet",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.82f)
+                        text = "Back Office Portal",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                        letterSpacing = 2.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
 
+            // Login Card with refined spacing and colors
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(22.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
-                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 4.dp)
+                    .padding(horizontal = 24.dp)
+                    .offset(y = (-30).dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.elevatedCardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 8.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(18.dp),
+                    modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    Text(
+                        text = "Authorized Access Only",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
                     OutlinedTextField(
                         value = phone,
                         onValueChange = { phone = it.filter { char -> char.isDigit() || char == '+' || char == ' ' || char == '-' } },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        label = { Text("Employee phone") },
+                        label = { Text("Employee Contact") },
+                        placeholder = { Text("Enter your registered phone") },
+                        shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Badge,
-                                contentDescription = null
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     )
@@ -142,15 +172,24 @@ fun BackOfficeLoginScreen(
                         onValueChange = { password = it },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        label = { Text("Password") },
+                        label = { Text("System Password") },
+                        placeholder = { Text("••••••••") },
+                        shape = RoundedCornerShape(12.dp),
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                        leadingIcon = { 
+                            Icon(
+                                imageVector = Icons.Default.Lock, 
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            ) 
+                        },
                         trailingIcon = {
                             IconButton(onClick = { showPassword = !showPassword }) {
                                 Icon(
                                     imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showPassword) "Hide password" else "Show password"
+                                    contentDescription = if (showPassword) "Toggle password" else "Toggle password",
+                                    tint = MaterialTheme.colorScheme.outline
                                 )
                             }
                         }
@@ -158,12 +197,23 @@ fun BackOfficeLoginScreen(
 
                     val errorText = (loginState as? LoginUiState.Error)?.message
                     if (!errorText.isNullOrBlank()) {
-                        Text(
-                            text = errorText,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = errorText,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(8.dp),
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Button(
                         onClick = {
@@ -171,33 +221,40 @@ fun BackOfficeLoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(54.dp),
+                            .height(56.dp),
                         enabled = phone.isNotBlank() && password.isNotBlank() && loginState !is LoginUiState.Loading,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB7131A))
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
                     ) {
                         if (loginState is LoginUiState.Loading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.White
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.5.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         } else {
-                            Text("Sign in", fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "Secure Sign In",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
                         }
                     }
 
                     Text(
-                        text = "Only the tools allowed for your role or designation will be shown after login.",
-                        modifier = Modifier.fillMaxWidth(),
+                        text = "Designations and access tools are managed by the outlet administrator.",
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall
+                        color = MaterialTheme.colorScheme.outline,
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
         }
     }
 }

@@ -19,10 +19,14 @@ data class OrderDto(
     @SerialName("id") val id: String = "",
     @SerialName("outlet_id") val outlet_id: Long = 0,
     @SerialName("table_id") val table_id: Long? = null,
+    @SerialName("customer_id") val customer_id: Long? = null,
     @SerialName("customer_name") val customer_name: String? = null,
     @SerialName("phone") val phone: String? = null,
     @SerialName("status") val status: String = "pending", // pending | preparing | served | paid | cancelled | completed
-    @SerialName("order_type") val order_type: String? = "dine_in"
+    @SerialName("order_type") val order_type: String? = "dine_in",
+    @SerialName("transaction_id") val transaction_id: String? = null,
+    @SerialName("accepted_by") val accepted_by: Long? = null,
+    @SerialName("address") val address: String? = null
 )
 
 @Serializable

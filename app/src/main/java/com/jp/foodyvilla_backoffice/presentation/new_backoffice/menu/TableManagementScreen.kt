@@ -33,9 +33,10 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.curre
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.selectedTable
 import org.koin.androidx.compose.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TableManagementScreen(
-    outletId: Long = 1,
+    outletId: Long,
     viewModel: TableManagementViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -70,6 +71,34 @@ fun TableManagementScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+            if (state.isOwner) {
+                var dropdownExpanded by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    ExposedDropdownMenuBox(
+                        expanded = dropdownExpanded,
+                        onExpandedChange = { dropdownExpanded = !dropdownExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = state.outlets.find { it.id == state.outletId }?.name ?: "Select Outlet",
+                            onValueChange = {}, readOnly = true, label = { Text("Filter by Outlet") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                        )
+                        ExposedDropdownMenu(expanded = dropdownExpanded, onDismissRequest = { dropdownExpanded = false }) {
+                            state.outlets.forEach { outletItem ->
+                                DropdownMenuItem(
+                                    text = { Text(outletItem.name) },
+                                    onClick = { 
+                                        viewModel.loadOutlet(outletItem.id, force = true)
+                                        dropdownExpanded = false 
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             // ---- Table selection strip ----
             Text(
@@ -194,26 +223,40 @@ fun TableManagementScreen(
 
 @Composable
 private fun TableChip(table: TableUiModel, isSelected: Boolean, onClick: () -> Unit) {
-    val statusColor = when (table.status) {
-        "occupied" -> Color(0xFFE64A19)
-        "reserved" -> Color(0xFFFFA000)
-        else -> Color(0xFF43A047)
+    val extendedColors = com.jp.foodyvilla_backoffice.ui.theme.AppTheme.colors
+    val (statusColor, containerColor) = when (table.status) {
+        "occupied" -> extendedColors.warning to extendedColors.warningContainer
+        "reserved" -> extendedColors.info to extendedColors.infoContainer
+        else -> extendedColors.success to extendedColors.successContainer
     }
+    
+    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary else containerColor.copy(alpha = 0.5f)
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else statusColor
+
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-            .border(1.dp, statusColor, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(backgroundColor)
+            .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else statusColor.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(statusColor))
-            Spacer(Modifier.width(6.dp))
-            Text(table.tableNumber, fontWeight = FontWeight.Bold)
+            Box(Modifier.size(10.dp).clip(CircleShape).background(if (isSelected) MaterialTheme.colorScheme.onPrimary else statusColor))
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "T${table.tableNumber}", 
+                fontWeight = FontWeight.ExtraBold,
+                color = contentColor,
+                style = MaterialTheme.typography.titleMedium
+            )
         }
-        Text("${table.capacity} seats", style = MaterialTheme.typography.labelSmall)
+        Text(
+            text = "${table.capacity} seats", 
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor.copy(alpha = 0.8f)
+        )
     }
 }
 
@@ -277,25 +320,28 @@ private fun BottomActionBar(
             OutlinedButton(
                 onClick = onPrintKot,
                 enabled = hasUnprintedKot,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Print KOT")
+                Text("KOT")
             }
             OutlinedButton(
                 onClick = onMarkDone,
                 enabled = hasAnyItems,
-                modifier = Modifier.weight(1f)
-            ) { Text("Mark as Done") }
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            ) { Text("Clear") }
             Button(
                 onClick = onPrintInvoice,
                 enabled = hasAnyItems,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Print Invoice")
+                Text("Bill")
             }
         }
     }

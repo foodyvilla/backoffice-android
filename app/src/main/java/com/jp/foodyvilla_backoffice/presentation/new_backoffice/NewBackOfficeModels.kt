@@ -15,6 +15,8 @@ data class NewDetailedOrderUiModel(
     val instruction: String,
     val createdAt: String,
     val acceptedBy: Long?,
+    val tableId: Long? = null,
+    val tableNumber: String? = null,
     val items: List<NewSelectedMenuItem> = emptyList(),
     val totalAmount: Double = 0.0
 )
@@ -91,7 +93,14 @@ internal data class OrderListResponse(
     val instruction: String? = null,
     val created_at: String,
     val accepted_by: Long? = null,
+    val table_id: Long? = null,
+    val restaurant_tables: TableNumberContainer? = null,
     val order_items: List<OrderItemDetailResponse> = emptyList()
+)
+
+@Serializable
+internal data class TableNumberContainer(
+    val table_number: String
 )
 
 @Serializable
@@ -181,6 +190,7 @@ internal fun OrderListResponse.toUiModel(): NewDetailedOrderUiModel {
         customerName = customer_name ?: "Walk-in Customer", phone = phone.orEmpty(),
         status = status, orderType = (order_type ?: "dine_in").uppercase(), address = address.orEmpty(),
         instruction = instruction.orEmpty(), createdAt = created_at, acceptedBy = accepted_by,
+        tableId = table_id, tableNumber = restaurant_tables?.table_number,
         items = itemsList, totalAmount = itemsList.sumOf { it.totalPrice }
     )
 }

@@ -99,6 +99,7 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
                 Columns.raw(
                     """
                 *,
+                restaurant_tables ( table_number ),
                 order_items (
                     menu_item_id, qty, price_per_item, total_price,
                     outlet_menu_items ( product_catalog ( name ) )
@@ -237,7 +238,8 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
     @OptIn(InternalAPI::class)
     suspend fun updateOrderDetails(
         orderId: String, status: String, address: String, instruction: String,
-        orderType: String, outletId: Long, customerPhone: String,  internalEmpId: Long?
+        orderType: String, outletId: Long, customerPhone: String,  internalEmpId: Long?,
+        tableId: Long? = null
     ) {
         val trimmedId = orderId.trim()
         val dbStatus = when (val s = status.trim().lowercase().replace(" ", "_")) {
@@ -254,6 +256,7 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
                 put("instruction", instruction)
                 put("order_type", orderType.lowercase().trim().replace(" ", "_"))
                 if (internalEmpId != null) put("accepted_by", internalEmpId)
+                if (tableId != null) put("table_id", tableId)
             }
 
             // 1. Commit Update payload fields properties changes and verify
@@ -343,7 +346,8 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
     suspend fun placeOrder(
         outletId: Long, customer: NewCustomerUiModel?, phone: String,
         address: String, orderType: NewOrderType, instruction: String,
-        items: List<NewSelectedMenuItem>, internalEmpId: Long?
+        items: List<NewSelectedMenuItem>, internalEmpId: Long?,
+        tableId: Long? = null
     ): NewOrderUiModel {
         val orderId = UUID.randomUUID().toString()
         val total = items.sumOf { it.totalPrice }
@@ -366,6 +370,7 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
                 put("address", address)
                 put("instruction", instruction)
                 if (internalEmpId != null) put("accepted_by", internalEmpId)
+                if (tableId != null) put("table_id", tableId)
             })
             Log.d(TAG, "Step 1 Success: Core order entry written cleanly into database.")
 

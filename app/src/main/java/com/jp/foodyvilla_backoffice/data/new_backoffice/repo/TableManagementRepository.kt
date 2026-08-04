@@ -6,13 +6,17 @@ import com.jp.foodyvilla_backoffice.data.new_backoffice.models.OrderItemInsertDt
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.OrderItemWithMenuDto
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.OutletMenuItemWithProductDto
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.RestaurantTableDto
+import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
+import com.jp.foodyvilla_backoffice.domain.security.UserSession
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order as SupabaseOrder
+import java.util.UUID
 
 class TableManagementRepository(
-    private val supabase: SupabaseClient
+    private val supabase: SupabaseClient,
+    private val authRepository: AuthRepository
 ) {
 
     // ---------- Tables ----------
@@ -24,6 +28,17 @@ class TableManagementRepository(
                 order("table_number", SupabaseOrder.ASCENDING)
             }
             .decodeList<RestaurantTableDto>()
+    }
+
+    suspend fun getOutlets(): List<com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletDropdownUiModel> {
+        return supabase.from("outlets").select {
+            filter { eq("is_active", true) }
+        }.decodeList<com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletListResponse>().map {
+            com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletDropdownUiModel(
+                id = it.id,
+                name = it.name
+            )
+        }
     }
 
     suspend fun setTableStatus(tableId: Long, status: String) {
@@ -87,12 +102,19 @@ class TableManagementRepository(
     }
 
     suspend fun createDineInOrder(outletId: Long, tableId: Long, customerName: String?): OrderDto {
+        val session = authRepository.currentSession.value
+        val employeeId = (session as? UserSession.EmployeeSession)?.empId?.toLongOrNull()
+        val tempTransactionId = "DINE_${UUID.randomUUID().toString().take(8)}"
+
         val newOrder = OrderDto(
             outlet_id = outletId,
             table_id = tableId,
-            customer_name = customerName,
+            customer_name = customerName ?: "Dine-in Table $tableId",
             status = "pending",
-            order_type = "dine_in"
+            order_type = "dine_in",
+            transaction_id = tempTransactionId,
+            accepted_by = employeeId,
+            address = "Table $tableId"
         )
         return supabase.from("orders")
             .insert(newOrder) { select() }
@@ -113,6 +135,15 @@ class TableManagementRepository(
         return supabase.from("order_items")
             .select(Columns.raw("*, outlet_menu_items(id, product_catalog(name))")) {
                 filter { eq("order_id", orderId) }
+            }
+            .decodeList<OrderItemWithMenuDto>()
+    }
+
+    suspend fun getAllOrderItemsForOrders(orderIds: List<String>): List<OrderItemWithMenuDto> {
+        if (orderIds.isEmpty()) return emptyList()
+        return supabase.from("order_items")
+            .select(Columns.raw("*, outlet_menu_items(id, product_catalog(name))")) {
+                filter { isIn("order_id", orderIds) }
             }
             .decodeList<OrderItemWithMenuDto>()
     }

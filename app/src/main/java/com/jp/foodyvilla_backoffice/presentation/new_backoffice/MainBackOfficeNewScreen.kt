@@ -271,6 +271,13 @@ fun NewBackOfficeNavigationScreen(
                         )
                     }
 
+                    BackOfficeRoute.Tables -> {
+
+                        DashboardPlaceholderScreen(
+                            title = "Tables Management"
+                        )
+                    }
+
                     BackOfficeRoute.Customers -> {
 
                         CustomerDirectoryScreen(
@@ -368,7 +375,11 @@ fun NewBackOfficeNavigationScreen(
                         loginViewModel.logout()
                     }
 
-                    BackOfficeRoute.TableOrder -> TableManagementScreen()
+                    BackOfficeRoute.TableOrder -> {
+                        userSession?.outletId?.let { outletId ->
+                            TableManagementScreen(outletId = outletId)
+                        }
+                    }
 
                     BackOfficeRoute.OrderHistory -> {
                         userSession?.outletId?.let { outletId ->
@@ -446,6 +457,7 @@ private fun BackOfficeRoute.title(): String {
         BackOfficeRoute.Outlet -> "Outlets"
         BackOfficeRoute.Products -> "Products"
         BackOfficeRoute.Categories -> "Categories"
+        BackOfficeRoute.Tables -> "Tables Management"
         BackOfficeRoute.Customers -> "Customers"
         BackOfficeRoute.Payments -> "Payments"
         BackOfficeRoute.Employees -> "Employees"

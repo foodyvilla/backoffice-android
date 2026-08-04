@@ -9,6 +9,9 @@ import com.jp.foodyvilla_backoffice.data.new_backoffice.models.MenuItemUiModel
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.TableUiModel
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.ThermalPrinterBridge
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.TableManagementRepository
+import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletDropdownUiModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -19,6 +22,7 @@ data class TableManagementUiState(
     val tables: List<TableUiModel> = emptyList(),
     val categories: List<CategoryDto> = emptyList(),
     val menuItems: List<MenuItemUiModel> = emptyList(),
+    val outlets: List<OutletDropdownUiModel> = emptyList(),
 
     val selectedTableId: Long? = null,
     val selectedCategoryId: Long? = null,
@@ -28,6 +32,7 @@ data class TableManagementUiState(
     val billLinesByTable: Map<Long, List<BillLineUiModel>> = emptyMap(),
     val cartsByTable: Map<Long, List<CartLineUiModel>> = emptyMap(),
 
+    val isOwner: Boolean = false,
     val isLoading: Boolean = false,
     val errorText: String? = null,
     val lastInvoice: Pair<String, Double>? = null // tableNumber to grandTotal, for the "bill printed" confirmation
@@ -54,37 +59,78 @@ val TableManagementUiState.currentGrandTotal: Double
 
 class TableManagementViewModel(
     private val repository: TableManagementRepository,
-    private val printerBridge: ThermalPrinterBridge
+    private val printerBridge: ThermalPrinterBridge,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TableManagementUiState())
     val state = _state.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            authRepository.currentSession.collect { session ->
+                _state.update { it.copy(isOwner = session?.isOwner() ?: false) }
+                if (session?.isOwner() == true) {
+                    runCatching { repository.getOutlets() }.onSuccess { list ->
+                        _state.update { it.copy(outlets = list) }
+                    }
+                }
+            }
+        }
+    }
+
     fun loadOutlet(outletId: Long, force: Boolean = false) {
-        // Prevent redundant loads unless forced (e.g. after a session update)
         if (!force && _state.value.outletId == outletId && _state.value.tables.isNotEmpty()) return
 
         _state.update { it.copy(outletId = outletId, isLoading = true, errorText = null) }
         viewModelScope.launch {
             runCatching {
-                val tables = repository.getTablesForOutlet(outletId).map {
-                    TableUiModel(it.id, it.table_number, it.capacity, it.status)
-                }
-                val categories = repository.getCategories()
-                val menu = repository.getMenuForOutlet(outletId).map { m ->
-                    MenuItemUiModel(
-                        menuItemId = m.id,
-                        productId = m.product_id,
-                        name = m.product_catalog?.name ?: "Item #${m.product_id}",
-                        categoryId = m.product_catalog?.category_id,
-                        price = m.price,
-                        discount = m.discount,
-                        isAvailable = m.is_available && !m.is_out_of_stock
-                    )
+                var targetOutletId = outletId
+                
+                if (targetOutletId == 0L && _state.value.isOwner) {
+                    val outlets = if (_state.value.outlets.isEmpty()) repository.getOutlets() else _state.value.outlets
+                    if (outlets.isNotEmpty()) {
+                        targetOutletId = outlets.first().id
+                        _state.update { it.copy(outlets = outlets, outletId = targetOutletId) }
+                    }
                 }
 
-                // Bulk restore active orders for the outlet to maintain persistent sessions
-                val activeOrders = repository.getActiveOrdersForOutlet(outletId)
+                if (targetOutletId == 0L) {
+                    throw IllegalStateException("Please select an outlet.")
+                }
+
+                // 1. Fetch tables, categories, and menu concurrently
+                val tablesDeferred = async { 
+                    repository.getTablesForOutlet(targetOutletId).map {
+                        TableUiModel(it.id, it.table_number, it.capacity, it.status)
+                    }
+                }
+                val categoriesDeferred = async { repository.getCategories() }
+                val menuDeferred = async { 
+                    repository.getMenuForOutlet(targetOutletId).map { m ->
+                        MenuItemUiModel(
+                            menuItemId = m.id,
+                            productId = m.product_id,
+                            name = m.product_catalog?.name ?: "Item #${m.product_id}",
+                            categoryId = m.product_catalog?.category_id,
+                            price = m.price,
+                            discount = m.discount,
+                            isAvailable = m.is_available && !m.is_out_of_stock
+                        )
+                    }
+                }
+                
+                val tables = tablesDeferred.await()
+                val categories = categoriesDeferred.await()
+                val menu = menuDeferred.await()
+
+                // 2. Fetch all active orders for the outlet
+                val activeOrders = repository.getActiveOrdersForOutlet(targetOutletId)
+                val orderIds = activeOrders.map { it.id }
+                
+                // 3. Fetch all order items for these active orders in one go (Bulk loading)
+                val allOrderItems = repository.getAllOrderItemsForOrders(orderIds)
+                
                 val ordersMap = mutableMapOf<Long, String>()
                 val linesMap = mutableMapOf<Long, List<BillLineUiModel>>()
 
@@ -92,9 +138,7 @@ class TableManagementViewModel(
                     val tableId = order.table_id ?: return@forEach
                     ordersMap[tableId] = order.id
                     
-                    // Note: In a large system, we might want to fetch items on-demand, 
-                    // but for a table management session, pre-loading ensures immediate UI response.
-                    val items = repository.getOrderItemsWithMenu(order.id).map { i ->
+                    val items = allOrderItems.filter { it.order_id == order.id }.map { i ->
                         BillLineUiModel(
                             orderItemId = i.id,
                             menuItemId = i.menu_item_id,
@@ -108,7 +152,7 @@ class TableManagementViewModel(
                     linesMap[tableId] = items
                 }
 
-                // Determine table occupancy based on active orders (reconcile with status column)
+                // 4. Override table status based on whether it has an active order on server
                 val updatedTables = tables.map { t ->
                     if (ordersMap.containsKey(t.id)) t.copy(status = "occupied")
                     else t.copy(status = "available")
@@ -125,6 +169,7 @@ class TableManagementViewModel(
                         menuItems = menu,
                         ordersByTable = orders,
                         billLinesByTable = lines,
+                        selectedTableId = if (tables.any { t -> t.id == it.selectedTableId }) it.selectedTableId else null,
                         selectedCategoryId = it.selectedCategoryId ?: categories.firstOrNull()?.id,
                         isLoading = false
                     )
@@ -139,12 +184,10 @@ class TableManagementViewModel(
         _state.update { it.copy(selectedCategoryId = categoryId) }
     }
 
-    // Step 1: waiter marks a table for the arriving customer (or reopens one already occupied)
     fun selectTable(table: TableUiModel) {
         _state.update { it.copy(selectedTableId = table.id, errorText = null) }
     }
 
-    // Step 2/3: waiter taps products from the category-filtered list; builds a local cart first
     fun addToCart(item: MenuItemUiModel) {
         val tableId = _state.value.selectedTableId ?: return
         _state.update {
@@ -172,7 +215,6 @@ class TableManagementViewModel(
         }
     }
 
-    // Step 4: push the cart into the same order as new order_items (or bump qty of a matching saved line)
     fun saveCartToOrder() {
         val tableId = _state.value.selectedTableId ?: return
         val cart = _state.value.currentCartLines
@@ -182,6 +224,15 @@ class TableManagementViewModel(
             _state.update { it.copy(isLoading = true) }
             runCatching {
                 var orderId = _state.value.currentOrderId
+                
+                // Safety: Check if table has an active order on server that we missed locally
+                if (orderId == null) {
+                    val serverOrder = repository.getActiveOrderForTable(tableId)
+                    if (serverOrder != null) {
+                        orderId = serverOrder.id
+                    }
+                }
+
                 if (orderId == null) {
                     val newOrder = repository.createDineInOrder(
                         outletId = _state.value.outletId,
@@ -230,7 +281,6 @@ class TableManagementViewModel(
         }
     }
 
-    // adjust / remove an item that's already saved on the order (increase, decrease, or delete)
     fun updateSavedLineQty(line: BillLineUiModel, newQty: Long) {
         val tableId = _state.value.selectedTableId ?: return
         viewModelScope.launch {
@@ -253,7 +303,6 @@ class TableManagementViewModel(
         }
     }
 
-    // "Print KOT" — sends only the not-yet-printed lines to the kitchen printer
     fun printKot(context: android.content.Context) {
         val table = _state.value.selectedTable ?: return
         val orderId = _state.value.currentOrderId ?: return
@@ -278,7 +327,6 @@ class TableManagementViewModel(
         }
     }
 
-    // "Mark as Done" — food has been served OR session ended; marks order completed and frees the table
     fun completeOrderSession() {
         val table = _state.value.selectedTable ?: return
         val orderId = _state.value.currentOrderId ?: return
@@ -290,14 +338,13 @@ class TableManagementViewModel(
                 repository.setOrderStatus(orderId, "completed")
                 repository.setTableStatus(table.id, "available")
             }.onSuccess {
-                // Clear state and force a full reload to ensure UI is in sync with DB
                 _state.update { 
                     it.copy(
                         selectedTableId = null,
-                        ordersByTable = emptyMap(),
-                        billLinesByTable = emptyMap(),
-                        cartsByTable = emptyMap(),
-                        tables = emptyList() 
+                        ordersByTable = it.ordersByTable - table.id,
+                        billLinesByTable = it.billLinesByTable - table.id,
+                        cartsByTable = it.cartsByTable - table.id,
+                        isLoading = false
                     )
                 }
                 loadOutlet(outletId, force = true)
@@ -307,7 +354,6 @@ class TableManagementViewModel(
         }
     }
 
-    // "Print Invoice" — final settle: prints the bill, marks the order completed, frees the table
     fun printInvoiceAndSettle(context: android.content.Context) {
         val table = _state.value.selectedTable ?: return
         val orderId = _state.value.currentOrderId ?: return
@@ -321,15 +367,14 @@ class TableManagementViewModel(
                 repository.setOrderStatus(orderId, "completed")
                 repository.setTableStatus(table.id, "available")
             }.onSuccess {
-                // Clear state and force a full reload
                 _state.update {
                     it.copy(
                         selectedTableId = null,
-                        ordersByTable = emptyMap(),
-                        billLinesByTable = emptyMap(),
-                        cartsByTable = emptyMap(),
-                        tables = emptyList(),
-                        lastInvoice = table.tableNumber to grandTotal
+                        ordersByTable = it.ordersByTable - table.id,
+                        billLinesByTable = it.billLinesByTable - table.id,
+                        cartsByTable = it.cartsByTable - table.id,
+                        lastInvoice = table.tableNumber to grandTotal,
+                        isLoading = false
                     )
                 }
                 loadOutlet(outletId, force = true)

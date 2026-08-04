@@ -84,6 +84,7 @@ class AdminRepository(
     suspend fun loadAttendance() = loadTableRows(adminTables.first { it.name == "attendance" })
     suspend fun loadPayments() = loadTableRows(adminTables.first { it.name == "payments" })
     suspend fun loadOutletMenuItems() = loadTableRows(adminTables.first { it.name == "outlet_menu_items" })
+    suspend fun loadRestaurantTables() = loadTableRows(adminTables.first { it.name == "restaurant_tables" })
     suspend fun loadAuthOtp() = loadTableRows(adminTables.first { it.name == "auth_otp" })
 
     suspend fun loadOrderItems(): List<JsonObject> {
@@ -170,7 +171,8 @@ class AdminRepository(
             "wa_templates",
             "wa_webhook_logs",
             "employee",
-            "reviews" -> rows.filter { it["outlet_id"].toDisplayText() == session.outletId.toString() }
+            "reviews",
+            "restaurant_tables" -> rows.filter { it["outlet_id"].toDisplayText() == session.outletId.toString() }
 
             "attendance" -> scopeAttendance(rows, session)
             "users" -> scopeUsers(rows, session)
@@ -327,6 +329,17 @@ class AdminRepository(
             filter { eq("id", id) }
         }
 
+        if (dbStatus == "completed" || dbStatus == "rejected" || dbStatus == "cancelled") {
+            val tableId = order["table_id"]?.toDisplayText()?.toLongOrNull()
+            if (tableId != null) {
+                supabase.from("restaurant_tables").update(
+                    buildJsonObject { put("status", "available") }
+                ) {
+                    filter { eq("id", tableId) }
+                }
+            }
+        }
+
         notifyOrderStatusChanged(order, dbStatus)
     }
 
@@ -462,6 +475,7 @@ class AdminRepository(
         val address = values["address"] ?: ""
         val outletId = values["outlet_id"]?.toLongOrNull() ?: session.outletId
         val status = (values["status"] ?: "placed").toOrderDbStatus()
+        val tableId = values["table_id"]?.toLongOrNull()
 
         // 1. Find or create user
         var user = supabase.from("users")
@@ -498,8 +512,17 @@ class AdminRepository(
                 put("address", address)
                 put("transaction_id", tempTransactionId)
                 put("accepted_by", employeeId)
+                if (tableId != null) put("table_id", tableId)
             }
         )
+
+        if (tableId != null) {
+            supabase.from("restaurant_tables").update(
+                buildJsonObject { put("status", "occupied") }
+            ) {
+                filter { eq("id", tableId) }
+            }
+        }
 
         val order = supabase.from("orders")
             .select { filter { eq("transaction_id", tempTransactionId) } }
@@ -567,6 +590,7 @@ class AdminRepository(
     suspend fun createAttendance(values: Map<String, String>) = createRow(adminTables.first { it.name == "attendance" }, values)
     suspend fun createOrderItem(values: Map<String, String>) = createRow(adminTables.first { it.name == "order_items" }, values)
     suspend fun createOutletMenuItem(values: Map<String, String>) = createRow(adminTables.first { it.name == "outlet_menu_items" }, values)
+    suspend fun createRestaurantTable(values: Map<String, String>) = createRow(adminTables.first { it.name == "restaurant_tables" }, values)
     suspend fun createPayment(values: Map<String, String>) = createRow(adminTables.first { it.name == "payments" }, values)
 
     suspend fun updateRow(table: AdminTable, row: JsonObject, values: Map<String, String>) {
@@ -608,6 +632,7 @@ class AdminRepository(
     suspend fun updateAttendance(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "attendance" }, row, values)
     suspend fun updateOrderItem(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "order_items" }, row, values)
     suspend fun updateOutletMenuItem(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "outlet_menu_items" }, row, values)
+    suspend fun updateRestaurantTable(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "restaurant_tables" }, row, values)
     suspend fun updatePayment(row: JsonObject, values: Map<String, String>) = updateRow(adminTables.first { it.name == "payments" }, row, values)
 
     suspend fun deleteRow(table: AdminTable, row: JsonObject) {
@@ -657,6 +682,7 @@ class AdminRepository(
     suspend fun deleteAttendance(row: JsonObject) = deleteRow(adminTables.first { it.name == "attendance" }, row)
     suspend fun deleteOrderItem(row: JsonObject) = deleteRow(adminTables.first { it.name == "order_items" }, row)
     suspend fun deleteOutletMenuItem(row: JsonObject) = deleteRow(adminTables.first { it.name == "outlet_menu_items" }, row)
+    suspend fun deleteRestaurantTable(row: JsonObject) = deleteRow(adminTables.first { it.name == "restaurant_tables" }, row)
     suspend fun deletePayment(row: JsonObject) = deleteRow(adminTables.first { it.name == "payments" }, row)
 
     fun observeOutlets() = observeTableRows(adminTables.first { it.name == "outlets" })
@@ -671,6 +697,7 @@ class AdminRepository(
     fun observeAttendance() = observeTableRows(adminTables.first { it.name == "attendance" })
     fun observePayments() = observeTableRows(adminTables.first { it.name == "payments" })
     fun observeOutletMenuItems() = observeTableRows(adminTables.first { it.name == "outlet_menu_items" })
+    fun observeRestaurantTables() = observeTableRows(adminTables.first { it.name == "restaurant_tables" })
 
     @OptIn(InternalAPI::class)
     suspend fun sendFcmToTopic(topic: String, title: String, body: String, imageUrl: String? = null) {
@@ -775,7 +802,7 @@ class AdminRepository(
         val session = authRepository.currentSession.value ?: return null
         if (session.isOwner()) return null
         return when (tableName) {
-            "orders", "outlet_menu_items", "banners", "offers", "employee", "reviews" -> session.outletId.toString()
+            "orders", "outlet_menu_items", "banners", "offers", "employee", "reviews", "restaurant_tables" -> session.outletId.toString()
             else -> null
         }
     }
@@ -873,7 +900,7 @@ private fun AdminTable.selectColumns(): Columns {
         "outlet_menu_items" -> Columns.raw("*, product_catalog(*)")
         "order_items" -> Columns.raw("*, orders(customer_name, phone, status, outlet_id), outlet_menu_items(id, image, price, product_catalog(name, category, description))")
         "attendance" -> Columns.raw("*, employee(name, role, contact, outlet_id)")
-        "orders" -> Columns.raw("*, outlets(name, city), users(name, phone), payments(amount)")
+        "orders" -> Columns.raw("*, outlets(name, city), users(name, phone), payments(amount), restaurant_tables(table_number)")
         "payments" -> Columns.raw("*, orders(customer_name, phone, status, outlet_id), users(name, phone)")
         "reviews" -> Columns.raw("*, users(name, phone), outlet_menu_items(id, price, product_catalog(name, category)), outlets(name, city)")
         "cart" -> Columns.raw("*, users(name, phone), outlet_menu_items(id, price, product_catalog(name, category)), outlets(name, city)")
@@ -920,6 +947,9 @@ private fun JsonObject.withDisplayJoins(tableName: String): JsonObject {
                 val payments = this@withDisplayJoins["payments"] as? JsonArray
                 val firstPayment = payments?.firstOrNull() as? JsonObject
                 firstPayment?.get("amount")?.let { put("grand_total", it) }
+                
+                val table = this@withDisplayJoins["restaurant_tables"] as? JsonObject
+                table?.get("table_number")?.let { put("table_name", it) }
             }
             "payments" -> {
                 val order = this@withDisplayJoins["orders"] as? JsonObject
@@ -961,7 +991,7 @@ private fun AdminTable.supportsDeleteRealtime(): Boolean {
     // Some tables might not have DELETE events enabled in Supabase Realtime config
     // or we may want to avoid tracking deletions for these tables in realtime.
     return when (name) {
-        "attendance", "outlets", "payments", "users", "employee" -> false
+        "attendance", "outlets", "payments", "users", "employee", "restaurant_tables" -> false
         else -> true
     }
 }
