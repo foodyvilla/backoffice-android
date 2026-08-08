@@ -136,20 +136,25 @@ class TableManagementViewModel(
 
                 activeOrders.forEach { order ->
                     val tableId = order.table_id ?: return@forEach
-                    ordersMap[tableId] = order.id
                     
-                    val items = allOrderItems.filter { it.order_id == order.id }.map { i ->
-                        BillLineUiModel(
-                            orderItemId = i.id,
-                            menuItemId = i.menu_item_id,
-                            name = i.outlet_menu_items?.product_catalog?.name ?: "Item #${i.menu_item_id}",
-                            qty = i.qty,
-                            pricePerItem = i.price_per_item,
-                            totalPrice = i.total_price,
-                            kotPrinted = i.kot_printed
-                        )
+                    // Since activeOrders is sorted by created_at DESC, the first order 
+                    // we encounter for a table is the most recent (and current) one.
+                    if (!ordersMap.containsKey(tableId)) {
+                        ordersMap[tableId] = order.id
+                        
+                        val items = allOrderItems.filter { it.order_id == order.id }.map { i ->
+                            BillLineUiModel(
+                                orderItemId = i.id,
+                                menuItemId = i.menu_item_id,
+                                name = i.outlet_menu_items?.product_catalog?.name ?: "Item #${i.menu_item_id}",
+                                qty = i.qty,
+                                pricePerItem = i.price_per_item,
+                                totalPrice = i.total_price,
+                                kotPrinted = i.kot_printed
+                            )
+                        }
+                        linesMap[tableId] = items
                     }
-                    linesMap[tableId] = items
                 }
 
                 // 4. Override table status based on whether it has an active order on server
@@ -167,6 +172,7 @@ class TableManagementViewModel(
                         tables = tables,
                         categories = categories,
                         menuItems = menu,
+                        // MERGE with local maps to preserve unsaved carts if any
                         ordersByTable = orders,
                         billLinesByTable = lines,
                         selectedTableId = if (tables.any { t -> t.id == it.selectedTableId }) it.selectedTableId else null,
@@ -244,13 +250,27 @@ class TableManagementViewModel(
                 }
 
                 val existingLines = _state.value.billLinesByTable[tableId].orEmpty()
+                val newItemsToInsert = mutableListOf<com.jp.foodyvilla_backoffice.data.new_backoffice.models.OrderItemInsertDto>()
+                
                 for (line in cart) {
                     val existing = existingLines.find { it.menuItemId == line.menuItemId && !it.kotPrinted }
                     if (existing != null) {
                         repository.updateOrderItemQty(existing.orderItemId, existing.qty + line.qty, line.price)
                     } else {
-                        repository.insertOrderItem(orderId, line.menuItemId, line.qty, line.price)
+                        newItemsToInsert.add(
+                            com.jp.foodyvilla_backoffice.data.new_backoffice.models.OrderItemInsertDto(
+                                order_id = orderId,
+                                menu_item_id = line.menuItemId,
+                                qty = line.qty,
+                                price_per_item = line.price,
+                                total_price = line.price * line.qty
+                            )
+                        )
                     }
+                }
+                
+                if (newItemsToInsert.isNotEmpty()) {
+                    repository.insertOrderItems(newItemsToInsert)
                 }
                 
                 val refreshedLines = repository.getOrderItemsWithMenu(orderId).map { i ->
@@ -327,23 +347,24 @@ class TableManagementViewModel(
         }
     }
 
-    fun completeOrderSession() {
-        val table = _state.value.selectedTable ?: return
+    fun clearTable() {
+        val tableId = _state.value.selectedTableId ?: return
         val orderId = _state.value.currentOrderId ?: return
         val outletId = _state.value.outletId
 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             runCatching {
-                repository.setOrderStatus(orderId, "completed")
-                repository.setTableStatus(table.id, "available")
+                // Mark order as cancelled as requested by user
+                repository.setOrderStatus(orderId, "cancelled")
+                repository.setTableStatus(tableId, "available")
             }.onSuccess {
                 _state.update { 
                     it.copy(
-                        selectedTableId = null,
-                        ordersByTable = it.ordersByTable - table.id,
-                        billLinesByTable = it.billLinesByTable - table.id,
-                        cartsByTable = it.cartsByTable - table.id,
+                        ordersByTable = it.ordersByTable - tableId,
+                        billLinesByTable = it.billLinesByTable - tableId,
+                        cartsByTable = it.cartsByTable - tableId,
+                        tables = it.tables.map { t -> if (t.id == tableId) t.copy(status = "available") else t },
                         isLoading = false
                     )
                 }
@@ -356,6 +377,7 @@ class TableManagementViewModel(
 
     fun printInvoiceAndSettle(context: android.content.Context) {
         val table = _state.value.selectedTable ?: return
+        val tableId = table.id
         val orderId = _state.value.currentOrderId ?: return
         val grandTotal = _state.value.currentGrandTotal
         val outletId = _state.value.outletId
@@ -363,16 +385,19 @@ class TableManagementViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             runCatching {
+                // Print existing lines
                 printerBridge.printInvoice(context, table.tableNumber, _state.value.currentBillLines, grandTotal)
+                
+                // Mark order as completed and table as available
                 repository.setOrderStatus(orderId, "completed")
-                repository.setTableStatus(table.id, "available")
+                repository.setTableStatus(tableId, "available")
             }.onSuccess {
                 _state.update {
                     it.copy(
-                        selectedTableId = null,
-                        ordersByTable = it.ordersByTable - table.id,
-                        billLinesByTable = it.billLinesByTable - table.id,
-                        cartsByTable = it.cartsByTable - table.id,
+                        ordersByTable = it.ordersByTable - tableId,
+                        billLinesByTable = it.billLinesByTable - tableId,
+                        cartsByTable = it.cartsByTable - tableId,
+                        tables = it.tables.map { t -> if (t.id == tableId) t.copy(status = "available") else t },
                         lastInvoice = table.tableNumber to grandTotal,
                         isLoading = false
                     )
@@ -386,5 +411,9 @@ class TableManagementViewModel(
 
     fun dismissInvoiceConfirmation() {
         _state.update { it.copy(lastInvoice = null) }
+    }
+
+    fun clearError() {
+        _state.update { it.copy(errorText = null) }
     }
 }

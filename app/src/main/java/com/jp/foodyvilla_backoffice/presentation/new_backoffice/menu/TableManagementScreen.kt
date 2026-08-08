@@ -41,9 +41,17 @@ fun TableManagementScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.errorText) {
+        state.errorText?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearError()
+        }
+    }
 
     LaunchedEffect(outletId) {
-        viewModel.loadOutlet(outletId)
+        viewModel.loadOutlet(outletId, force = true)
     }
 
     state.lastInvoice?.let { (tableNumber, total) ->
@@ -58,13 +66,14 @@ fun TableManagementScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (state.selectedTableId != null) {
                 BottomActionBar(
                     hasUnprintedKot = state.currentBillLines.any { !it.kotPrinted },
                     hasAnyItems = state.currentBillLines.isNotEmpty() || state.currentCartLines.isNotEmpty(),
                     onPrintKot = { viewModel.printKot(context) },
-                    onMarkDone = viewModel::completeOrderSession,
+                    onMarkDone = viewModel::clearTable,
                     onPrintInvoice = { viewModel.printInvoiceAndSettle(context) }
                 )
             }

@@ -23,6 +23,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AttendanceA
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.CustomerDirectoryScreen
 
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.EmployeePunchReportScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.EmployeeProfileNewScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.MarketingTabsDashboardScreen
 
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ProductCatalogManagementScreen
@@ -36,13 +37,16 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OrderHistor
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OutletListDirectoryScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.PaymentAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ReviewAdminConsoleScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.RestaurantTableManagementScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.TableManagementScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.EmployeeProfileViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.MarketingViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.OutletManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.RestaurantTableManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
 import com.jp.foodyvilla_backoffice.presentation.screens.login.LoginViewModel
 
@@ -62,7 +66,9 @@ fun NewBackOfficeNavigationScreen(
     productCatalogViewModel: ProductCatalogViewModel,
     customerManagementViewModel: CustomerManagementViewModel,
     attendanceViewModel: AttendanceViewModel,
-    attendanceAdminViewModel: AttendanceAdminViewModel
+    attendanceAdminViewModel: AttendanceAdminViewModel,
+    tableAdminViewModel: RestaurantTableManagementViewModel = koinViewModel(),
+    profileViewModel: EmployeeProfileViewModel = koinViewModel()
 ) {
     val userSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
 
@@ -273,8 +279,9 @@ fun NewBackOfficeNavigationScreen(
 
                     BackOfficeRoute.Tables -> {
 
-                        DashboardPlaceholderScreen(
-                            title = "Tables Management"
+                        RestaurantTableManagementScreen(
+                            viewModel = tableAdminViewModel,
+                            onMenuClick = onMenuClick
                         )
                     }
 
@@ -365,8 +372,9 @@ fun NewBackOfficeNavigationScreen(
 
                     BackOfficeRoute.Profile -> {
 
-                        DashboardPlaceholderScreen(
-                            title = "Profile"
+                        EmployeeProfileNewScreen(
+                            viewModel = profileViewModel,
+                            onMenuClick = onMenuClick
                         )
                     }
 

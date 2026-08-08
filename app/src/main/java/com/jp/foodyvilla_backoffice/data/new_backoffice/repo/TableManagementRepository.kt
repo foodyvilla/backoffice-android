@@ -12,6 +12,8 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order as SupabaseOrder
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.util.UUID
 
 class TableManagementRepository(
@@ -45,6 +47,32 @@ class TableManagementRepository(
         supabase.from("restaurant_tables").update(
             { set("status", status) }
         ) {
+            filter { eq("id", tableId) }
+        }
+    }
+
+    suspend fun createTable(outletId: Long, tableNumber: String, capacity: Int) {
+        val newTable = buildJsonObject {
+            put("outlet_id", outletId)
+            put("table_number", tableNumber)
+            put("capacity", capacity)
+            put("status", "available")
+        }
+        supabase.from("restaurant_tables").insert(newTable)
+    }
+
+    suspend fun updateTable(tableId: Long, tableNumber: String, capacity: Int) {
+        val updateData = buildJsonObject {
+            put("table_number", tableNumber)
+            put("capacity", capacity)
+        }
+        supabase.from("restaurant_tables").update(updateData) {
+            filter { eq("id", tableId) }
+        }
+    }
+
+    suspend fun deleteTable(tableId: Long) {
+        supabase.from("restaurant_tables").delete {
             filter { eq("id", tableId) }
         }
     }
@@ -106,16 +134,18 @@ class TableManagementRepository(
         val employeeId = (session as? UserSession.EmployeeSession)?.empId?.toLongOrNull()
         val tempTransactionId = "DINE_${UUID.randomUUID().toString().take(8)}"
 
-        val newOrder = OrderDto(
-            outlet_id = outletId,
-            table_id = tableId,
-            customer_name = customerName ?: "Dine-in Table $tableId",
-            status = "pending",
-            order_type = "dine_in",
-            transaction_id = tempTransactionId,
-            accepted_by = employeeId,
-            address = "Table $tableId"
-        )
+        // Use buildJsonObject to avoid sending "id" (DB will generate it)
+        val newOrder = buildJsonObject {
+            put("outlet_id", outletId)
+            put("table_id", tableId)
+            put("customer_name", customerName ?: "Dine-in Table $tableId")
+            put("status", "pending")
+            put("order_type", "dine_in")
+            put("transaction_id", tempTransactionId)
+            if (employeeId != null) put("accepted_by", employeeId)
+            put("address", "Table $tableId")
+        }
+
         return supabase.from("orders")
             .insert(newOrder) { select() }
             .decodeSingle<OrderDto>()
@@ -166,6 +196,11 @@ class TableManagementRepository(
                 total_discount = totalDiscount
             )
         )
+    }
+
+    suspend fun insertOrderItems(items: List<OrderItemInsertDto>) {
+        if (items.isEmpty()) return
+        supabase.from("order_items").insert(items)
     }
 
     suspend fun updateOrderItemQty(orderItemId: Long, newQty: Long, pricePerItem: Double, totalDiscount: Float = 0f) {

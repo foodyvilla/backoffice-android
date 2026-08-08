@@ -47,10 +47,12 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.Atten
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.EmployeeAdminViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.EmployeeProfileViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.MarketingViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.OutletManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.PaymentAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.RestaurantTableManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ReviewAdminViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.TableManagementViewModel
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.UnifiedOrderControlViewModel
@@ -239,4 +241,6 @@ val appModule = module{
     viewModelOf(::OrderHistoryViewModel)
     viewModelOf(::AnalyticsViewModel)
     viewModelOf(::TableManagementViewModel)
+    viewModelOf(::RestaurantTableManagementViewModel)
+    viewModelOf(::EmployeeProfileViewModel)
 }
