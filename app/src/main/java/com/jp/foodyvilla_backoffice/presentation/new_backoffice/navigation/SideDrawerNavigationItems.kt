@@ -41,6 +41,7 @@ data class BackOfficeDrawerItem(
 sealed interface BackOfficeRoute {
     @Serializable data object Dashboard : BackOfficeRoute
     @Serializable data object Orders : BackOfficeRoute
+    @Serializable data object TableOrdersList : BackOfficeRoute // New route for Table Orders List
     @Serializable data object TableOrder : BackOfficeRoute
     @Serializable data object OutletMenu : BackOfficeRoute
     @Serializable data object Outlet : BackOfficeRoute
@@ -82,8 +83,9 @@ fun getDrawerItemsForSession(session: UserSession?): List<BackOfficeDrawerItem> 
 
 val ownerDrawerItems = listOf(
     BackOfficeDrawerItem(Icons.Default.Dashboard, BackOfficeRoute.Dashboard, "Dashboard"),
-    BackOfficeDrawerItem(Icons.Default.ReceiptLong, BackOfficeRoute.Orders, "Orders"),
-    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrder, "Table Orders"),
+    BackOfficeDrawerItem(Icons.Default.ReceiptLong, BackOfficeRoute.Orders, "Online Orders"),
+    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrdersList, "Table Orders"),
+    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrder, "POS Table Floor"),
     BackOfficeDrawerItem(Icons.Default.MenuBook, BackOfficeRoute.OutletMenu, "Outlet Menu"),
     BackOfficeDrawerItem(Icons.Default.Storefront, BackOfficeRoute.Outlet, "Outlets"),
     BackOfficeDrawerItem(Icons.Default.Inventory, BackOfficeRoute.Products, "Products"),
@@ -106,8 +108,9 @@ val ownerDrawerItems = listOf(
 
 val managerDrawerItems = listOf(
     BackOfficeDrawerItem(Icons.Default.Dashboard, BackOfficeRoute.Dashboard, "Dashboard"),
-    BackOfficeDrawerItem(Icons.Default.ReceiptLong, BackOfficeRoute.Orders, "Orders"),
-    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrder, "Table Orders"),
+    BackOfficeDrawerItem(Icons.Default.ReceiptLong, BackOfficeRoute.Orders, "Online Orders"),
+    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrdersList, "Table Orders"),
+    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrder, "POS Table Floor"),
     BackOfficeDrawerItem(Icons.Default.MenuBook, BackOfficeRoute.MenuManagement, "Manage Menu"),
     BackOfficeDrawerItem(Icons.Default.RestaurantMenu, BackOfficeRoute.OutletMenu, "POS Menu"),
     BackOfficeDrawerItem(Icons.Default.Inventory, BackOfficeRoute.Products, "Products"),
@@ -137,8 +140,9 @@ val deliveryDrawerItems = listOf(
 
 val employeeDrawerItems = listOf(
     BackOfficeDrawerItem(Icons.Default.Dashboard, BackOfficeRoute.Dashboard, "Dashboard"),
-    BackOfficeDrawerItem(Icons.Default.ReceiptLong, BackOfficeRoute.Orders, "Orders"),
-    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrder, "Table Orders"),
+    BackOfficeDrawerItem(Icons.Default.ReceiptLong, BackOfficeRoute.Orders, "Online Orders"),
+    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrdersList, "Table Orders"),
+    BackOfficeDrawerItem(Icons.Default.TableBar, BackOfficeRoute.TableOrder, "POS Table Floor"),
     BackOfficeDrawerItem(Icons.Default.MenuBook, BackOfficeRoute.OutletMenu, "Outlet Menu"),
     BackOfficeDrawerItem(Icons.Default.CoPresent, BackOfficeRoute.Attendance, "Attendance"),
     BackOfficeDrawerItem(Icons.Default.Person, BackOfficeRoute.Profile, "Profile"),

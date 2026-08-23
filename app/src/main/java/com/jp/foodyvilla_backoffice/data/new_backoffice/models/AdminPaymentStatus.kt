@@ -14,14 +14,14 @@ enum class AdminPaymentMethod {
 
 @Serializable
 data class PaymentAdminResponse(
-    val id: Long = 0L,
+    val id: Long? = null,
     val created_at: String? = null,
-    val order_id: String, // UUID String mapping representation
+    val order_id: String? = null, // UUID String mapping representation
     val customer_id: Long? = null,
     val razorpay_order_id: String? = null,
     val razorpay_payment_id: String? = null,
-    val amount: Long, // Amount in Paisa or direct currency units
-    val payment_status: String,
+    val amount: Long? = null, // Amount in Paisa or direct currency units
+    val payment_status: String? = null,
     val payment_method: String? = null,
     val error_description: String? = null
 )
@@ -42,16 +42,16 @@ data class PaymentAdminUiModel(
 )
 
 fun PaymentAdminResponse.toUiModel(customerName: String, contact: String) = PaymentAdminUiModel(
-    id = id,
+    id = id ?: 0L,
     createdAtDate = created_at.orEmpty().take(10), // Extracts basic YYYY-MM-DD template indices
-    orderId = order_id,
+    orderId = order_id.orEmpty(),
     customerId = customer_id ?: 0L,
     customerName = customerName,
     customerContact = contact,
     razorpayOrderId = razorpay_order_id.orEmpty(),
     razorpayPaymentId = razorpay_payment_id.orEmpty(),
-    amountDisplay = amount.toDouble() / 100.0, // Assuming Paisa format; adjust multiplier conversion as needed
-    status = when (payment_status.lowercase()) {
+    amountDisplay = (amount ?: 0L).toDouble() / 100.0, // Assuming Paisa format; adjust multiplier conversion as needed
+    status = when (payment_status?.lowercase()) {
         "authorized" -> AdminPaymentStatus.AUTHORIZED
         "captured" -> AdminPaymentStatus.CAPTURED
         "failed" -> AdminPaymentStatus.FAILED

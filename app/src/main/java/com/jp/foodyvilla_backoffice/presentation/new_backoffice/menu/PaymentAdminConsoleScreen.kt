@@ -175,7 +175,7 @@ fun PaymentAdminConsoleScreen(viewModel: PaymentAdminViewModel = koinViewModel()
                             }
                             DropdownMenu(expanded = formUserMenuExpanded, onDismissRequest = { formUserMenuExpanded = false }) {
                                 state.cachedUsers.forEach { usr ->
-                                    DropdownMenuItem(text = { Text(usr.name.orEmpty()) }, onClick = { viewModel.onFormCustomerSelected(usr.id); formUserMenuExpanded = false })
+                                    DropdownMenuItem(text = { Text(usr.name.orEmpty()) }, onClick = { viewModel.onFormCustomerSelected(usr.id ?: 0); formUserMenuExpanded = false })
                                 }
                             }
                         }

@@ -12,14 +12,14 @@ enum class AdminReviewType {
 
 @Serializable
 data class ReviewAdminResponse(
-    val id: Long = 0L,
+    val id: Long? = null,
     val created_at: String? = null,
-    val customer_id: Long,
-    val review_type: String,
+    val customer_id: Long? = null,
+    val review_type: String? = null,
     val order_id: String? = null, // UUID string format mapping
     val menu_item_id: Long? = null,
     val outlet_id: Long? = null,
-    val rating: Long,
+    val rating: Long? = null,
     val title: String? = null,
     val description: String? = null,
     val img_url: JsonElement? = null // Decoded as JsonElement to handle jsonb flexibility (string, array, etc.)
@@ -40,10 +40,10 @@ data class ReviewAdminUiModel(
 )
 
 fun ReviewAdminResponse.toUiModel(customerName: String) = ReviewAdminUiModel(
-    id = id,
-    customerId = customer_id,
+    id = id ?: 0L,
+    customerId = customer_id ?: 0L,
     customerName = customerName,
-    reviewType = when (review_type.lowercase()) {
+    reviewType = when (review_type?.lowercase()) {
         "order" -> AdminReviewType.ORDER
         "outlet" -> AdminReviewType.OUTLET
         else -> AdminReviewType.PRODUCT
@@ -51,7 +51,7 @@ fun ReviewAdminResponse.toUiModel(customerName: String) = ReviewAdminUiModel(
     orderId = order_id.orEmpty(),
     menuItemId = menu_item_id?.toString().orEmpty(),
     outletId = outlet_id?.toString().orEmpty(),
-    rating = rating.toInt().coerceIn(1, 5),
+    rating = rating?.toInt()?.coerceIn(1, 5) ?: 5,
     title = title.orEmpty(),
     description = description.orEmpty(),
     images = try {

@@ -99,7 +99,7 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
                 Columns.raw(
                     """
                 *,
-                restaurant_tables ( table_number ),
+                restaurant_tables:restaurant_tables!orders_table_id_fkey ( table_number ),
                 order_items (
                     menu_item_id, qty, price_per_item, total_price,
                     outlet_menu_items ( product_catalog ( name ) )
@@ -177,9 +177,8 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
 
     suspend fun fetchActiveOutletsList(): List<OutletDropdownUiModel> {
         return try {
-            supabase.from("outlets").select {
-                filter { eq("is_active", true) }
-            }.decodeList<OutletListResponse>().map {
+            // Fetch ALL outlets even if they are closed/inactive as requested
+            supabase.from("outlets").select().decodeList<OutletListResponse>().map {
                 OutletDropdownUiModel(
                     id = it.id,
                     name = it.name
@@ -193,11 +192,11 @@ class NewOrdersManagementRepository(private val supabase: SupabaseClient) {
 
     suspend fun getOutletMenu(outletId: Long): List<NewOutletMenuUiModel> {
         return try {
+            // Fetch all menu items for the outlet, even if they are unavailable/out of stock
+            // This ensures owners can see and manage the full catalog for any outlet
             supabase.from("outlet_menu_items").select(Columns.raw("*, product_catalog(*)")) {
                 filter {
                     eq("outlet_id", outletId)
-                    eq("is_available", true)
-                    eq("is_out_of_stock", false)
                 }
             }.decodeList<NewOutletMenuResponse>().map { it.toUiModel() }
         } catch (e: Exception) {

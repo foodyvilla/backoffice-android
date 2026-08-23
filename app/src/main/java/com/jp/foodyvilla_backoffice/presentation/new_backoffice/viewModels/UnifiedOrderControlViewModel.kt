@@ -24,7 +24,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 data class UnifiedOrderSystemUiState(
-    val orders: List<NewDetailedOrderUiModel> = emptyList(),
+    val onlineOrders: List<NewDetailedOrderUiModel> = emptyList(),
+    val tableOrders: List<NewDetailedOrderUiModel> = emptyList(),
     val menuItems: List<NewOutletMenuUiModel> = emptyList(),
     val categories: List<NewCategoryUiModel> = emptyList(),
     val outlets: List<OutletDropdownUiModel> = emptyList(),
@@ -139,7 +140,8 @@ class UnifiedOrderControlViewModel(
                 activeSelectedOutlet = outlet,
                 isOperationAllowed = outlet != null,
                 cartSelectedItems = emptyMap(),
-                orders = emptyList()
+                onlineOrders = emptyList(),
+                tableOrders = emptyList()
             )
         }
         restartRealtimeSubscriptionChannel()
@@ -195,8 +197,12 @@ class UnifiedOrderControlViewModel(
                     val isInitialFetchBoot = previousOrdersChecksum.isEmpty()
 
                     if (isSizeIncreased || isInitialFetchBoot) {
-                        val targetedItemsGroup = if (isInitialFetchBoot) freshOrdersList else {
-                            freshOrdersList.filter { fresh -> previousOrdersChecksum.none { old -> old.id == fresh.id } }
+                        val targetedItemsGroup = if (isInitialFetchBoot) {
+                            freshOrdersList.filter { it.tableId == null }
+                        } else {
+                            freshOrdersList.filter { fresh -> 
+                                previousOrdersChecksum.none { old -> old.id == fresh.id } && fresh.tableId == null
+                            }
                         }
 
                         val targetPendingRow = targetedItemsGroup.find {
@@ -216,17 +222,23 @@ class UnifiedOrderControlViewModel(
 
                     previousOrdersChecksum = freshOrdersList
 
-                    val finalDisplayList = if (userDesignationRole == "delivery_boy") {
+                    val onlineOrders = if (userDesignationRole == "delivery_boy") {
                         freshOrdersList.filter { 
                             val s = it.status.lowercase()
-                            s == "out_for_delivery" || s == "dispatched"
+                            (s == "out_for_delivery" || s == "dispatched") && it.tableId == null
                         }
                     } else {
-                        freshOrdersList
+                        freshOrdersList.filter { it.tableId == null }
                     }
 
+                    val tableOrders = freshOrdersList.filter { it.tableId != null }
+
                     // Turn loading to false directly inside the hot update callback flow sequence to stop infinite spins
-                    _state.update { it.copy(orders = finalDisplayList, isLoading = false) }
+                    _state.update { it.copy(
+                        onlineOrders = onlineOrders, 
+                        tableOrders = tableOrders,
+                        isLoading = false
+                    ) }
                 }
         }
     }
@@ -343,7 +355,7 @@ class UnifiedOrderControlViewModel(
     // ==========================================
 
     fun modifyOrderStatusCardInline(orderId: String, nextStatus: String) {
-        val targetOrder = _state.value.orders.find { it.id == orderId } ?: return
+        val targetOrder = (_state.value.onlineOrders + _state.value.tableOrders).find { it.id == orderId } ?: return
         viewModelScope.launch {
             val currentSession = backOfficeAuthRepository.currentSession.value
             if (currentSession != null && !currentSession.canUpdateOrderStatus(nextStatus)) {

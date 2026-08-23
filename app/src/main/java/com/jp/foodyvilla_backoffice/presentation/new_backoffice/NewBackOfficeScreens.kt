@@ -257,13 +257,13 @@ fun NewOrdersListScreen(
                     ) {
                         CircularProgressIndicator()
                     }
-                } else if (state.orders.isEmpty()) {
+                } else if (state.onlineOrders.isEmpty()) {
                     Box(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No recorded orders found for the selected parameters.",
+                            text = "No recorded online orders found for the selected parameters.",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -274,7 +274,7 @@ fun NewOrdersListScreen(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(state.orders, key = { it.id }) { order ->
+                        items(state.onlineOrders, key = { it.id }) { order ->
                             ElevatedCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -364,3 +364,183 @@ fun NewOrdersListScreen(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NewTableOrdersListScreen(
+    viewModel: UnifiedOrderControlViewModel,
+    navController: NavController,
+    onMenuClick: () -> Unit
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    
+    val availableFulfillmentStatuses = listOf("pending", "accepted", "preparing", "completed", "cancelled")
+
+    var dropdownScopeExpanded by remember { mutableStateOf(false) }
+    var showDatePickerDialog by remember { mutableStateOf(false) }
+
+    if (showDatePickerDialog) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = state.activeSelectedDate
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePickerDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { timestampMillis ->
+                        val parsedLocalDate = Instant.ofEpochMilli(timestampMillis)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                        viewModel.updateFilterDate(parsedLocalDate)
+                    }
+                    showDatePickerDialog = false
+                }) { Text("Apply Date") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePickerDialog = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Table Orders Tracking", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Menu")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            if (state.isOwnerUser) {
+                Box(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                    ExposedDropdownMenuBox(
+                        expanded = dropdownScopeExpanded,
+                        onExpandedChange = { dropdownScopeExpanded = !dropdownScopeExpanded }
+                    ) {
+                        OutlinedTextField(
+                            value = state.activeSelectedOutlet?.name ?: "All Outlets",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Outlet Filter") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownScopeExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = dropdownScopeExpanded,
+                            onDismissRequest = { dropdownScopeExpanded = false }
+                        ) {
+                            state.outlets.forEach { outlet ->
+                                DropdownMenuItem(
+                                    text = { Text(outlet.name) },
+                                    onClick = {
+                                        viewModel.selectOutletScope(outlet)
+                                        dropdownScopeExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value = state.activeSelectedDate.format(DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy")),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Selected Date") },
+                trailingIcon = {
+                    IconButton(onClick = { showDatePickerDialog = true }) {
+                        Icon(imageVector = Icons.Default.CalendarMonth, contentDescription = "Select Date")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            )
+
+            if (state.isLoading) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (state.tableOrders.isEmpty()) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text("No dine-in table orders found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(state.tableOrders, key = { it.id }) { order ->
+                        ElevatedCard(
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                navController.navigate(ScreenDestinations.OrderDetails(id = order.id))
+                            }
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Table ${order.tableNumber ?: "N/A"}",
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                        Text(
+                                            text = "Guest: ${order.customerName}",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Text(
+                                            text = "Total: ₹${order.totalAmount}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    var inlineMenuShow by remember { mutableStateOf(false) }
+                                    Box {
+                                        AssistChip(
+                                            onClick = { inlineMenuShow = true },
+                                            label = { Text(order.status.uppercase()) }
+                                        )
+                                        DropdownMenu(
+                                            expanded = inlineMenuShow,
+                                            onDismissRequest = { inlineMenuShow = false }
+                                        ) {
+                                            availableFulfillmentStatuses.forEach { specText ->
+                                                DropdownMenuItem(
+                                                    text = { Text(specText.uppercase()) },
+                                                    onClick = {
+                                                        viewModel.modifyOrderStatusCardInline(order.id, specText)
+                                                        inlineMenuShow = false
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

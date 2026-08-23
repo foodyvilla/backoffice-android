@@ -34,6 +34,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.Scree
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.SpecificOutletMenuHandlingScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AnalyticsDashboardScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OrderHistoryScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewTableOrdersListScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OutletListDirectoryScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.PaymentAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ReviewAdminConsoleScreen
@@ -230,6 +231,14 @@ fun NewBackOfficeNavigationScreen(
                         ) {
                             currentRoute = BackOfficeRoute.OutletMenu
                         }
+                    }
+
+                    BackOfficeRoute.TableOrdersList -> {
+                        NewTableOrdersListScreen(
+                            viewModel = unifiedViewModel,
+                            navController = navController,
+                            onMenuClick = onMenuClick
+                        )
                     }
 
                     BackOfficeRoute.OutletMenu -> {
@@ -455,31 +464,3 @@ private fun DashboardPlaceholderScreen(
     }
 }
 
-private fun BackOfficeRoute.title(): String {
-
-    return when (this) {
-
-        BackOfficeRoute.Dashboard -> "Dashboard"
-        BackOfficeRoute.Orders -> "Orders"
-        BackOfficeRoute.OutletMenu -> "Outlet Menu"
-        BackOfficeRoute.Outlet -> "Outlets"
-        BackOfficeRoute.Products -> "Products"
-        BackOfficeRoute.Categories -> "Categories"
-        BackOfficeRoute.Tables -> "Tables Management"
-        BackOfficeRoute.Customers -> "Customers"
-        BackOfficeRoute.Payments -> "Payments"
-        BackOfficeRoute.Employees -> "Employees"
-        BackOfficeRoute.Attendance -> "Attendance"
-        BackOfficeRoute.PunchReports -> "Punch Reports"
-        BackOfficeRoute.Analytics -> "Analytics"
-        BackOfficeRoute.Offers -> "Offers"
-        BackOfficeRoute.Reviews -> "Reviews"
-        BackOfficeRoute.Notifications -> "Notifications"
-        BackOfficeRoute.Settings -> "Settings"
-        BackOfficeRoute.Profile -> "Profile"
-        BackOfficeRoute.Logout -> "Logout"
-        BackOfficeRoute.TableOrder -> "Table Order"
-        BackOfficeRoute.OrderHistory -> "Order History"
-        BackOfficeRoute.MenuManagement -> "Menu Management"
-    }
-}

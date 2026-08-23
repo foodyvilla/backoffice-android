@@ -81,15 +81,15 @@ fun HandleRealTimeInterceptedOrders(
     var dismissedOrderIds by remember { mutableStateOf(setOf<String>()) }
 
     // 2. Clear out memory maps cleanly if active orders dataset drops to zero (e.g., date shift)
-    LaunchedEffect(state.orders) {
-        if (state.orders.isEmpty()) {
+    LaunchedEffect(state.onlineOrders, state.tableOrders) {
+        if (state.onlineOrders.isEmpty() && state.tableOrders.isEmpty()) {
             dismissedOrderIds = emptySet()
         }
     }
 
     // Isolate active candidates that match alert parameters AND haven't been dismissed locally yet
-    val visibleAlertQueue = remember(state.orders, dismissedOrderIds) {
-        state.orders.filter { order ->
+    val visibleAlertQueue = remember(state.onlineOrders, state.tableOrders, dismissedOrderIds) {
+        (state.onlineOrders + state.tableOrders).filter { order ->
             val isTargetStatus = order.status.lowercase() == "pending" || order.status.lowercase() == "placed"
             isTargetStatus && order.id !in dismissedOrderIds
         }
@@ -277,7 +277,9 @@ fun NewOrderDetailsScreen(
     val availableStatuses = listOf("pending", "accepted", "preparing", "completed", "cancelled")
 
     // Find our current targeted order from the reactive data store context matching screen parameters
-    val order = remember(state.orders, orderId) { state.orders.find { it.id == orderId } }
+     val order = remember(state.onlineOrders, state.tableOrders, orderId) { 
+        (state.onlineOrders + state.tableOrders).find { it.id == orderId } 
+    }
 
     // Synchronize localized form editor states on initial composition entry
     LaunchedEffect(order) {

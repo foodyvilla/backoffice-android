@@ -29,32 +29,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             AppTheme(dynamicColor = false) {
                 HideSystemBars()
-
-
-
-
-
-
-                // Inside your MainActivity or App Entry View scaffolding layout:
-                val navController = rememberNavController()
-
-                Surface(
+        Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Dynamically specify which business outlet location ID is running the terminal instance
+
                     NewFoodyVillaNavGraph()
                 }
-//                FoodyVillaNavGraph()
-//
-////                MobileLoginScreen { }
-//
-////                OtpVerificationScreen {  }
-//            val context = LocalContext.current
-//                GoogleSignInScreen()
 
-
-//                CheckoutScreen(viewModel = viewModel)
 
             }
         }

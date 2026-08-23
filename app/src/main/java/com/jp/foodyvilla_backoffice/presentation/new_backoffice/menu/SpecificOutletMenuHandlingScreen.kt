@@ -31,10 +31,29 @@ fun SpecificOutletMenuHandlingScreen(
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var currentOutletId by remember { mutableLongStateOf(outletId) }
+    var currentOutletName by remember { mutableStateOf(outletName) }
+    var outletDropdownExpanded by remember { mutableStateOf(false) }
 
     // Sync menu items list matrix records from target database table on startup
-    LaunchedEffect(outletId) {
-        viewModel.loadMenuForSpecificOutlet(outletId)
+    LaunchedEffect(currentOutletId) {
+        viewModel.loadMenuForSpecificOutlet(currentOutletId)
+    }
+
+    // Load outlets list for owners to allow switching
+    LaunchedEffect(state.isOwner) {
+        if (state.isOwner && state.outletsList.isEmpty()) {
+            viewModel.loadAllOutletsData()
+        }
+    }
+
+    // Default to first outlet for owners if ID is 0
+    LaunchedEffect(state.outletsList) {
+        if (state.isOwner && currentOutletId == 0L && state.outletsList.isNotEmpty()) {
+            val first = state.outletsList.first()
+            currentOutletId = first.id
+            currentOutletName = first.name
+        }
     }
 
     // Dynamic, reactive local list filtration matching user query string parameters
@@ -48,7 +67,7 @@ fun SpecificOutletMenuHandlingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(outletName, fontWeight = FontWeight.Bold) },
+                title = { Text(currentOutletName, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -59,7 +78,7 @@ fun SpecificOutletMenuHandlingScreen(
         floatingActionButton = {
             if (state.canManageMenu) {
                 FloatingActionButton(
-                    onClick = { onNavigateToMenuFormAdd(outletId) },
+                    onClick = { onNavigateToMenuFormAdd(currentOutletId) },
                     containerColor = MaterialTheme.colorScheme.primary
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Link New Product Variant")
@@ -69,11 +88,42 @@ fun SpecificOutletMenuHandlingScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-//                Text(
-//                    text = outletName,
-//                    style = MaterialTheme.typography.headlineMedium,
-//                    fontWeight = FontWeight.Bold
-//                )
+
+                // 1. DYNAMIC DROP-DOWN SELECTOR FOR OWNER PROFILES
+                if (state.isOwner) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                        ExposedDropdownMenuBox(
+                            expanded = outletDropdownExpanded,
+                            onExpandedChange = { outletDropdownExpanded = !outletDropdownExpanded }
+                        ) {
+                            OutlinedTextField(
+                                value = state.outletsList.find { it.id == currentOutletId }?.name ?: currentOutletName,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Managing Menu For Outlet") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = outletDropdownExpanded) },
+                                modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            ExposedDropdownMenu(
+                                expanded = outletDropdownExpanded,
+                                onDismissRequest = { outletDropdownExpanded = false }
+                            ) {
+                                state.outletsList.forEach { outlet ->
+                                    DropdownMenuItem(
+                                        text = { Text(outlet.name) },
+                                        onClick = {
+                                            currentOutletId = outlet.id
+                                            currentOutletName = outlet.name
+                                            outletDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Text(
                     text = "Outlet Specific Linked Digital Menu Items",
                     style = MaterialTheme.typography.bodyMedium,
@@ -130,8 +180,8 @@ fun SpecificOutletMenuHandlingScreen(
                         items(filteredMenu, key = { it.id }) { item ->
                             OutletMenuItemRow(
                                 item = item,
-                                onEditClick = { onNavigateToMenuFormEdit(outletId, item.id) }, // Safely pipes out ids to trigger edit routes
-                                onDeleteClick = { viewModel.removeProductFromMenu(item.id, outletId) },
+                                onEditClick = { onNavigateToMenuFormEdit(currentOutletId, item.id) }, // Safely pipes out ids to trigger edit routes
+                                onDeleteClick = { viewModel.removeProductFromMenu(item.id, currentOutletId) },
                                 canManage = state.canManageMenu
                             )
                         }

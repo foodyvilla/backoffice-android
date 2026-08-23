@@ -82,6 +82,9 @@ class OutletManagementViewModel(
                         isOwner = session?.isOwner() ?: false
                     )
                 }
+                if (session?.isOwner() == true) {
+                    loadAllOutletsData()
+                }
             }
         }
     }

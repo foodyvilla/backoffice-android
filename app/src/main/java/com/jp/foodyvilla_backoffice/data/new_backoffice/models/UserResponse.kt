@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class UserResponse(
-    val id: Long = 0L,
+    val id: Long = 0,
     val created_at: String? = null,
     val updated_at: String? = null,
     val name: String? = null,
@@ -15,7 +15,7 @@ data class UserResponse(
     val lat: Double? = null,
     val long: Double? = null,
     val auth_user_id: String? = null,
-    val is_verified: Boolean = false
+    val is_verified: Boolean? = null
 )
 
 @Serializable
@@ -30,13 +30,13 @@ data class CustomerUiModel(
 )
 
 fun UserResponse.toUiModel() = CustomerUiModel(
-    id = id,
+    id = id ?: 0L,
     name = name.orEmpty(),
     email = email.orEmpty(),
     phone = phone.orEmpty(),
     address = address.orEmpty(),
     fcmToken = fcm_token.orEmpty(),
-    isVerified = is_verified
+    isVerified = is_verified ?: false
 )
 
 // Analytics wrapper model for customer depth calculations

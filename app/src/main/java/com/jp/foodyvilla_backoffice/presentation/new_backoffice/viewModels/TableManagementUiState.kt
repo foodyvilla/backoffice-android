@@ -102,7 +102,7 @@ class TableManagementViewModel(
                 // 1. Fetch tables, categories, and menu concurrently
                 val tablesDeferred = async { 
                     repository.getTablesForOutlet(targetOutletId).map {
-                        TableUiModel(it.id, it.table_number, it.capacity, it.status)
+                        TableUiModel(it.id, it.table_number, it.capacity, it.status, it.current_order_id)
                     }
                 }
                 val categoriesDeferred = async { repository.getCategories() }
@@ -145,12 +145,12 @@ class TableManagementViewModel(
                         val items = allOrderItems.filter { it.order_id == order.id }.map { i ->
                             BillLineUiModel(
                                 orderItemId = i.id,
-                                menuItemId = i.menu_item_id,
+                                menuItemId = i.menu_item_id ?: 0L,
                                 name = i.outlet_menu_items?.product_catalog?.name ?: "Item #${i.menu_item_id}",
-                                qty = i.qty,
-                                pricePerItem = i.price_per_item,
-                                totalPrice = i.total_price,
-                                kotPrinted = i.kot_printed
+                                qty = i.qty ?: 1L,
+                                pricePerItem = i.price_per_item ?: 0.0,
+                                totalPrice = i.total_price ?: 0.0,
+                                kotPrinted = i.kot_printed ?: false
                             )
                         }
                         linesMap[tableId] = items
@@ -159,8 +159,12 @@ class TableManagementViewModel(
 
                 // 4. Override table status based on whether it has an active order on server
                 val updatedTables = tables.map { t ->
-                    if (ordersMap.containsKey(t.id)) t.copy(status = "occupied")
-                    else t.copy(status = "available")
+                    val serverOrderId = ordersMap[t.id]
+                    if (serverOrderId != null) {
+                        t.copy(status = "occupied", currentOrderId = serverOrderId)
+                    } else {
+                        t.copy(status = "available", currentOrderId = null)
+                    }
                 }
 
                 Triple(updatedTables, categories, menu) to (ordersMap to linesMap)
@@ -245,9 +249,11 @@ class TableManagementViewModel(
                         tableId = tableId,
                         customerName = null
                     )
-                    repository.setTableStatus(tableId, "occupied")
                     orderId = newOrder.id
                 }
+
+                // Always ensure table is marked as occupied and linked to this order ID in DB
+                repository.setTableStatus(tableId, "occupied", orderId)
 
                 val existingLines = _state.value.billLinesByTable[tableId].orEmpty()
                 val newItemsToInsert = mutableListOf<com.jp.foodyvilla_backoffice.data.new_backoffice.models.OrderItemInsertDto>()
@@ -276,12 +282,12 @@ class TableManagementViewModel(
                 val refreshedLines = repository.getOrderItemsWithMenu(orderId).map { i ->
                     BillLineUiModel(
                         orderItemId = i.id,
-                        menuItemId = i.menu_item_id,
+                        menuItemId = i.menu_item_id ?: 0L,
                         name = i.outlet_menu_items?.product_catalog?.name ?: "Item #${i.menu_item_id}",
-                        qty = i.qty,
-                        pricePerItem = i.price_per_item,
-                        totalPrice = i.total_price,
-                        kotPrinted = i.kot_printed
+                        qty = i.qty ?: 1L,
+                        pricePerItem = i.price_per_item ?: 0.0,
+                        totalPrice = i.total_price ?: 0.0,
+                        kotPrinted = i.kot_printed ?: false
                     )
                 }
                 orderId to refreshedLines
@@ -357,7 +363,8 @@ class TableManagementViewModel(
             runCatching {
                 // Mark order as cancelled as requested by user
                 repository.setOrderStatus(orderId, "cancelled")
-                repository.setTableStatus(tableId, "available")
+                // Unlink current order ID from table
+                repository.setTableStatus(tableId, "available", null)
             }.onSuccess {
                 _state.update { 
                     it.copy(
@@ -388,9 +395,9 @@ class TableManagementViewModel(
                 // Print existing lines
                 printerBridge.printInvoice(context, table.tableNumber, _state.value.currentBillLines, grandTotal)
                 
-                // Mark order as completed and table as available
+                // Mark order as completed and table as available (unlink order)
                 repository.setOrderStatus(orderId, "completed")
-                repository.setTableStatus(tableId, "available")
+                repository.setTableStatus(tableId, "available", null)
             }.onSuccess {
                 _state.update {
                     it.copy(

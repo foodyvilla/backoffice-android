@@ -153,7 +153,7 @@ fun OrderHistoryCard(order: OrderDto) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Order #${order.id.takeLast(6)}", fontWeight = FontWeight.Bold)
-                StatusChip(order.status)
+                StatusChip(order.status ?: "pending")
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text("Table: ${order.table_id ?: "N/A"}")

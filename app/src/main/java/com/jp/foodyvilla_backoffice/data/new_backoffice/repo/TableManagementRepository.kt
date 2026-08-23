@@ -33,19 +33,26 @@ class TableManagementRepository(
     }
 
     suspend fun getOutlets(): List<com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletDropdownUiModel> {
-        return supabase.from("outlets").select {
-            filter { eq("is_active", true) }
-        }.decodeList<com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletListResponse>().map {
-            com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletDropdownUiModel(
-                id = it.id,
-                name = it.name
-            )
-        }
+        // Fetch ALL outlets even if they are closed/inactive as requested
+        return supabase.from("outlets").select()
+            .decodeList<com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletListResponse>().map {
+                com.jp.foodyvilla_backoffice.presentation.new_backoffice.orders.OutletDropdownUiModel(
+                    id = it.id,
+                    name = it.name
+                )
+            }
     }
 
-    suspend fun setTableStatus(tableId: Long, status: String) {
+    suspend fun setTableStatus(tableId: Long, status: String, orderId: String? = null) {
         supabase.from("restaurant_tables").update(
-            { set("status", status) }
+            buildJsonObject {
+                put("status", status)
+                if (orderId == null) {
+                    put("current_order_id", kotlinx.serialization.json.JsonNull)
+                } else {
+                    put("current_order_id", orderId)
+                }
+            }
         ) {
             filter { eq("id", tableId) }
         }
@@ -57,6 +64,7 @@ class TableManagementRepository(
             put("table_number", tableNumber)
             put("capacity", capacity)
             put("status", "available")
+            put("current_order_id", kotlinx.serialization.json.JsonNull)
         }
         supabase.from("restaurant_tables").insert(newTable)
     }
@@ -90,7 +98,7 @@ class TableManagementRepository(
             .select(Columns.raw("*, product_catalog(id, name, category_id)")) {
                 filter {
                     eq("outlet_id", outletId)
-                    eq("is_available", true)
+                    // Fetch all items regardless of availability for management consistency
                 }
             }
             .decodeList<OutletMenuItemWithProductDto>()
