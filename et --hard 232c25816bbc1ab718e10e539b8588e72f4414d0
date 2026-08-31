@@ -1,0 +1,143 @@
+[33mcommit de6638c542fe87b08dac8a97a7ffc6a8f3d4dbae[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Sun Aug 23 18:24:25 2026 +0530
+
+    test
+
+[33mcommit 232c25816bbc1ab718e10e539b8588e72f4414d0[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Sun Aug 23 18:16:52 2026 +0530
+
+    working code
+
+[33mcommit bcb1ec6d7c80cbcb5b7b4511c41c152276fc8285[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Sat Aug 8 09:30:38 2026 +0530
+
+    table management
+
+[33mcommit 1db23328ac506e447ccb1accaebe8767f0f51621[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Tue Aug 4 23:03:33 2026 +0530
+
+    table order management
+
+[33mcommit bfeb01fa66cf604f7f0e69b41330e3a29eec750e[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Tue Jul 28 23:09:57 2026 +0530
+
+    working for theme
+
+[33mcommit fbea449de97e9d1e873a7329ddaba357eaa826b1[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Tue Jul 28 23:09:29 2026 +0530
+
+    working for theme
+
+[33mcommit 9abb6c54b80a893e716c98cca70b26a848dddd9d[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Tue Jul 28 22:21:32 2026 +0530
+
+    loading
+
+[33mcommit fce54de6c4794bd12af6c49652a5301cf1883054[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Thu Jul 16 08:25:50 2026 +0530
+
+    analytics
+
+[33mcommit f80cb207d2442586d66167a0632386aeffd73f64[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Thu Jul 16 07:55:08 2026 +0530
+
+    table management
+
+[33mcommit 6f61057ed1a9dfcdc650a834c2e63f8ba3e7ea75[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Thu Jul 16 07:31:46 2026 +0530
+
+    table order started
+
+[33mcommit 6c523e363969b7eaf44f12125a7a832de655abc2[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Thu Jul 16 07:28:03 2026 +0530
+
+    table order started
+
+[33mcommit d9f4a30565ecf47310c7604bc5dad26554b85046[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Thu Jun 4 08:15:03 2026 +0530
+
+    employee manage
+
+[33mcommit 3cac1bde4ccb574359cf149fccb923a7cff559f6[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Wed Jun 3 08:20:18 2026 +0530
+
+     payment, punch reports
+
+[33mcommit 789527f32146a3c930b2b31efa9042faf621fbe4[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Sun May 31 19:28:30 2026 +0530
+
+     attendance and orders
+
+[33mcommit 5c2eb31bea20ce13ba5b44b75c92b439af254098[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Fri May 29 08:32:12 2026 +0530
+
+    outlet and outlet menu
+
+[33mcommit 40c9b897f58c44507b1fca1ebd7b0b782a44a615[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Wed May 27 18:25:24 2026 +0530
+
+    product catelog
+
+[33mcommit 98712eb6e4b1f8d5f06ebdd08ad8cd4b5905e48a[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Mon May 25 18:42:27 2026 +0530
+
+     repo -> viewModel -> screen
+
+[33mcommit 37d2200c51697bb38c8c9167828be6cdf61ba8c1[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Sat May 23 18:53:08 2026 +0530
+
+    data class from json
+
+[33mcommit e748d30b91f05ff963d7754dbbfbbad7b50fdb50[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Sat May 23 13:15:49 2026 +0530
+
+     ....
+
+[33mcommit a51c547b5730f6f288ad1af7711793f3b75da11d[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Sat May 23 08:33:36 2026 +0530
+
+    ui seperation
+
+[33mcommit a3cdeaaf0dfe655204b1968cd6deb53dadec7512[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Fri May 22 18:58:27 2026 +0530
+
+    ..
+
+[33mcommit aba1c1565e56edd588114a9784c991ac7dbb34ef[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Thu May 21 18:32:44 2026 +0530
+
+    dialog is pending for order listning
+
+[33mcommit e90f27e3033af3d5e69370f454ccd1f8d2457ba1[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Thu May 21 15:37:42 2026 +0530
+
+     new architecture
+
+[33mcommit 8f278d1dba883c9c42930ad8af78b81e9f5d16f7[m
+Author: Jay Prakash <iamjayprakashdewangan2004@gmail.com>
+Date:   Tue May 12 17:41:08 2026 +0530
+
+    semifinal version of backoffice android

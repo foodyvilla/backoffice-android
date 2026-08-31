@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.jp.foodyvilla_backoffice.domain.security.UserSession
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.attendance.EmployeeAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.attendance.EmployeeAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AttendanceAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.CustomerDirectoryScreen
@@ -34,7 +33,6 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.Scree
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.SpecificOutletMenuHandlingScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AnalyticsDashboardScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OrderHistoryScreen
-import com.jp.foodyvilla_backoffice.presentation.new_backoffice.NewTableOrdersListScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.OutletListDirectoryScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.PaymentAdminConsoleScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.ReviewAdminConsoleScreen
@@ -55,6 +53,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation.getDrawerItemsForSession
+import com.jp.foodyvilla_backoffice.presentation.screens.backoffice.EmployeeDashboardScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -218,9 +217,11 @@ fun NewBackOfficeNavigationScreen(
 
                     BackOfficeRoute.Dashboard -> {
 
-                        DashboardPlaceholderScreen(
-                            title = "Dashboard"
-                        )
+                        EmployeeDashboardScreen(viewModel = attendanceViewModel, onNavigateBack = {
+                            scope.launch {
+                                drawerState.open()
+                            }
+                        })
                     }
 
                     BackOfficeRoute.Orders -> {
@@ -368,14 +369,16 @@ fun NewBackOfficeNavigationScreen(
                     BackOfficeRoute.Notifications -> {
 
                         DashboardPlaceholderScreen(
-                            title = "Notifications"
+                            title = "Notifications",
+                            onMenuClick = onMenuClick
                         )
                     }
 
                     BackOfficeRoute.Settings -> {
 
                         DashboardPlaceholderScreen(
-                            title = "Settings"
+                            title = "Settings",
+                            onMenuClick = onMenuClick
                         )
                     }
 
@@ -394,7 +397,7 @@ fun NewBackOfficeNavigationScreen(
 
                     BackOfficeRoute.TableOrder -> {
                         userSession?.outletId?.let { outletId ->
-                            TableManagementScreen(outletId = outletId)
+                            TableManagementScreen(outletId = outletId, onMenuClick = onMenuClick)
                         }
                     }
 
@@ -436,30 +439,43 @@ fun NewBackOfficeNavigationScreen(
 
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DashboardPlaceholderScreen(
-    title: String
+    title: String,
+    onMenuClick: () -> Unit
 ) {
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onMenuClick) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.Center
         ) {
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "Coming Soon"
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Coming Soon"
+                )
+            }
         }
     }
 }

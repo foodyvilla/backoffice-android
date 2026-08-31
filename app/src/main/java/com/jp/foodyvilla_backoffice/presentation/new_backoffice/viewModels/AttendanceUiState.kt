@@ -157,7 +157,7 @@ class AttendanceViewModel(
         var structuralIndexIterator = sequenceStartBound
         while (!structuralIndexIterator.isAfter(executionCeilingBound)) {
             if (!map.containsKey(structuralIndexIterator)) {
-                val status = if (structuralIndexIterator.isBefore(today)) AttendanceStatus.ABSENT else AttendanceStatus.PENDING
+                val status = if (!structuralIndexIterator.isAfter(today)) AttendanceStatus.ABSENT else AttendanceStatus.PENDING
                 map[structuralIndexIterator] = AttendanceUiModel(
                     id = -1L, date = structuralIndexIterator, empId = empId, status = status,
                     inTime = null, outTime = null, inLat = null, inLng = null, outLat = null, outLng = null

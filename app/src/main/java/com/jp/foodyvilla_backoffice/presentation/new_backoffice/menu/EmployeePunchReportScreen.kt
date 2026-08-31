@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.PunchClock
 import androidx.compose.material3.*
@@ -45,10 +46,11 @@ fun EmployeePunchReportScreen(viewModel: AttendanceViewModel, onNavigateBack: ()
         topBar = {
             TopAppBar(
                 title = { Text("My Punch Reports Console", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
+                navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.Menu, "Menu") } }
             )
         }
-    ) { padding ->
+    )
+ { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding).pointerInput(Unit) {
             detectHorizontalDragGestures { _, dragAmount -> if (dragAmount > 40) onNavigateBack() }
         }) {
