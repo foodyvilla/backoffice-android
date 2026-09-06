@@ -17,6 +17,7 @@ data class PaymentAdminUiState(
     val paymentSearchQuery: String = "",
     val isLoading: Boolean = false,
     val dynamicErrorMessage: String? = null,
+    val successMessage: String? = null,
 
     // Sheet Workspace Input Bindings
     val isFormWindowOpen: Boolean = false,
@@ -45,6 +46,8 @@ class PaymentAdminViewModel(private val repository: PaymentAdminRepository) : Vi
     fun onFormMethodChanged(m: AdminPaymentMethod) { _state.update { it.copy(formMethod = m) } }
     
     fun dismissFormWorkspace() { _state.update { it.copy(isFormWindowOpen = false) } }
+    fun dismissSuccessDialog() { _state.update { it.copy(successMessage = null) } }
+    fun dismissErrorMessage() { _state.update { it.copy(dynamicErrorMessage = null) } }
 
     fun changeFilterMonth(month: Int, year: Int) {
         val newTargetMonth = YearMonth.of(year, month)
@@ -71,7 +74,7 @@ class PaymentAdminViewModel(private val repository: PaymentAdminRepository) : Vi
             }.onSuccess { (users, logs) ->
                 _state.update { it.copy(cachedUsers = users, transactionsList = logs, isLoading = false) }
             }.onFailure { err ->
-                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) }
+                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Unable to fetch payment records.", isLoading = false) }
             }
         }
     }
@@ -111,16 +114,22 @@ class PaymentAdminViewModel(private val repository: PaymentAdminRepository) : Vi
             amountDisplay = parsedAmount, status = s.formStatus, method = s.formMethod
         )
 
+        val successMsg = if (s.formWorkspaceTargetId == null) {
+            "Payment transaction record created successfully!"
+        } else {
+            "Payment transaction record updated successfully!"
+        }
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             runCatching {
                 if (s.formWorkspaceTargetId == null) repository.createPaymentRecord(payload)
                 else repository.updatePaymentRecord(payload)
             }.onSuccess {
-                _state.update { it.copy(isFormWindowOpen = false) }
+                _state.update { it.copy(isFormWindowOpen = false, successMessage = successMsg, isLoading = false) }
                 loadAllPaymentsDirectory()
             }.onFailure { err ->
-                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) }
+                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Failed to save payment transaction.", isLoading = false) }
             }
         }
     }
@@ -129,8 +138,11 @@ class PaymentAdminViewModel(private val repository: PaymentAdminRepository) : Vi
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             runCatching { repository.purgePaymentLogRecord(id) }
-                .onSuccess { loadAllPaymentsDirectory() }
-                .onFailure { err -> _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) } }
+                .onSuccess {
+                    _state.update { it.copy(successMessage = "Payment record deleted successfully!", isLoading = false) }
+                    loadAllPaymentsDirectory()
+                }
+                .onFailure { err -> _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Failed to delete payment record.", isLoading = false) } }
         }
     }
 }

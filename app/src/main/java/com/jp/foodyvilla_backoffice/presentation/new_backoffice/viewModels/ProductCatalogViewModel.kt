@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.ProductCatalogUiModel
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.ProductCategoryUiModel
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.ProductCatalogRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -16,6 +15,7 @@ data class ProductCatalogUiState(
     val categoriesList: List<ProductCategoryUiModel> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val successMessage: String? = null,
 
     // Independent Real-Time Search Queries
     val productSearchQuery: String = "",
@@ -49,6 +49,9 @@ class ProductCatalogViewModel(private val repository: ProductCatalogRepository) 
         refreshCatalogDataset()
     }
 
+    fun dismissSuccessDialog() { _state.update { it.copy(successMessage = null) } }
+    fun dismissErrorMessage() { _state.update { it.copy(errorMessage = null) } }
+
     // =====================================================================
     // CORE LIVE DATA SYNC PIPELINES
     // =====================================================================
@@ -68,11 +71,7 @@ class ProductCatalogViewModel(private val repository: ProductCatalogRepository) 
     }
 
     private fun emitTemporaryError(msg: String) {
-        viewModelScope.launch {
-            _state.update { it.copy(errorMessage = msg, isLoading = false) }
-            delay(4000)
-            _state.update { s -> if (s.errorMessage == msg) s.copy(errorMessage = null) else s }
-        }
+        _state.update { it.copy(errorMessage = msg, isLoading = false) }
     }
 
     // =====================================================================
@@ -128,6 +127,12 @@ class ProductCatalogViewModel(private val repository: ProductCatalogRepository) 
             prepTime = s.pPrepTime
         )
 
+        val successMsg = if (s.targetProduct == null) {
+            "Product catalog item created successfully!"
+        } else {
+            "Product catalog item updated successfully!"
+        }
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, isProductFormOpen = false) }
             runCatching {
@@ -137,6 +142,7 @@ class ProductCatalogViewModel(private val repository: ProductCatalogRepository) 
                     repository.updateCatalogProduct(payload)
                 }
             }.onSuccess {
+                _state.update { it.copy(successMessage = successMsg, isLoading = false) }
                 refreshCatalogDataset()
             }.onFailure { err ->
                 emitTemporaryError(err.localizedMessage ?: "Failed to write updates to product database table.")
@@ -150,6 +156,7 @@ class ProductCatalogViewModel(private val repository: ProductCatalogRepository) 
             runCatching {
                 repository.deleteCatalogProduct(id)
             }.onSuccess {
+                _state.update { it.copy(successMessage = "Product catalog item deleted successfully!", isLoading = false) }
                 refreshCatalogDataset()
             }.onFailure { err ->
                 emitTemporaryError(err.localizedMessage ?: "Database validation constraints denied product deletion.")
@@ -193,6 +200,12 @@ class ProductCatalogViewModel(private val repository: ProductCatalogRepository) 
             name = s.cName, emoji = s.cEmoji, isActive = s.cIsActive
         )
 
+        val successMsg = if (s.targetCategory == null) {
+            "Product category created successfully!"
+        } else {
+            "Product category updated successfully!"
+        }
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, isCategoryFormOpen = false) }
             runCatching {
@@ -202,6 +215,7 @@ class ProductCatalogViewModel(private val repository: ProductCatalogRepository) 
                     repository.updateCategory(payload)
                 }
             }.onSuccess {
+                _state.update { it.copy(successMessage = successMsg, isLoading = false) }
                 refreshCatalogDataset()
             }.onFailure { err ->
                 emitTemporaryError(err.localizedMessage ?: "Failed to save category structural updates.")
@@ -215,6 +229,7 @@ class ProductCatalogViewModel(private val repository: ProductCatalogRepository) 
             runCatching {
                 repository.deleteCategory(id)
             }.onSuccess {
+                _state.update { it.copy(successMessage = "Product category deleted successfully!", isLoading = false) }
                 refreshCatalogDataset()
             }.onFailure { err ->
                 emitTemporaryError(err.localizedMessage ?: "Foreign Key Constraint Warning: Cannot delete a category while active menu items are still assigned to it.")

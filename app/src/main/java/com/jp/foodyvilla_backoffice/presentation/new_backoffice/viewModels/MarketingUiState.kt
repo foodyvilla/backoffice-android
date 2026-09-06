@@ -10,7 +10,6 @@ import com.jp.foodyvilla_backoffice.data.new_backoffice.models.OutletDropdownUiM
 import com.jp.foodyvilla_backoffice.data.new_backoffice.repo.MarketingRepository
 import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 import com.jp.foodyvilla_backoffice.domain.security.UserSession
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -25,6 +24,7 @@ data class MarketingUiState(
     val isLoading: Boolean = false,
     val operationSuccess: Boolean = false,
     val errorMessage: String? = null,
+    val successMessage: String? = null,
 
     val isWriteAllowed: Boolean = false,
     val isOwnerUser: Boolean = false,
@@ -80,18 +80,13 @@ class MarketingViewModel(
         }
     }
 
-    // FIXED: Self-resetting error utility routine that updates state flags and clears them after 4 seconds
     private fun emitTemporaryError(message: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(errorMessage = message, isLoading = false) }
-            delay(4000)
-            _uiState.update { state ->
-                if (state.errorMessage == message) state.copy(errorMessage = null) else state
-            }
-        }
+        _uiState.update { it.copy(errorMessage = message, isLoading = false) }
     }
 
-    fun clearFlags() { _uiState.update { it.copy(operationSuccess = false, errorMessage = null) } }
+    fun dismissSuccessDialog() { _uiState.update { it.copy(successMessage = null) } }
+    fun dismissErrorMessage() { _uiState.update { it.copy(errorMessage = null) } }
+    fun clearFlags() { _uiState.update { it.copy(operationSuccess = false, errorMessage = null, successMessage = null) } }
 
     fun updateSelectedOutletScope(outlet: OutletDropdownUiModel?) {
         if (!_uiState.value.isOwnerUser) return
@@ -131,9 +126,9 @@ class MarketingViewModel(
 
                     _uiState.update { state ->
                         if (bucketName == "banners") {
-                            state.copy(bannerImageUrl = generatedPublicUrl, isLoading = false)
+                            state.copy(bannerImageUrl = generatedPublicUrl, isLoading = false, successMessage = "Image uploaded successfully!")
                         } else {
-                            state.copy(offerImageUrl = generatedPublicUrl, isLoading = false)
+                            state.copy(offerImageUrl = generatedPublicUrl, isLoading = false, successMessage = "Image uploaded successfully!")
                         }
                     }
                 } else {
@@ -173,7 +168,7 @@ class MarketingViewModel(
                     imageUrl = _uiState.value.bannerImageUrl, displayOrder = _uiState.value.bannerDisplayOrder.toIntOrNull() ?: 0
                 )
             }.onSuccess {
-                _uiState.update { it.copy(operationSuccess = true) }
+                _uiState.update { it.copy(operationSuccess = true, successMessage = if (id == null) "Banner created successfully!" else "Banner updated successfully!", isLoading = false) }
                 refreshDashboardData()
             }.onFailure { err ->
                 emitTemporaryError(err.localizedMessage ?: "Failed to write system configurations")
@@ -212,7 +207,7 @@ class MarketingViewModel(
                     linkedUrl = _uiState.value.offerLinkedUrl.ifBlank { null }, expiresAt = _uiState.value.offerExpiresAt.ifBlank { null }
                 )
             }.onSuccess {
-                _uiState.update { it.copy(operationSuccess = true) }
+                _uiState.update { it.copy(operationSuccess = true, successMessage = if (id == null) "Offer promotion created successfully!" else "Offer promotion updated successfully!", isLoading = false) }
                 refreshDashboardData()
             }.onFailure { err ->
                 emitTemporaryError(err.localizedMessage ?: "Failed to publish promotional changes")
@@ -223,14 +218,24 @@ class MarketingViewModel(
     fun removeBanner(id: Long) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            runCatching { repository.deleteBanner(id) }.onSuccess { refreshDashboardData() }.onFailure { emitTemporaryError(it.localizedMessage ?: "Delete failed") }
+            runCatching { repository.deleteBanner(id) }
+                .onSuccess {
+                    _uiState.update { it.copy(successMessage = "Banner deleted successfully!", isLoading = false) }
+                    refreshDashboardData()
+                }
+                .onFailure { emitTemporaryError(it.localizedMessage ?: "Delete failed") }
         }
     }
 
     fun removeOffer(id: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            runCatching { repository.deleteOffer(id) }.onSuccess { refreshDashboardData() }.onFailure { emitTemporaryError(it.localizedMessage ?: "Delete failed") }
+            runCatching { repository.deleteOffer(id) }
+                .onSuccess {
+                    _uiState.update { it.copy(successMessage = "Offer promotion deleted successfully!", isLoading = false) }
+                    refreshDashboardData()
+                }
+                .onFailure { emitTemporaryError(it.localizedMessage ?: "Delete failed") }
         }
     }
 

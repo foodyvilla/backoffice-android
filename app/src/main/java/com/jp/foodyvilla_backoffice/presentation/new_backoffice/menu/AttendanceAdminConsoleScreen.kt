@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.AdminAttendanceStatus
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.AttendanceAdminRowCard
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.DialogType
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.OperationResultDialog
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.formatPunchDate
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceAdminViewModel
 import com.jp.foodyvilla_backoffice.ui.theme.AppTheme
@@ -465,18 +467,6 @@ fun AttendanceAdminConsoleScreen(viewModel: AttendanceAdminViewModel, onMenuClic
                 }
             }
 
-            // ERROR MESSAGE
-            AnimatedVisibility(visible = state.dynamicErrorMessage != null) {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                    Text(
-                        text = state.dynamicErrorMessage.orEmpty(),
-                        modifier = Modifier.padding(12.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
             // 5. EMPLOYEE ATTENDANCE CARDS LIST
             if (state.isLoading && state.recordsList.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -503,6 +493,27 @@ fun AttendanceAdminConsoleScreen(viewModel: AttendanceAdminViewModel, onMenuClic
                     }
                 }
             }
+        }
+
+        // =====================================================================
+        // OPERATION SUCCESS & ERROR DIALOGS
+        // =====================================================================
+        if (state.successMessage != null) {
+            OperationResultDialog(
+                type = DialogType.SUCCESS,
+                title = "Success",
+                message = state.successMessage.orEmpty(),
+                onDismiss = viewModel::dismissSuccessDialog
+            )
+        }
+
+        if (state.dynamicErrorMessage != null) {
+            OperationResultDialog(
+                type = DialogType.ERROR,
+                title = "Operation Failed",
+                message = state.dynamicErrorMessage.orEmpty(),
+                onDismiss = viewModel::dismissErrorMessage
+            )
         }
 
         // =====================================================================

@@ -16,6 +16,7 @@ data class EmployeeAdminUiState(
     val employeeSearchQuery: String = "",
     val isLoading: Boolean = false,
     val dynamicErrorMessage: String? = null,
+    val successMessage: String? = null,
 
     // Mutable Form Fields
     val isFormWindowOpen: Boolean = false,
@@ -53,6 +54,8 @@ class EmployeeAdminViewModel(private val repository: EmployeeAdminRepository) : 
     fun onFormOutletSelected(id: Long?) { _state.update { it.copy(formOutletId = id) } }
 
     fun dismissFormWorkspace() { _state.update { it.copy(isFormWindowOpen = false) } }
+    fun dismissSuccessDialog() { _state.update { it.copy(successMessage = null) } }
+    fun dismissErrorMessage() { _state.update { it.copy(dynamicErrorMessage = null) } }
 
     fun loadAllEmployeesDirectory() {
         viewModelScope.launch {
@@ -68,7 +71,7 @@ class EmployeeAdminViewModel(private val repository: EmployeeAdminRepository) : 
             }.onSuccess { (outlets, roster) ->
                 _state.update { it.copy(cachedOutlets = outlets, employeesList = roster, isLoading = false) }
             }.onFailure { err ->
-                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) }
+                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Unable to fetch employee roster.", isLoading = false) }
             }
         }
     }
@@ -100,6 +103,12 @@ class EmployeeAdminViewModel(private val repository: EmployeeAdminRepository) : 
             return
         }
 
+        val successMsg = if (s.formWorkspaceTargetId == null) {
+            "Employee profile created successfully!"
+        } else {
+            "Employee profile updated successfully!"
+        }
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, dynamicErrorMessage = null) }
             runCatching {
@@ -119,10 +128,10 @@ class EmployeeAdminViewModel(private val repository: EmployeeAdminRepository) : 
                     repository.updateEmployeeRecord(payload, structuralRemoteUrl)
                 }
             }.onSuccess {
-                _state.update { it.copy(isFormWindowOpen = false) }
+                _state.update { it.copy(isFormWindowOpen = false, successMessage = successMsg, isLoading = false) }
                 loadAllEmployeesDirectory()
             }.onFailure { err ->
-                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) }
+                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Failed to save employee profile.", isLoading = false) }
             }
         }
     }
@@ -131,8 +140,13 @@ class EmployeeAdminViewModel(private val repository: EmployeeAdminRepository) : 
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             runCatching { repository.deleteEmployeeRecord(id) }
-                .onSuccess { loadAllEmployeesDirectory() }
-                .onFailure { err -> _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) } }
+                .onSuccess {
+                    _state.update { it.copy(successMessage = "Employee record deleted successfully!", isLoading = false) }
+                    loadAllEmployeesDirectory()
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Failed to delete employee record.", isLoading = false) }
+                }
         }
     }
 }

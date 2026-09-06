@@ -39,6 +39,8 @@ import androidx.navigation.toRoute
 import coil.compose.AsyncImage
 import com.jp.foodyvilla_backoffice.domain.repository.AuthRepository
 import com.jp.foodyvilla_backoffice.domain.security.UserSession
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.DialogType
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.OperationResultDialog
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.MarketingViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
@@ -56,30 +58,6 @@ import kotlinx.serialization.json.put
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-
-// ==========================================
-// Type-Safe Route Structure Destinations
-// ==========================================
-
-// ==========================================
-// Domain & Data Models (DTOs)
-// ==========================================
-
-
-// ==========================================
-// Marketing Repository Implementation
-// ==========================================
-
-
-// ==========================================
-// ViewModels State Management Layer
-// ==========================================
-
-
-
-// ==========================================
-// Composable Interface Presentation Layer
-// ==========================================
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,13 +123,6 @@ fun MarketingTabsDashboardScreen(
                 }
             }
 
-            if (state.errorMessage != null) {
-                Text(
-                    text = state.errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Medium
-                )
-            }
-
             if (state.isLoading) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -215,6 +186,27 @@ fun MarketingTabsDashboardScreen(
                 }
             }
         }
+
+        // =====================================================================
+        // OPERATION SUCCESS & ERROR DIALOGS
+        // =====================================================================
+        if (state.successMessage != null) {
+            OperationResultDialog(
+                type = DialogType.SUCCESS,
+                title = "Success",
+                message = state.successMessage.orEmpty(),
+                onDismiss = viewModel::dismissSuccessDialog
+            )
+        }
+
+        if (state.errorMessage != null) {
+            OperationResultDialog(
+                type = DialogType.ERROR,
+                title = "Operation Failed",
+                message = state.errorMessage.orEmpty(),
+                onDismiss = viewModel::dismissErrorMessage
+            )
+        }
     }
 }
 
@@ -230,7 +222,7 @@ fun AddEditBannerFormScreen(
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri -> if (uri != null) viewModel.uploadSelectedImage("banner", uri, context) }
+        onResult = { uri -> if (uri != null) viewModel.uploadSelectedImage("banners", uri, context) }
     )
 
     LaunchedEffect(bannerId) { viewModel.prepareBannerForm(bannerId) }
@@ -250,34 +242,35 @@ fun AddEditBannerFormScreen(
                 modifier = Modifier.fillMaxWidth().height(160.dp), enabled = state.isWriteAllowed,
                 onClick = { imagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
             ) {
-                if (state.bannerImageUrl.isNotBlank()) {
-                    AsyncImage(model = state.bannerImageUrl, contentDescription = "Preview", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                } else {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    if (state.bannerImageUrl.isNotBlank()) {
+                        AsyncImage(model = state.bannerImageUrl, contentDescription = "Banner Image Preview", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(40.dp))
-                            Text("Upload Image Layout graphic asset", style = MaterialTheme.typography.bodyMedium)
+                            Icon(Icons.Default.Image, contentDescription = "Upload Banner Image", modifier = Modifier.size(48.dp))
+                            Text("Tap to select image asset")
                         }
                     }
                 }
             }
 
-            OutlinedTextField(value = state.bannerTitle, onValueChange = viewModel::onBannerTitleChanged, label = { Text("Banner Title (Optional)") }, modifier = Modifier.fillMaxWidth(), readOnly = !state.isWriteAllowed)
-            OutlinedTextField(value = state.bannerImageUrl, onValueChange = viewModel::onBannerImageUrlChanged, label = { Text("Banner Image URL Hosted Path Link") }, modifier = Modifier.fillMaxWidth(), readOnly = true)
             OutlinedTextField(
-                value = state.bannerDisplayOrder, onValueChange = viewModel::onBannerOrderChanged,
-                label = { Text("Display Sequence Priority Order") }, modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), readOnly = !state.isWriteAllowed
+                value = state.bannerTitle, onValueChange = viewModel::onBannerTitleChanged,
+                label = { Text("Banner Heading Title (Optional)") }, modifier = Modifier.fillMaxWidth(),
+                enabled = state.isWriteAllowed, singleLine = true
             )
 
-            if (state.errorMessage != null) Text(text = state.errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error)
-            if (state.isLoading) CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            OutlinedTextField(
+                value = state.bannerDisplayOrder, onValueChange = viewModel::onBannerOrderChanged,
+                label = { Text("Display Order Sequence (e.g. 1, 2, 3)") }, modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), enabled = state.isWriteAllowed, singleLine = true
+            )
 
-            Spacer(modifier = Modifier.weight(1f))
-            if (state.isWriteAllowed) {
-                Button(onClick = { viewModel.saveBanner(bannerId) }, modifier = Modifier.fillMaxWidth(), enabled = !state.isLoading) {
-                    Text("Save Infrastructure Banner Asset")
-                }
+            Button(
+                onClick = { viewModel.saveBanner(bannerId) }, modifier = Modifier.fillMaxWidth().height(50.dp),
+                enabled = state.isWriteAllowed && !state.isLoading
+            ) {
+                Text(if (state.isLoading) "Processing..." else "Publish Banner")
             }
         }
     }
@@ -292,7 +285,6 @@ fun AddEditOfferFormScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var showDatePickerDialog by remember { mutableStateOf(false) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -302,65 +294,62 @@ fun AddEditOfferFormScreen(
     LaunchedEffect(offerId) { viewModel.prepareOfferForm(offerId) }
     LaunchedEffect(state.operationSuccess) { if (state.operationSuccess) { viewModel.clearFlags(); onNavigateBack() } }
 
-    if (showDatePickerDialog) {
-        val datePickerState = rememberDatePickerState()
-        DatePickerDialog(
-            onDismissRequest = { showDatePickerDialog = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { ms ->
-                        val formatted = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE) + "T23:59:59Z"
-                        viewModel.onOfferExpiryChanged(formatted)
-                    }
-                    showDatePickerDialog = false
-                }) { Text("Confirm") }
-            }
-        ) { DatePicker(state = datePickerState) }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (offerId == null) "Create Deal Offer" else "Update Voucher Offer Spec") },
+                title = { Text(if (offerId == null) "Add New Offer" else "Modify Offer Configuration") },
                 navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, "Back") } }
             )
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp)) {
-            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                item {
-                    Card(modifier = Modifier.fillMaxWidth().height(160.dp), enabled = state.isWriteAllowed, onClick = { imagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
-                        if (state.offerImageUrl.isNotBlank()) {
-                            AsyncImage(model = state.offerImageUrl, contentDescription = "Preview", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                        } else {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(40.dp))
-                                    Text("Select & Upload Campaign Graphic Image", style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+
+            Card(
+                modifier = Modifier.fillMaxWidth().height(160.dp), enabled = state.isWriteAllowed,
+                onClick = { imagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+            ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    if (state.offerImageUrl.isNotBlank()) {
+                        AsyncImage(model = state.offerImageUrl, contentDescription = "Offer Image Preview", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Image, contentDescription = "Upload Offer Banner", modifier = Modifier.size(48.dp))
+                            Text("Tap to select promo banner image (Optional)")
                         }
                     }
                 }
-                item { OutlinedTextField(value = state.offerTitle, onValueChange = viewModel::onOfferTitleChanged, label = { Text("Offer Title") }, modifier = Modifier.fillMaxWidth(), readOnly = !state.isWriteAllowed) }
-                item { OutlinedTextField(value = state.offerDescription, onValueChange = viewModel::onOfferDescChanged, label = { Text("Description Subtitle") }, modifier = Modifier.fillMaxWidth(), readOnly = !state.isWriteAllowed) }
-                item { OutlinedTextField(value = state.offerImageUrl, onValueChange = viewModel::onOfferImageUrlChanged, label = { Text("Image Destination Remote Public Path") }, modifier = Modifier.fillMaxWidth(), readOnly = true) }
-                item { OutlinedTextField(value = state.offerLinkedUrl, onValueChange = viewModel::onOfferLinkedUrlChanged, label = { Text("Deep-link Redirection Action Target URL") }, modifier = Modifier.fillMaxWidth(), readOnly = !state.isWriteAllowed) }
-                item {
-                    OutlinedTextField(
-                        value = state.offerExpiresAt, onValueChange = {}, label = { Text("Expiry Timestamp boundary parameters") }, modifier = Modifier.fillMaxWidth(), readOnly = true,
-                        trailingIcon = { if (state.isWriteAllowed) { IconButton(onClick = { showDatePickerDialog = true }) { Icon(Icons.Default.CalendarMonth, null) } } }
-                    )
-                }
-                if (state.errorMessage != null) item { Text(text = state.errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error) }
-                if (state.isLoading) item { Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
             }
-            if (state.isWriteAllowed) {
-                Button(onClick = { viewModel.saveOffer(offerId) }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp), enabled = !state.isLoading) {
-                    Text("Publish Dynamic Voucher Coupon")
-                }
+
+            OutlinedTextField(
+                value = state.offerTitle, onValueChange = viewModel::onOfferTitleChanged,
+                label = { Text("Offer Title Heading") }, modifier = Modifier.fillMaxWidth(),
+                enabled = state.isWriteAllowed, singleLine = true
+            )
+
+            OutlinedTextField(
+                value = state.offerDescription, onValueChange = viewModel::onOfferDescChanged,
+                label = { Text("Offer Description Details") }, modifier = Modifier.fillMaxWidth(),
+                enabled = state.isWriteAllowed, minLines = 2
+            )
+
+            OutlinedTextField(
+                value = state.offerLinkedUrl, onValueChange = viewModel::onOfferLinkedUrlChanged,
+                label = { Text("Action Deep Link URL (Optional)") }, modifier = Modifier.fillMaxWidth(),
+                enabled = state.isWriteAllowed, singleLine = true
+            )
+
+            OutlinedTextField(
+                value = state.offerExpiresAt, onValueChange = viewModel::onOfferExpiryChanged,
+                label = { Text("Expiration Date (YYYY-MM-DD) (Optional)") }, modifier = Modifier.fillMaxWidth(),
+                enabled = state.isWriteAllowed, singleLine = true
+            )
+
+            Button(
+                onClick = { viewModel.saveOffer(offerId) }, modifier = Modifier.fillMaxWidth().height(50.dp),
+                enabled = state.isWriteAllowed && !state.isLoading
+            ) {
+                Text(if (state.isLoading) "Processing..." else "Publish Offer")
             }
         }
     }
 }
-

@@ -18,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.CustomerUiModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.DialogType
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.OperationResultDialog
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.CustomerManagementViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,6 +90,27 @@ fun CustomerDirectoryScreen(
                     }
                 }
             }
+        }
+
+        // =====================================================================
+        // OPERATION SUCCESS & ERROR DIALOGS
+        // =====================================================================
+        if (state.successMessage != null) {
+            OperationResultDialog(
+                type = DialogType.SUCCESS,
+                title = "Success",
+                message = state.successMessage.orEmpty(),
+                onDismiss = viewModel::dismissSuccessDialog
+            )
+        }
+
+        if (state.errorText != null) {
+            OperationResultDialog(
+                type = DialogType.ERROR,
+                title = "Operation Failed",
+                message = state.errorText.orEmpty(),
+                onDismiss = viewModel::dismissErrorMessage
+            )
         }
 
         // Inline Form Sheet Dialog Context

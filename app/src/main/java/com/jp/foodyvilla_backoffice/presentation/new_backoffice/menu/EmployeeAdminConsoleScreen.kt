@@ -34,7 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.EmployeeRole
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.DialogType
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.EmployeeAdminRowCard
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.OperationResultDialog
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.EmployeeAdminViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -88,12 +90,6 @@ fun EmployeeAdminConsoleScreen(viewModel: EmployeeAdminViewModel = koinViewModel
                 leadingIcon = { Icon(Icons.Default.Search, null) }, shape = RoundedCornerShape(12.dp), singleLine = true
             )
 
-            AnimatedVisibility(visible = state.dynamicErrorMessage != null) {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                    Text(text = state.dynamicErrorMessage.orEmpty(), modifier = Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
-                }
-            }
-
             if (state.isLoading && state.employeesList.isEmpty()) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             } else {
@@ -107,6 +103,27 @@ fun EmployeeAdminConsoleScreen(viewModel: EmployeeAdminViewModel = koinViewModel
                     }
                 }
             }
+        }
+
+        // =====================================================================
+        // OPERATION SUCCESS & ERROR DIALOGS
+        // =====================================================================
+        if (state.successMessage != null) {
+            OperationResultDialog(
+                type = DialogType.SUCCESS,
+                title = "Success",
+                message = state.successMessage.orEmpty(),
+                onDismiss = viewModel::dismissSuccessDialog
+            )
+        }
+
+        if (state.dynamicErrorMessage != null) {
+            OperationResultDialog(
+                type = DialogType.ERROR,
+                title = "Operation Failed",
+                message = state.dynamicErrorMessage.orEmpty(),
+                onDismiss = viewModel::dismissErrorMessage
+            )
         }
 
         // =====================================================================

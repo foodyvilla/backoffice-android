@@ -2,6 +2,7 @@ package com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,24 +16,20 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.ProductCatalogUiModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.DialogType
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.OperationResultDialog
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
-
-
-import androidx.compose.foundation.border
-
-import androidx.compose.material.icons.filled.Timer
-
-import androidx.compose.ui.text.style.TextOverflow
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,11 +70,6 @@ fun ProductCatalogManagementScreen(viewModel: ProductCatalogViewModel, onMenuCli
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-//                Text(
-//                    text = "Master Menu Product Catalog",
-//                    style = MaterialTheme.typography.headlineMedium,
-//                    fontWeight = FontWeight.Bold
-//                )
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // SEARCH BAR MAPPED TO THE CORRECT PRODUCT SEARCH STATE
@@ -97,15 +89,6 @@ fun ProductCatalogManagementScreen(viewModel: ProductCatalogViewModel, onMenuCli
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
-
-                if (state.errorMessage != null) {
-                    Text(
-                        text = state.errorMessage.orEmpty(),
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
 
                 if (state.isLoading && state.productsList.isEmpty()) {
                     Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
@@ -134,6 +117,27 @@ fun ProductCatalogManagementScreen(viewModel: ProductCatalogViewModel, onMenuCli
                         }
                     }
                 }
+            }
+
+            // ====================================================
+            // OPERATION SUCCESS & ERROR DIALOGS
+            // ====================================================
+            if (state.successMessage != null) {
+                OperationResultDialog(
+                    type = DialogType.SUCCESS,
+                    title = "Success",
+                    message = state.successMessage.orEmpty(),
+                    onDismiss = viewModel::dismissSuccessDialog
+                )
+            }
+
+            if (state.errorMessage != null) {
+                OperationResultDialog(
+                    type = DialogType.ERROR,
+                    title = "Operation Failed",
+                    message = state.errorMessage.orEmpty(),
+                    onDismiss = viewModel::dismissErrorMessage
+                )
             }
 
             // ====================================================
@@ -246,10 +250,6 @@ fun ProductCatalogManagementScreen(viewModel: ProductCatalogViewModel, onMenuCli
     }
 }
 
-
-
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogProductRow(
@@ -273,19 +273,17 @@ fun CatalogProductRow(
                 .fillMaxWidth()
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top // Aligned top for cleaner layout structure with descriptions
+            verticalAlignment = Alignment.Top
         ) {
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // ROW 1: Veg Status Badge Indicator + Title Line
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Standard explicit Food-Tech Veg/NonVeg Square Frame Badge
                     val badgeColor = if (product.isVeg) Color(0xFF4CAF50) else Color(0xFFE53935)
                     Box(
                         modifier = Modifier
@@ -326,7 +324,6 @@ fun CatalogProductRow(
                     }
                 }
 
-                // ROW 2: Structured Category & Prep Time Badges Block
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -364,7 +361,6 @@ fun CatalogProductRow(
                     }
                 }
 
-                // ROW 3: Description Paragraph Frame
                 if (product.description.isNotBlank()) {
                     Text(
                         text = product.description,
@@ -377,7 +373,6 @@ fun CatalogProductRow(
                 }
             }
 
-            // RIGHT PANEL ACTION CONTROLS STRIP
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -416,7 +411,6 @@ fun CatalogProductRow(
         }
     }
 
-    // INTERACTION PROTECTION SECURITY OVERLAY DIALOG GATEWAY
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },

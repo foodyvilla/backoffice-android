@@ -15,6 +15,7 @@ data class ReviewAdminUiState(
     val reviewsSearchQuery: String = "",
     val isLoading: Boolean = false,
     val dynamicErrorMessage: String? = null,
+    val successMessage: String? = null,
 
     // Filters
     val filterCustomerId: Long? = null,
@@ -56,6 +57,8 @@ class ReviewAdminViewModel(private val repository: ReviewAdminRepository) : View
     fun onFormImagesChanged(v: String) { _state.update { it.copy(formImages = v) } }
     
     fun dismissFormWorkspace() { _state.update { it.copy(isFormWindowOpen = false) } }
+    fun dismissSuccessDialog() { _state.update { it.copy(successMessage = null) } }
+    fun dismissErrorMessage() { _state.update { it.copy(dynamicErrorMessage = null) } }
 
     fun loadAllReviewsDirectory() {
         viewModelScope.launch {
@@ -71,7 +74,7 @@ class ReviewAdminViewModel(private val repository: ReviewAdminRepository) : View
             }.onSuccess { (users, reviews) ->
                 _state.update { it.copy(cachedUsers = users, reviewsList = reviews, isLoading = false) }
             }.onFailure { err ->
-                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) }
+                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Unable to fetch reviews.", isLoading = false) }
             }
         }
     }
@@ -109,16 +112,22 @@ class ReviewAdminViewModel(private val repository: ReviewAdminRepository) : View
             rating = s.formRating, title = s.formTitle, description = s.formDescription, images = s.formImages.split(" ", ",").filter { it.isNotBlank() }
         )
 
+        val successMsg = if (s.formWorkspaceTargetId == null) {
+            "Review record created successfully!"
+        } else {
+            "Review record updated successfully!"
+        }
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             runCatching {
                 if (s.formWorkspaceTargetId == null) repository.createReviewRecord(payload)
                 else repository.updateReviewRecord(payload)
             }.onSuccess {
-                _state.update { it.copy(isFormWindowOpen = false) }
+                _state.update { it.copy(isFormWindowOpen = false, successMessage = successMsg, isLoading = false) }
                 loadAllReviewsDirectory()
             }.onFailure { err ->
-                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) }
+                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Failed to save review.", isLoading = false) }
             }
         }
     }
@@ -127,8 +136,11 @@ class ReviewAdminViewModel(private val repository: ReviewAdminRepository) : View
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             runCatching { repository.purgeReviewLogRecord(id) }
-                .onSuccess { loadAllReviewsDirectory() }
-                .onFailure { err -> _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) } }
+                .onSuccess {
+                    _state.update { it.copy(successMessage = "Review record deleted successfully!", isLoading = false) }
+                    loadAllReviewsDirectory()
+                }
+                .onFailure { err -> _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Failed to delete review record.", isLoading = false) } }
         }
     }
 }

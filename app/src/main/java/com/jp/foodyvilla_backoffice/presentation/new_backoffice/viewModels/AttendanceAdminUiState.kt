@@ -15,6 +15,7 @@ data class AttendanceAdminUiState(
     val logsSearchQuery: String = "",
     val isLoading: Boolean = false,
     val dynamicErrorMessage: String? = null,
+    val successMessage: String? = null,
 
     // Filters
     val filterEmpId: Long? = null,
@@ -56,6 +57,8 @@ class AttendanceAdminViewModel(private val repository: AttendanceAdminRepository
     fun onFormOutLngChanged(v: String) { _state.update { it.copy(formOutLng = v) } }
     
     fun dismissFormWorkspace() { _state.update { it.copy(isFormWindowOpen = false) } }
+    fun dismissSuccessDialog() { _state.update { it.copy(successMessage = null) } }
+    fun dismissErrorMessage() { _state.update { it.copy(dynamicErrorMessage = null) } }
 
     fun loadAllLogsDirectory() {
         viewModelScope.launch {
@@ -71,7 +74,7 @@ class AttendanceAdminViewModel(private val repository: AttendanceAdminRepository
             }.onSuccess { (staff, logs) ->
                 _state.update { it.copy(cachedEmployees = staff, recordsList = logs, isLoading = false) }
             }.onFailure { err ->
-                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) }
+                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Unable to fetch logs directory.", isLoading = false) }
             }
         }
     }
@@ -110,6 +113,12 @@ class AttendanceAdminViewModel(private val repository: AttendanceAdminRepository
             inLat = s.formInLat, inLng = s.formInLng, outLat = s.formOutLat, outLng = s.formOutLng
         )
 
+        val successMsg = if (s.formWorkspaceTargetId == null) {
+            "Attendance record added successfully!"
+        } else {
+            "Attendance record updated successfully!"
+        }
+
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             runCatching {
@@ -119,10 +128,10 @@ class AttendanceAdminViewModel(private val repository: AttendanceAdminRepository
                     repository.updateAttendanceRecord(payload)
                 }
             }.onSuccess {
-                _state.update { it.copy(isFormWindowOpen = false) }
+                _state.update { it.copy(isFormWindowOpen = false, successMessage = successMsg, isLoading = false) }
                 loadAllLogsDirectory()
             }.onFailure { err ->
-                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) }
+                _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Failed to save attendance record.", isLoading = false) }
             }
         }
     }
@@ -131,8 +140,13 @@ class AttendanceAdminViewModel(private val repository: AttendanceAdminRepository
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             runCatching { repository.purgeAttendanceLogRecord(id) }
-                .onSuccess { loadAllLogsDirectory() }
-                .onFailure { err -> _state.update { it.copy(dynamicErrorMessage = err.localizedMessage, isLoading = false) } }
+                .onSuccess {
+                    _state.update { it.copy(successMessage = "Attendance log entry deleted successfully!", isLoading = false) }
+                    loadAllLogsDirectory()
+                }
+                .onFailure { err ->
+                    _state.update { it.copy(dynamicErrorMessage = err.localizedMessage ?: "Failed to delete attendance record.", isLoading = false) }
+                }
         }
     }
 }

@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.ProductCategoryUiModel
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.DialogType
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.OperationResultDialog
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.ProductCatalogViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -60,11 +62,6 @@ fun ProductCategoryManagementScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp)) {
             Column(modifier = Modifier.fillMaxSize()) {
-//                Text(
-//                    text = "Menu Category Parameters Layout",
-//                    style = MaterialTheme.typography.headlineMedium,
-//                    fontWeight = FontWeight.Bold
-//                )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // SEARCH BAR WORKSPACE
@@ -84,10 +81,6 @@ fun ProductCategoryManagementScreen(
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
-
-                if (state.errorMessage != null) {
-                    Text(state.errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp), fontWeight = FontWeight.Bold)
-                }
 
                 if (state.isLoading && state.categoriesList.isEmpty()) {
                     Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -145,6 +138,27 @@ fun ProductCategoryManagementScreen(
                         }
                     }
                 }
+            }
+
+            // ====================================================
+            // OPERATION SUCCESS & ERROR DIALOGS
+            // ====================================================
+            if (state.successMessage != null) {
+                OperationResultDialog(
+                    type = DialogType.SUCCESS,
+                    title = "Success",
+                    message = state.successMessage.orEmpty(),
+                    onDismiss = viewModel::dismissSuccessDialog
+                )
+            }
+
+            if (state.errorMessage != null) {
+                OperationResultDialog(
+                    type = DialogType.ERROR,
+                    title = "Operation Failed",
+                    message = state.errorMessage.orEmpty(),
+                    onDismiss = viewModel::dismissErrorMessage
+                )
             }
 
             // ====================================================
