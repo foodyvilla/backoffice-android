@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jp.foodyvilla_backoffice.data.new_backoffice.models.AnalyticsSummary
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AnalyticsViewModel
+import com.jp.foodyvilla_backoffice.ui.theme.AppTheme
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -110,13 +111,15 @@ private fun AnalyticsContent(summary: AnalyticsSummary, start: LocalDate, end: L
                     value = summary.orders.total.toString(),
                     icon = Icons.Default.ShoppingCart,
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
                     title = "Delivered",
                     value = summary.orders.delivered.toString(),
                     icon = Icons.Default.RestaurantMenu,
-                    containerColor = Color(0xFFC8E6C9), // Light Green
+                    containerColor = AppTheme.colors.successContainer,
+                    contentColor = AppTheme.colors.onSuccessContainer,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -128,7 +131,8 @@ private fun AnalyticsContent(summary: AnalyticsSummary, start: LocalDate, end: L
                     title = "Pending",
                     value = summary.orders.pending.toString(),
                     icon = Icons.Default.ShoppingCart,
-                    containerColor = Color(0xFFFFF9C4), // Light Yellow
+                    containerColor = AppTheme.colors.warningContainer,
+                    contentColor = AppTheme.colors.onWarningContainer,
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
@@ -136,6 +140,7 @@ private fun AnalyticsContent(summary: AnalyticsSummary, start: LocalDate, end: L
                     value = summary.orders.other_statuses.toString(),
                     icon = Icons.Default.ShoppingCart,
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -153,6 +158,7 @@ private fun AnalyticsContent(summary: AnalyticsSummary, start: LocalDate, end: L
                     value = summary.customers.total_active_buyers.toString(),
                     icon = Icons.Default.People,
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
@@ -160,6 +166,7 @@ private fun AnalyticsContent(summary: AnalyticsSummary, start: LocalDate, end: L
                     value = summary.customers.new_registrations.toString(),
                     icon = Icons.Default.People,
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -173,11 +180,15 @@ private fun MetricCard(
     value: String,
     icon: ImageVector,
     containerColor: Color,
+    contentColor: Color = contentColorFor(containerColor),
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor,
+            contentColor = contentColor
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(

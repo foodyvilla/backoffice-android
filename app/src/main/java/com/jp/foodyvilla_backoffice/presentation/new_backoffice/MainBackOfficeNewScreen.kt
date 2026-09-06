@@ -157,6 +157,7 @@ fun NewBackOfficeNavigationScreen(
                             selected = currentRoute == item.route,
                             onClick = {
                                 if (item.route == BackOfficeRoute.Logout) {
+                                    currentRoute = BackOfficeRoute.Dashboard
                                     loginViewModel.logout()
                                 } else {
                                     currentRoute = item.route
@@ -391,7 +392,7 @@ fun NewBackOfficeNavigationScreen(
                     }
 
                     BackOfficeRoute.Logout -> {
-
+                        currentRoute = BackOfficeRoute.Dashboard
                         loginViewModel.logout()
                     }
 

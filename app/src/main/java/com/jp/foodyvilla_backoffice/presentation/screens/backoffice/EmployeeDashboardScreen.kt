@@ -64,6 +64,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.LocationSt
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.SwipeToConfirmButton
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceUiState
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
+import com.jp.foodyvilla_backoffice.ui.theme.AppTheme
 import kotlinx.coroutines.Job
 import java.time.LocalDate
 import java.time.LocalTime
@@ -145,7 +146,7 @@ fun EmployeeDashboardScreen(viewModel: AttendanceViewModel, onNavigateBack: () -
                                 }
 
                                 if (hasRealPunchIn && hasRealPunchOut) {
-                                    Text("● Shift completed successfully for today.", color = Color(0xFF4CAF50), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    Text("● Shift completed successfully for today.", color = AppTheme.colors.success, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -203,26 +204,26 @@ fun ProfileHeader(employee: EmployeeResponse?) {
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(text = greeting, style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
-        Text(text = employee?.name ?: "User", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(text = greeting, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = employee?.name ?: "User", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Spacer(modifier = Modifier.height(16.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = today.format(formatter), style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            Text(text = today.format(formatter), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = Color(0xFF4F6F52).copy(alpha = 0.1f)
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, Modifier.size(16.dp), tint = Color(0xFF4F6F52))
+                    Icon(Icons.Default.LocationOn, contentDescription = null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Office Location", style = MaterialTheme.typography.labelMedium, color = Color(0xFF4F6F52))
+                    Text(text = "Office Location", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             }
         }
@@ -239,6 +240,9 @@ fun SummaryGrid(state: AttendanceUiState) {
     val checkInTime = todayRecord?.inTime?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--:--"
     val checkOutTime = todayRecord?.outTime?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "--:--"
 
+    val successColor = AppTheme.colors.success
+    val errorColor = MaterialTheme.colorScheme.error
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             AttendanceSummaryCard(
@@ -246,18 +250,18 @@ fun SummaryGrid(state: AttendanceUiState) {
                 value = checkInTime,
                 subValue = if (todayRecord?.inTime != null) "Today" else "Not Present",
                 icon = Icons.Default.ArrowDownward,
-                iconColor = Color(0xFF4F6F52),
+                iconColor = successColor,
                 modifier = Modifier.weight(1f),
-                valueColor = if (todayRecord?.inTime == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                valueColor = if (todayRecord?.inTime == null) errorColor else MaterialTheme.colorScheme.onSurface
             )
             AttendanceSummaryCard(
                 label = "Check Out",
                 value = checkOutTime,
                 subValue = if (todayRecord?.outTime != null) "Today" else "Not Present",
                 icon = Icons.Default.ArrowUpward,
-                iconColor = Color(0xFFE57373),
+                iconColor = errorColor,
                 modifier = Modifier.weight(1f),
-                valueColor = if (todayRecord?.outTime == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                valueColor = if (todayRecord?.outTime == null) errorColor else MaterialTheme.colorScheme.onSurface
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -266,7 +270,7 @@ fun SummaryGrid(state: AttendanceUiState) {
                 value = "$absenceCount Day",
                 subValue = today.month.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
                 icon = Icons.Default.CalendarToday,
-                iconColor = Color(0xFFE57373),
+                iconColor = errorColor,
                 modifier = Modifier.weight(1f)
             )
             AttendanceSummaryCard(
@@ -274,7 +278,7 @@ fun SummaryGrid(state: AttendanceUiState) {
                 value = "$attendedCount Day",
                 subValue = today.month.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
                 icon = Icons.Default.Sync,
-                iconColor = Color(0xFF4F6F52),
+                iconColor = successColor,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -294,23 +298,23 @@ fun AttendanceSummaryCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = CircleShape,
-                    color = iconColor.copy(alpha = 0.1f),
+                    color = iconColor.copy(alpha = 0.15f),
                     modifier = Modifier.size(24.dp)
                 ) {
                     Icon(imageVector = icon, contentDescription = null, tint = iconColor, modifier = Modifier.padding(4.dp))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
+                Text(text = label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = subValue, style = MaterialTheme.typography.labelSmall, color = if (subValue == "Not Present") MaterialTheme.colorScheme.error else Color.Gray)
+            Text(text = subValue, style = MaterialTheme.typography.labelSmall, color = if (subValue == "Not Present") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(12.dp))
             Text(text = value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = valueColor)
         }
@@ -326,7 +330,7 @@ fun AttendanceHistoryRow(record: AttendanceUiModel, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -335,15 +339,15 @@ fun AttendanceHistoryRow(record: AttendanceUiModel, onClick: () -> Unit) {
         ) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = Color(0xFF4F6F52),
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(56.dp)
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(text = record.date.format(dayFormatter), color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text(text = record.date.format(monthFormatter), color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                    Text(text = record.date.format(dayFormatter), color = MaterialTheme.colorScheme.onPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(text = record.date.format(monthFormatter), color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f), fontSize = 12.sp)
                 }
             }
 
@@ -358,7 +362,7 @@ fun AttendanceHistoryRow(record: AttendanceUiModel, onClick: () -> Unit) {
                             fontWeight = FontWeight.Bold,
                             color = if (record.inTime == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                         )
-                        Text(text = "Check In", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        Text(text = "Check In", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Column {
                         Text(
@@ -367,26 +371,9 @@ fun AttendanceHistoryRow(record: AttendanceUiModel, onClick: () -> Unit) {
                             fontWeight = FontWeight.Bold,
                             color = if (record.outTime == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                         )
-                        Text(text = "Check out", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    }
-                    Column {
-                        // Calculate total hours if both times available
-                        val duration = if (record.inTime != null && record.outTime != null) {
-                            val diff = java.time.Duration.between(record.inTime, record.outTime)
-                            val hours = diff.toHours()
-                            val minutes = diff.toMinutes() % 60
-                            String.format(Locale.getDefault(), "%02d:%02d", hours, minutes)
-                        } else "--:--"
-                        Text(
-                            text = duration,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (duration == "--:--") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(text = "Total Hours", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        Text(text = "Check out", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-//
             }
         }
     }

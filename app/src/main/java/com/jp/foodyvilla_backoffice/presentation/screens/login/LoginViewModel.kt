@@ -58,7 +58,18 @@ class LoginViewModel(
 
     fun logout() {
         viewModelScope.launch {
+            Log.d(TAG, "Logout requested")
+            try {
+                val session = backOfficeAuthRepository.currentSession.value
+                val empId = (session as? UserSession.EmployeeSession)?.empId
+                userRepository.updateFcmToken(null, empId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to clear FCM token on logout", e)
+            }
+
             backOfficeAuthRepository.logout()
+            _credentialLoginUiState.value = LoginUiState.Idle
+            _employeeProfileState.value = UiState.Idle
         }
     }
 
@@ -108,21 +119,7 @@ class LoginViewModel(
     }
 
     fun logoutBackOffice() {
-        viewModelScope.launch {
-            Log.d(TAG, "Backoffice logout requested")
-            // Clear FCM token on server before clearing local session
-            try {
-                val session = backOfficeAuthRepository.currentSession.value
-                val empId = (session as? UserSession.EmployeeSession)?.empId
-                userRepository.updateFcmToken(null, empId)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to clear FCM token on logout", e)
-            }
-
-            backOfficeAuthRepository.logout()
-            _credentialLoginUiState.value = LoginUiState.Idle
-            _employeeProfileState.value = UiState.Idle
-        }
+        logout()
     }
 
     fun updateFcmToken(tokenOverride: String? = null) {

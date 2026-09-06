@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.utils.*
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceViewModel
+import com.jp.foodyvilla_backoffice.ui.theme.AppTheme
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,7 +80,7 @@ fun EmployeePunchReportScreen(viewModel: AttendanceViewModel, onNavigateBack: ()
                             }
 
                             if (hasRealPunchIn && hasRealPunchOut) {
-                                Text("● Shift completed successfully for today.", color = Color(0xFF4CAF50), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text("● Shift completed successfully for today.", color = AppTheme.colors.success, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

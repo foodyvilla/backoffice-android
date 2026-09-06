@@ -1,6 +1,7 @@
 package com.jp.foodyvilla_backoffice.presentation.new_backoffice.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -40,6 +41,18 @@ fun NewFoodyVillaNavGraph() {
     val attendanceViewModel = koinViewModel<AttendanceViewModel>()
     val attendanceAdminViewModel = koinViewModel<AttendanceAdminViewModel>()
     val currentSession = loginViewModel.currentSession.collectAsStateWithLifecycle().value
+
+    LaunchedEffect(currentSession) {
+        if (currentSession == null) {
+            val currentRoute = navController.currentDestination?.route
+            if (currentRoute != null && !currentRoute.contains("Splash") && !currentRoute.contains("BackOfficeLogin")) {
+                navController.navigate(ScreenDestinations.BackOfficeLogin) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = ScreenDestinations.Splash
@@ -70,32 +83,17 @@ fun NewFoodyVillaNavGraph() {
 
 
         composable<ScreenDestinations.BackOffice> {
-            if (currentSession == null) {
-                BackOfficeLoginScreen(
-                    loginViewModel = loginViewModel,
-                    onLoginSuccess = {
-                        navController.navigate(ScreenDestinations.BackOffice) {
-                            popUpTo(ScreenDestinations.BackOfficeLogin) {
-                                inclusive = true
-                            }
-                        }
-                    }
-                )
-
-            } else {
-                NewBackOfficeNavigationScreen(
-                    loginViewModel = loginViewModel,
-                    marketingViewModel = marketingViewModel,
-                    unifiedViewModel = unifiedViewModel,
-                    productCatalogViewModel = productCatalogViewModel,
-                    outletMenuManagementViewModel = outletMenuManagementViewModel,
-                    customerManagementViewModel   = customerManagementViewModel,
-                    attendanceViewModel = attendanceViewModel,
-                    attendanceAdminViewModel  = attendanceAdminViewModel,
-                    navController = navController
-                )
-
-            }
+            NewBackOfficeNavigationScreen(
+                loginViewModel = loginViewModel,
+                marketingViewModel = marketingViewModel,
+                unifiedViewModel = unifiedViewModel,
+                productCatalogViewModel = productCatalogViewModel,
+                outletMenuManagementViewModel = outletMenuManagementViewModel,
+                customerManagementViewModel   = customerManagementViewModel,
+                attendanceViewModel = attendanceViewModel,
+                attendanceAdminViewModel  = attendanceAdminViewModel,
+                navController = navController
+            )
         }
 
         composable<ScreenDestinations.AddBanner> {
