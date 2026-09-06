@@ -19,6 +19,20 @@ class AttendanceRepository(private val supabase: SupabaseClient) {
     private val timeFormatter = DateTimeFormatter.ISO_LOCAL_TIME
     private val dateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
+    private fun parseTime(timeStr: String?): LocalTime? {
+        if (timeStr.isNullOrBlank()) return null
+        return try {
+            val clean = timeStr.split("+")[0].split("-")[0].replace("Z", "").trim()
+            val parts = clean.split(":")
+            val hour = parts.getOrNull(0)?.toIntOrNull() ?: return null
+            val minute = parts.getOrNull(1)?.toIntOrNull() ?: 0
+            val second = parts.getOrNull(2)?.split(".")?.get(0)?.toIntOrNull() ?: 0
+            LocalTime.of(hour, minute, second)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     suspend fun fetchEmployeeProfile(empId: Long): EmployeeResponse =
         supabase.from("employee").select { filter { eq("id", empId) } }.decodeSingle<EmployeeResponse>()
 
@@ -87,13 +101,16 @@ class AttendanceRepository(private val supabase: SupabaseClient) {
             throw Exception("Geofencing verification failed. Distance: ${distanceMeters.toInt()}m from outlet perimeter window. Max allowed range: ${allowedRadius.toInt()}m.")
         }
 
-        val opensAtStr = outlet.opens_at ?: "09:00:00"
-        val parsedOpensAtTime = LocalTime.parse(opensAtStr, timeFormatter)
+        // Prioritize employee.punch_in_time, fallback to outlet.opens_at, fallback to 09:00:00
+        val expectedInTime = parseTime(employee.punch_in_time)
+            ?: parseTime(outlet.opens_at)
+            ?: LocalTime.of(9, 0, 0)
+
         val targetPunchTime = currentDateTime.toLocalTime()
 
         val calculatedStatus = when {
-            targetPunchTime.isBefore(parsedOpensAtTime.plusMinutes(15)) -> AttendanceStatus.PRESENT
-            targetPunchTime.isBefore(parsedOpensAtTime.plusMinutes(45)) -> AttendanceStatus.LATE
+            targetPunchTime.isBefore(expectedInTime.plusMinutes(15)) -> AttendanceStatus.PRESENT
+            targetPunchTime.isBefore(expectedInTime.plusMinutes(45)) -> AttendanceStatus.LATE
             else -> AttendanceStatus.HALF_DAY
         }
 

@@ -15,6 +15,7 @@ import com.jp.foodyvilla_backoffice.presentation.new_backoffice.OutletFormWorksp
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.SpecificOutletMenuFormScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEditBannerFormScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEditOfferFormScreen
+import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.AddEmployeeScreen
 
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.menu.SpecificOutletMenuHandlingScreen
 import com.jp.foodyvilla_backoffice.presentation.new_backoffice.viewModels.AttendanceAdminViewModel
@@ -219,6 +220,21 @@ fun NewFoodyVillaNavGraph() {
                 editId = args.id, // Extracted menu row index points
                 viewModel = outletMenuManagementViewModel,
                 onNavigateBackAction = { navController.popBackStack() }
+            )
+        }
+
+        composable<ScreenDestinations.AddEmployee> {
+            AddEmployeeScreen(
+                employeeId = null,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<ScreenDestinations.EditEmployee> { backStackEntry ->
+            val args = backStackEntry.toRoute<ScreenDestinations.EditEmployee>()
+            AddEmployeeScreen(
+                employeeId = args.employeeId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

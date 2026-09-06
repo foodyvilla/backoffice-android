@@ -312,7 +312,15 @@ fun NewBackOfficeNavigationScreen(
 
                     BackOfficeRoute.Employees -> {
 
-                        EmployeeAdminConsoleScreen(onMenuClick = onMenuClick)
+                        EmployeeAdminConsoleScreen(
+                            onMenuClick = onMenuClick,
+                            onNavigateToAddEmployee = {
+                                navController.navigate(ScreenDestinations.AddEmployee)
+                            },
+                            onNavigateToEditEmployee = { id ->
+                                navController.navigate(ScreenDestinations.EditEmployee(id))
+                            }
+                        )
                     }
 
                     BackOfficeRoute.Attendance -> {

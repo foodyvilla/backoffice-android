@@ -43,6 +43,12 @@ object ScreenDestinations {
     @Serializable data class EditOutlet(val id: Long)
 
     @Serializable
+    data object AddEmployee
+
+    @Serializable
+    data class EditEmployee(val employeeId: Long)
+
+    @Serializable
     data class OrderDetails( val id : String)
 }
 

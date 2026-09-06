@@ -22,7 +22,9 @@ data class EmployeeAdminResponse(
     val joining_date: String? = null,
     val role: String,
     val password_hash: String? = null,
-    val is_active: Boolean = true
+    val is_active: Boolean = true,
+    val punch_in_time: String? = null,
+    val punch_out_time: String? = null
 )
 
 data class EmployeeAdminUiModel(
@@ -39,7 +41,9 @@ data class EmployeeAdminUiModel(
     val joiningDate: String = "",
     val passwordText: String = "",
     val role: EmployeeRole = EmployeeRole.EMPLOYEE,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val punchInTime: String = "",
+    val punchOutTime: String = ""
 )
 
 fun EmployeeAdminResponse.toUiModel(outletName: String) = EmployeeAdminUiModel(
@@ -61,5 +65,7 @@ fun EmployeeAdminResponse.toUiModel(outletName: String) = EmployeeAdminUiModel(
         "chef" -> EmployeeRole.CHEF
         else -> EmployeeRole.EMPLOYEE
     },
-    isActive = is_active
+    isActive = is_active,
+    punchInTime = punch_in_time.orEmpty(),
+    punchOutTime = punch_out_time.orEmpty()
 )

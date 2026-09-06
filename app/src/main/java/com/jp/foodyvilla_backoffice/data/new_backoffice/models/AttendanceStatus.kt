@@ -28,10 +28,10 @@ data class EmployeeResponse(
     val name: String,
     val outlet_id: Long? = null,
     val salary: Long? = null,
-    val role: String? = null
+    val role: String? = null,
+    val punch_in_time: String? = null,
+    val punch_out_time: String? = null
 )
-
-
 
 data class AttendanceUiModel(
     val id: Long,

@@ -31,6 +31,13 @@ class EmployeeAdminRepository(private val supabase: SupabaseClient, private val 
         return bucket.publicUrl(fileName)
     }
 
+    suspend fun uploadImageBytes(bytes: ByteArray, prefix: String = "doc"): String {
+        val bucket = supabase.storage.from("employee")
+        val fileName = "${prefix}_${UUID.randomUUID()}.jpg"
+        bucket.upload(fileName, bytes)
+        return bucket.publicUrl(fileName)
+    }
+
     suspend fun createEmployee(model: EmployeeAdminUiModel, imgUrl: String?) {
         supabase.from("employee").insert(buildJsonObject {
             put("outlet_id", model.outletId)
@@ -45,6 +52,8 @@ class EmployeeAdminRepository(private val supabase: SupabaseClient, private val 
             put("password_hash", model.passwordText.trim().ifBlank { null })
             put("role", model.role.name.lowercase())
             put("is_active", model.isActive)
+            put("punch_in_time", model.punchInTime.trim().ifBlank { null })
+            put("punch_out_time", model.punchOutTime.trim().ifBlank { null })
         })
     }
 
@@ -62,6 +71,8 @@ class EmployeeAdminRepository(private val supabase: SupabaseClient, private val 
             put("profile_img", imgUrl ?: model.profileImgUrl.ifBlank { null })
             put("password_hash", model.passwordText.trim().ifBlank { null })
             put("is_active", model.isActive)
+            put("punch_in_time", model.punchInTime.trim().ifBlank { null })
+            put("punch_out_time", model.punchOutTime.trim().ifBlank { null })
         }) { filter { eq("id", model.id) } }
     }
 

@@ -32,7 +32,9 @@ data class EmployeeAdminUiState(
     val formJoiningDate: String = "",
     val formPasswordText: String = "",
     val formRole: EmployeeRole = EmployeeRole.EMPLOYEE,
-    val formIsActive: Boolean = true
+    val formIsActive: Boolean = true,
+    val formPunchInTime: String = "",
+    val formPunchOutTime: String = ""
 )
 
 class EmployeeAdminViewModel(private val repository: EmployeeAdminRepository) : ViewModel() {
@@ -52,10 +54,24 @@ class EmployeeAdminViewModel(private val repository: EmployeeAdminRepository) : 
     fun onFormRoleChanged(r: EmployeeRole) { _state.update { it.copy(formRole = r) } }
     fun onFormActiveToggled(v: Boolean) { _state.update { it.copy(formIsActive = v) } }
     fun onFormOutletSelected(id: Long?) { _state.update { it.copy(formOutletId = id) } }
+    fun onFormPunchInTimeChanged(v: String) { _state.update { it.copy(formPunchInTime = v) } }
+    fun onFormPunchOutTimeChanged(v: String) { _state.update { it.copy(formPunchOutTime = v) } }
 
     fun dismissFormWorkspace() { _state.update { it.copy(isFormWindowOpen = false) } }
     fun dismissSuccessDialog() { _state.update { it.copy(successMessage = null) } }
     fun dismissErrorMessage() { _state.update { it.copy(dynamicErrorMessage = null) } }
+
+    suspend fun uploadImageBytes(bytes: ByteArray, prefix: String): String {
+        return repository.uploadImageBytes(bytes, prefix)
+    }
+
+    suspend fun createEmployeeDirect(model: EmployeeAdminUiModel, imgUrl: String?) {
+        repository.createEmployee(model, imgUrl)
+    }
+
+    suspend fun updateEmployeeDirect(model: EmployeeAdminUiModel, imgUrl: String?) {
+        repository.updateEmployeeRecord(model, imgUrl)
+    }
 
     fun loadAllEmployeesDirectory() {
         viewModelScope.launch {
@@ -82,7 +98,9 @@ class EmployeeAdminViewModel(private val repository: EmployeeAdminRepository) : 
                 formWorkspaceTargetId = null, formOutletId = null, formName = "", formAddress = "",
                 formContact = "", formAadharNo = "", formEmergencyContact = "", formSalary = "",
                 formProfileImgUrl = "", formJoiningDate = "", formPasswordText = "",
-                formRole = EmployeeRole.EMPLOYEE, formIsActive = true, isFormWindowOpen = true
+                formRole = EmployeeRole.EMPLOYEE, formIsActive = true,
+                formPunchInTime = "", formPunchOutTime = "",
+                isFormWindowOpen = true
             )}
         } else {
             _state.update { it.copy(
@@ -91,6 +109,7 @@ class EmployeeAdminViewModel(private val repository: EmployeeAdminRepository) : 
                 formEmergencyContact = target.emergencyContact, formSalary = target.salary,
                 formProfileImgUrl = target.profileImgUrl, formJoiningDate = target.joiningDate,
                 formPasswordText = target.passwordText, formRole = target.role, formIsActive = target.isActive,
+                formPunchInTime = target.punchInTime, formPunchOutTime = target.punchOutTime,
                 isFormWindowOpen = true
             )}
         }
@@ -119,7 +138,8 @@ class EmployeeAdminViewModel(private val repository: EmployeeAdminRepository) : 
                     address = s.formAddress, contact = s.formContact, aadharNo = s.formAadharNo,
                     emergencyContact = s.formEmergencyContact, salary = s.formSalary,
                     profileImgUrl = s.formProfileImgUrl, joiningDate = s.formJoiningDate,
-                    passwordText = s.formPasswordText, role = s.formRole, isActive = s.formIsActive
+                    passwordText = s.formPasswordText, role = s.formRole, isActive = s.formIsActive,
+                    punchInTime = s.formPunchInTime, punchOutTime = s.formPunchOutTime
                 )
 
                 if (s.formWorkspaceTargetId == null) {
